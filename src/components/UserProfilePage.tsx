@@ -30,7 +30,7 @@ export  function UserProfilePage() {
     bio: "Sculptrice passionnée 🎨 | Créatrice d'art contemporain",
     location: "Paris, France",
     website: "sophiemartin-art.com",
-    joinDate: "Janvier 2023",
+    joinDate: "Janvier 2024",
     fans: "15.4K",
     votes: "12.8K",
     stars: "342",
