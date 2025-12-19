@@ -1,0 +1,7 @@
+{
+  "name": "Best",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
