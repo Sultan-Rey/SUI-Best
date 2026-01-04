@@ -1,0 +1,419 @@
+.app-loading-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-loading-box {
+  background: #fff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 220px;
+}
+
+
+.custom-header {
+  ion-toolbar {
+    --background: #000055;
+    --color: white;
+    --border-style: none;
+    padding: 10px 5px;
+  }
+  .back-circle {
+    --background: rgba(255,255,255,0.1);
+    --border-radius: 50%;
+    --color: white;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.register-content {
+  --background: #fdfdfd;
+
+  .register-container {
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  // Progress Dots
+  .progress-container {
+    text-align: center;
+    margin-bottom: 20px;
+    p { font-size: 12px; color: #94a3b8; font-weight: 600; }
+    .dots-stepper {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 5px;
+      .dot {
+        width: 8px; height: 8px; background: #e2e8f0; border-radius: 50%;
+        transition: 0.3s;
+        &.active { background: #ff7f00; width: 20px; border-radius: 10px; }
+      }
+    }
+  }
+
+  .welcome-msg {
+    margin-bottom: 30px;
+    h1 { font-size: 28px; font-weight: 800; color: #000055; margin-bottom: 5px; }
+    p { color: #64748b; font-size: 16px; margin: 0; }
+  }
+
+  // Form Cards & Inputs
+  .custom-item {
+  --background: #f8fafc;
+  --border-radius: 12px;
+  --border-color: #e2e8f0;
+  --border-width: 1px;
+  --highlight-color-focused: #ff7f00; // Orange au focus
+  margin-bottom: 16px;
+
+  // Force la visibilité du label en haut
+  ion-label {
+    color: #000055 !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+    font-size: 14px !important;
+    transform: none !important; // Garde le label fixe en haut
+  }
+
+  // Cible l'input natif à l'intérieur du composant
+  .input-fix {
+    --placeholder-color: #94a3b8; // Gris bleuté visible
+    --placeholder-opacity: 1;
+    --color: #000055; // Couleur du texte saisi
+    font-size: 15px;
+    margin-top: 5px;
+  }
+
+  // Hack pour le placeholder dans le Shadow DOM d'Ionic
+  // Style pour les placeholders
+ion-input {
+  --placeholder-color: #94a3b8; // Gris bleuté plus visible
+  --placeholder-opacity: 1; // Assure une opacité complète
+  --padding-start: 8px; // Ajoute un peu d'espace après l'icône
+  color: #000055; // Couleur du texte saisi
+  font-size: 15px;
+  
+  // Style spécifique pour le placeholder
+  &::placeholder {
+    color: var(--placeholder-color);
+    opacity: 1; // Important pour certains navigateurs
+  }
+}
+
+// Pour les icônes dans les champs
+.custom-item {
+  ion-icon {
+    color: #94a3b8; // Couleur des icônes
+    font-size: 20px;
+    margin-right: 8px;
+  }
+  
+  // Style au focus
+  &.item-has-focus {
+    ion-icon {
+      color: #ff7f00; // Couleur orange au focus
+    }
+  }
+}
+
+// Pour le champ mot de passe
+.password-toggle {
+  color: #94a3b8;
+  font-size: 20px;
+  padding: 0 10px;
+  cursor: pointer;
+  
+  &:hover {
+    color: #ff7f00;
+  }
+}
+}
+
+// État quand on clique dans le champ
+.custom-item.item-has-focus {
+  --border-color: #ff7f00;
+  --background: #ffffff;
+}
+
+.custom-datetime-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+
+  ion-datetime-button {
+    width: 100%;
+    --padding-end: 16px;
+    --padding-start: 16px;
+    
+    &::part(native) {
+      width: 100%;
+      justify-content: space-between;
+      padding: 16px;
+    }
+  }
+
+  ion-label {
+    margin-inline: 16px 0;
+  }
+}
+
+// Style pour le modal du datepicker
+ion-modal {
+  --width: 100%;
+  --max-width: 400px;
+  --height: 50%;
+  --border-radius: 16px;
+  
+  ion-datetime {
+    height: 100%;
+    --background: var(--ion-color-light);
+  }
+}
+
+ion-modal {
+  --width: 90%;
+  --height: 50%;
+  --border-radius: 16px;
+}
+  .row-inputs {
+    display: flex; gap: 10px;
+    ion-item { flex: 1; }
+  }
+
+  // Styles pour le bouton de sélection de date
+  .custom-datetime-item {
+    --padding-start: 0;
+    --inner-padding-end: 0;
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    
+    ion-label {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      margin-bottom: 8px;
+      font-weight: 500;
+      display: block;
+    }
+    
+    .date-picker-button {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --padding-top: 12px;
+      --padding-bottom: 12px;
+      --border-radius: 8px;
+      --border-style: solid;
+      --border-width: 1px;
+      --border-color: var(--ion-color-medium);
+      --color: #000000;
+      --color-hover: #000000;
+      --color-focused: #000000;
+      --color-activated: #000000;
+      font-size: 16px;
+      text-transform: none;
+      letter-spacing: 0.5px;
+      height: 48px;
+      margin: 0;
+      width: 100%;
+      justify-content: space-between;
+      color: #000000;
+      
+      &::part(native) {
+        padding: 0 16px;
+        color: #000000;
+      }
+      
+      &:hover {
+        --background: var(--ion-color-light);
+      }
+      
+      &:active {
+        --background: var(--ion-color-light-shade);
+      }
+    }
+  }
+
+  .selection-label {
+    font-size: 14px; font-weight: 700; color: #000055;
+    margin: 20px 0 12px 5px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  // Grid des Talents (Type Card)
+  .type-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    .type-card {
+      background: white; border: 2px solid #f1f5f9; border-radius: 16px;
+      padding: 15px; text-align: center; transition: 0.3s ease;
+      ion-icon { font-size: 30px; color: #94a3b8; margin-bottom: 8px; }
+      h4 { margin: 0; font-size: 14px; color: #475569; }
+      &.active {
+        border-color: #ff7f00; background: rgba(255,127,0,0.05);
+        ion-icon, h4 { color: #ff7f00; }
+      }
+    }
+  }
+
+  // Grille des genres (Chips)
+  .gender-grid {
+    display: flex; gap: 10px; margin-bottom: 15px;
+    .chip-card {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; background: #f1f5f9; border-radius: 50px;
+      color: #64748b; font-weight: 600; font-size: 13px; transition: 0.2s;
+      &.active { background: #000055; color: white; }
+    }
+  }
+
+  // Bouton Principal
+  .main-btn {
+    --background: #ff7f00;
+    --border-radius: 16px;
+    --box-shadow: 0 10px 20px rgba(255,127,0,0.2);
+    height: 60px; font-weight: 700; font-size: 18px; margin-top: 30px;
+    text-transform: none;
+  }
+
+  //Status
+  .status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); // 2 colonnes pour un accès rapide au pouce
+  gap: 10px;
+  margin-bottom: 20px;
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px 10px;
+    background: #f1f5f9;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    ion-icon {
+      font-size: 20px;
+      color: #64748b;
+    }
+
+    span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    &.active {
+      background: rgba(255, 127, 0, 0.1);
+      border-color: #ff7f00;
+      
+      ion-icon, span {
+        color: #ff7f00;
+      }
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+// Zone de scann
+.scanner-active {
+  --background: transparent;
+  --ion-background-color: transparent;
+}
+
+.scan-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  color: var(--ion-color-success);
+  
+  ion-icon {
+    margin-right: 8px;
+  }
+}
+
+.toggle-pwd {
+  margin-top: 25px; // Aligne l'oeil avec l'input sous le label stacked
+  color: #94a3b8;
+  font-size: 20px;
+}
+
+  // Social Login (Step 2)
+  .social-fast-track {
+    display: flex; flex-direction: column; gap: 10px;
+    .google-pill, .facebook-pill {
+      --border-radius: 50px; height: 50px; text-transform: none; font-weight: 600;
+    }
+    .google-pill { --background: white; --color: #444; border: 1px solid #e2e8f0; }
+    .facebook-pill { --background: #1877f2; }
+  }
+
+  .divider {
+    text-align: center; margin: 30px 0; border-bottom: 1px solid #f1f5f9; height: 10px;
+    span { background: #fdfdfd; padding: 0 15px; font-size: 11px; color: #94a3b8; font-weight: 700; }
+  }
+}
+
+.upload-section {
+  margin: 20px 0;
+  text-align: center;
+
+  .upload-hint {
+    color: var(--ion-color-medium);
+    margin-bottom: 15px;
+  }
+
+  .file-drop {
+    border: 2px dashed var(--ion-color-medium);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 100px;
+
+    ion-icon {
+      font-size: 2.5rem;
+      color: var(--ion-color-primary);
+      margin-bottom: 10px;
+    }
+
+    &:hover {
+      background: rgba(var(--ion-color-primary-rgb), 0.05);
+      border-color: var(--ion-color-primary);
+    }
+  }
+
+  .scan-success {
+    margin-top: 15px;
+    color: var(--ion-color-success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    ion-icon {
+      font-size: 1.2rem;
+    }
+  }
+}

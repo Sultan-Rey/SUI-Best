@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "182727338924",
+    "firebase_url": "https://datafire-681e8.firebaseio.com",
+    "project_id": "datafire-681e8",
+    "storage_bucket": "datafire-681e8.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:182727338924:android:4de9705441efcd27f06809",
+        "android_client_info": {
+          "package_name": "com.bestacademy.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "182727338924-6he88sjsnu7dc2nhng5u29m3u3j23gc3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ6_oGJSTssPJp-8hK6tapNUw5cpjQSGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "182727338924-6he88sjsnu7dc2nhng5u29m3u3j23gc3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:182727338924:android:43b3f146ecb4e5f0f06809",
+        "android_client_info": {
+          "package_name": "com.katalog.project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "182727338924-6he88sjsnu7dc2nhng5u29m3u3j23gc3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ6_oGJSTssPJp-8hK6tapNUw5cpjQSGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "182727338924-6he88sjsnu7dc2nhng5u29m3u3j23gc3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:182727338924:android:cbe22ef6e08c82fbf06809",
+        "android_client_info": {
+          "package_name": "com.majorware.echosms"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "182727338924-6he88sjsnu7dc2nhng5u29m3u3j23gc3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ6_oGJSTssPJp-8hK6tapNUw5cpjQSGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "182727338924-6he88sjsnu7dc2nhng5u29m3u3j23gc3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

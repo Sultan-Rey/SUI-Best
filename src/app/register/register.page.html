@@ -1,0 +1,171 @@
+<ion-header class="ion-no-border custom-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" class="back-circle">
+        <ion-icon name="chevron-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Inscription</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="register-content" [fullscreen]="true">
+  <div class="app-loading-backdrop" *ngIf="isLoading">
+  <div class="app-loading-box">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Création de votre compte…</p>
+  </div>
+</div>
+
+
+  <div class="register-container">
+    
+    <div class="progress-container">
+      <div class="dots-stepper">
+        <div class="dot" [class.active]="currentStep >= 1"></div>
+        <div class="dot" [class.active]="currentStep >= 2"></div>
+      </div>
+      <p>Étape {{ currentStep }}/{{ totalSteps }}</p>
+    </div>
+
+    <div class="step-wrapper" *ngIf="currentStep === 1">
+      <div class="welcome-msg">
+        <h1>Bienvenue ! 🚀</h1>
+        <p>On commence par les présentations ?</p>
+      </div>
+
+      <div class="form-card">
+        <div class="row-inputs">
+          <ion-item fill="outline" class="custom-item" lines="none">
+  <ion-label position="stacked">Prénom</ion-label>
+  <ion-input 
+    [(ngModel)]="registrationData.first_name" 
+    placeholder="Ex: John"
+    class="input-fix">
+  </ion-input>
+</ion-item>
+          <ion-item fill="outline" class="custom-item" lines="none">
+  <ion-label position="stacked">Nom</ion-label>
+  <ion-input 
+    [(ngModel)]="registrationData.last_name" 
+    placeholder="Ex: John"
+    class="input-fix">
+  </ion-input>
+</ion-item>
+        </div>
+
+        <div class="selection-label">Je suis...</div>
+        <div class="gender-grid">
+          <div *ngFor="let opt of genderOptions" 
+               [class.active]="registrationData.gender === opt.value"
+               (click)="registrationData.gender = opt.value" class="chip-card">
+            <ion-icon [name]="opt.icon"></ion-icon>
+            <span>{{ opt.label }}</span>
+          </div>
+        </div>
+
+       
+
+<ion-item fill="outline" class="custom-item custom-datetime-item" lines="none">
+  <ion-label position="stacked">Date de naissance *</ion-label>
+  <ion-button expand="block" (click)="openDatePicker()" fill="outline" class="date-picker-button">
+    {{ registrationData.birthDate ? (registrationData.birthDate | date: 'dd/MM/yyyy') : 'Sélectionner une date' }}
+  </ion-button>
+</ion-item>
+
+<!-- Modal de sélection de date -->
+<ion-modal [isOpen]="isDatePickerOpen" (didDismiss)="isDatePickerOpen = false">
+  <ng-template>
+    <ion-datetime
+      [value]="registrationData.birthDate"
+      (ionChange)="onDateSelected($event)"
+      [max]="maxDate"
+      presentation="date"
+      showDefaultButtons="true"
+      doneText="Valider"
+      cancelText="Annuler">
+    </ion-datetime>
+  </ng-template>
+</ion-modal>
+
+        <div class="selection-label">Mon profil talent</div>
+        <div class="type-grid">
+          <div *ngFor="let type of accountTypes" 
+               [class.active]="registrationData.user_type === type.value"
+               (click)="registrationData.user_type = type.value" class="type-card">
+            <div class="type-content">
+              <ion-icon [name]="type.icon"></ion-icon>
+              <h4>{{ type.label }}</h4>
+            </div>
+          </div>
+        </div>
+
+        <ion-button expand="block" class="main-btn" (click)="nextStep()">
+          Suivant
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <div class="step-wrapper" *ngIf="currentStep === 2">
+      <div class="welcome-msg">
+        <h1>Dernière étape 🔒</h1>
+        <div class="form-card">
+    <div class="selection-label">Mon Statut *</div>
+    <div class="status-grid">
+      <div 
+        *ngFor="let option of statusOptions"
+        class="status-pill"
+        [class.active]="registrationData.user_status === option.value"
+        (click)="registrationData.user_status = option.value"
+      >
+        <ion-icon [name]="option.icon"></ion-icon>
+        <span>{{ option.label }}</span>
+      </div>
+    </div>
+
+    <div class="upload-section" *ngIf="needsProof()">
+  <p class="upload-hint">Scannez votre QR code étudiant</p>
+  <div class="file-drop" (click)="scanQRCode()">
+    <ion-icon name="qr-code-outline"></ion-icon>
+    <span>{{ studentProofName || 'Scanner le QR code' }}</span>
+  </div>
+  <div *ngIf="registrationData.QR_proof" class="scan-success">
+    <ion-icon name="checkmark-circle" color="success"></ion-icon>
+    <span>QR code scanné avec succès</span>
+  </div>
+</div>
+    </div>
+        <p>Comment souhaites-tu te connecter ?</p>
+      </div>
+
+      <div class="social-fast-track">
+        <ion-button class="google-pill" (click)="loginWithGoogle()">
+          <ion-icon name="logo-google" slot="start"></ion-icon> Google
+        </ion-button>
+        <ion-button  class="facebook-pill" (click)="loginWithFacebook()">
+          <ion-icon name="logo-facebook" slot="start"></ion-icon> Facebook
+        </ion-button>
+      </div>
+
+      <div class="divider"><span>OU PAR EMAIL</span></div>
+
+      <div class="form-card">
+        <ion-item fill="outline" class="custom-item" lines="none" slot="none">
+          <ion-icon name="mail-outline" slot="start"></ion-icon>
+          <ion-input type="email"  placeholder="Email" [(ngModel)]="registrationData.email"></ion-input>
+        </ion-item>
+
+        <ion-item fill="outline" class="custom-item" lines="none" slot="none">
+          <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+          <ion-input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="registrationData.password" placeholder="Mot de passe"></ion-input>
+          <ion-icon [name]="showPassword ? 'eye-off' : 'eye'" slot="end" (click)="showPassword = !showPassword"></ion-icon>
+        </ion-item>
+
+        <ion-button expand="block" class="main-btn finish" (click)="register()">
+          C'est parti !
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,271 @@
+.create-post-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  
+  .step-dot {
+    width: 24px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--ion-color-medium);
+    transition: all 0.3s ease;
+    
+    &.active {
+      width: 40px;
+      background-color: var(--ion-color-primary);
+    }
+    
+    &.completed {
+      background-color: var(--ion-color-success);
+    }
+  }
+}
+
+.step-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-container {
+  border: 2px dashed var(--ion-color-medium);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:active {
+    background-color: rgba(var(--ion-color-medium-rgb), 0.1);
+  }
+}
+
+.upload-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  img, video {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+}
+
+.remove-media-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --background: rgba(0, 0, 0, 0.5);
+  --border-radius: 50%;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  font-size: 64px;
+  color: var(--ion-color-medium);
+  margin-bottom: 16px;
+}
+
+.upload-text {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 8px 0;
+  color: var(--ion-text-color);
+}
+
+.upload-subtext {
+  color: var(--ion-color-medium);
+  font-size: 14px;
+  margin: 0;
+}
+
+.preview-image,
+.preview-video {
+  max-width: 100%;     // Limite la largeur maximale
+  max-height: 60vh;    // Limite la hauteur à 60% de la hauteur de l'écran
+  width: auto;         // Maintient les proportions
+  height: auto;        // Maintient les proportions
+  display: block;      // Évite les marges indésirables
+  margin: 0 auto;      // Centre l'élément
+  border-radius: 8px;  // Coins arrondis pour un meilleur rendu
+  object-fit: contain; // Assure que toute l'image est visible
+}
+
+.preview-video {
+  background-color: #000; // Fond noir pour les vidéos
+  width: 100%;          // Prend toute la largeur disponible
+}
+
+.file-preview {
+  margin-top: 16px;
+  border-top: 1px solid var(--ion-color-medium);
+  padding-top: 16px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: rgba(var(--ion-color-medium-rgb), 0.1);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  
+  ion-icon {
+    margin-right: 12px;
+    font-size: 24px;
+  }
+  
+  .file-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.challenge-list {
+  background: transparent;
+  
+  ion-item {
+    --background: rgba(var(--ion-color-medium-rgb), 0.1);
+    --border-radius: 12px;
+    margin-bottom: 12px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --inner-padding-end: 8px;
+    
+    &.selected {
+      --background: rgba(var(--ion-color-primary-rgb), 0.1);
+      --border: 2px solid var(--ion-color-primary);
+    }
+    
+    h3 {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    p {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      margin: 0;
+    }
+  }
+}
+
+.navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding: 0 8px;
+  
+  .nav-button {
+    --padding-start: 24px;
+    --padding-end: 24px;
+    --border-radius: 12px;
+    height: 48px;
+    font-weight: 600;
+    
+    &.next {
+      --background: var(--ion-color-primary);
+      --color: white;
+    }
+  }
+  
+  .share-button {
+    --border-radius: 12px;
+    --padding-start: 32px;
+    --padding-end: 32px;
+    height: 48px;
+    font-weight: 600;
+    --background: var(--ion-color-primary);
+  }
+  
+  .spacer {
+    flex: 1;
+  }
+}
+
+// Style pour l'étape 2
+.step-content {
+  ion-list {
+    background: var(--ion-color-dark);
+    border-radius: 12px;
+    margin: 16px 0;
+    padding: 8px 0;
+    
+    ion-item {
+      --background: transparent;
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --inner-padding-end: 8px;
+      --min-height: 56px;
+      --border-color: rgba(var(--ion-color-light-rgb), 0.1);
+      
+      ion-label {
+        color: var(--ion-color-light);
+        font-size: 16px;
+      }
+      
+      ion-toggle {
+        --background: var(--ion-color-medium);
+        --background-checked: var(--ion-color-primary);
+        --handle-background: var(--ion-color-light);
+        --handle-background-checked: var(--ion-color-light);
+      }
+    }
+  }
+
+  .description-section {
+    ion-item {
+      --background: var(--ion-color-dark);
+      --border-radius: 12px;
+      --padding-start: 8px;
+      --padding-end: 8px;
+      margin: 16px 0;
+      
+      ion-textarea {
+        --color: var(--ion-color-light);
+        --placeholder-color: var(--ion-color-medium);
+        --padding-start: 8px;
+        --padding-end: 8px;
+      }
+    }
+  }
+}

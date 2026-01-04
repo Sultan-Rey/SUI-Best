@@ -1,0 +1,160 @@
+.login-content {
+  // Fond sombre bleu nuit professionnel
+  --background: #9797a4; 
+  
+  .login-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 30px;
+  }
+
+  .header-section {
+    text-align: center;
+    margin-bottom: 50px;
+
+    .logo-wrapper {
+      margin-bottom: 15px;
+      .app-logo {
+        width: 150px; // Ajustez selon votre logo
+        height: auto;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+      }
+    }
+
+    .welcome-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 5px;
+    }
+  }
+
+  .form-section {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 40px 25px 30px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+
+    .input-group {
+      position: relative;
+      margin-bottom: 15px;
+
+      .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: #000055;
+        z-index: 2;
+      }
+
+      .custom-input {
+        --background: #f4f5f8;
+        --padding-start: 48px;
+        --padding-end: 45px;
+        --border-radius: 12px;
+        font-size: 15px;
+        height: 54px;
+        color: #000033;
+      }
+
+      .toggle-password {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: #a0aec0;
+        z-index: 2;
+      }
+    }
+
+    .forgot-password {
+      text-align: right;
+      margin-bottom: 25px;
+      a {
+        color: #718096;
+        font-size: 13px;
+        text-decoration: none;
+      }
+    }
+
+    .login-button {
+      --background: #ff7f00; // Orange vif pour l'action
+      --background-activated: #e67200;
+      --border-radius: 12px;
+      --box-shadow: 0 4px 15px rgba(255, 127, 0, 0.3);
+      height: 54px;
+      font-weight: 700;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 25px 0;
+      &::before, &::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: #eee;
+      }
+      span {
+        padding: 0 15px;
+        color: #cbd5e0;
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
+    .social-login {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 25px;
+
+      .social-btn {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 1px solid #edf2f7;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        transition: all 0.2s;
+
+        &:active { transform: scale(0.9); }
+        
+        &.google { color: #db4437; }
+        &.facebook { color: #4267B2; }
+      }
+    }
+
+    .register-link {
+      text-align: center;
+      p {
+        font-size: 14px;
+        color: #4a5568;
+        a {
+          color: #ff7f00;
+          font-weight: 700;
+          text-decoration: none;
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Best</string>
+    <string name="title_activity_main">Best</string>
+    <string name="package_name">com.bestacademy.app</string>
+    <string name="custom_url_scheme">com.bestacademy.app</string>
+</resources>

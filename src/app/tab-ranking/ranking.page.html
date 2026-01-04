@@ -1,0 +1,93 @@
+<ion-header [translucent]="true" class="header">
+  <ion-toolbar class="header-toolbar">
+    <div class="search-container">
+      <div class="search-wrapper">
+        <ion-icon name="search" class="search-icon"></ion-icon>
+        <input
+          type="text"
+          placeholder="Search Artists..."
+          class="search-input"
+        />
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" color="dark">
+  <div class="ranking-container">
+    <!-- Header Section -->
+    <div class="header-section">
+      <h1 class="main-title">Classement des Artistes</h1>
+      <p class="subtitle">Découvrez les talents qui font vibrer notre communauté</p>
+      
+      <!-- Tab Buttons -->
+      <div class="tab-buttons">
+        <ion-button 
+          [fill]="selectedTab === 'votes' ? 'solid' : 'outline'" 
+          [color]="selectedTab === 'votes' ? 'warning' : 'medium'"
+          (click)="selectTab('votes')"
+          class="tab-button">
+          <ion-icon name="trophy" slot="start"></ion-icon>
+          Top Votes
+        </ion-button>
+        <ion-button 
+          [fill]="selectedTab === 'dons' ? 'solid' : 'outline'" 
+          [color]="selectedTab === 'dons' ? 'warning' : 'medium'"
+          (click)="selectTab('dons')"
+          class="tab-button">
+          <ion-icon name="cash" slot="start"></ion-icon>
+          Top Dons
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Top 6 Section -->
+    <div class="top-section">
+      <h2 class="section-title">Top 6</h2>
+      
+      <div class="top-artists-scroll">
+        <div class="artist-card" *ngFor="let artist of topArtists">
+          <div class="rank-badge">
+            <ion-icon name="trophy"></ion-icon>
+            <span>{{ artist.rank }}</span>
+          </div>
+          <div class="artist-image" [style.background-image]="'url(' + artist.imageUrl + ')'">
+            <div class="image-overlay"></div>
+          </div>
+          <div class="artist-info">
+            <h3 class="artist-name">{{ artist.name }}</h3>
+            <p class="artist-category">{{ artist.category }}</p>
+            <p class="artist-votes">{{ formatVotes(artist.votes) }} votes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Artists Section -->
+    <div class="all-artists-section">
+      <h2 class="section-title">Tous les artistes</h2>
+      
+      <div class="artists-grid">
+        <ion-card 
+          class="artist-grid-card" 
+          *ngFor="let artist of allArtists"
+          button="true">
+          <div class="rank-corner" *ngIf="artist.rank">
+            <span>{{ artist.rank }}</span>
+          </div>
+          <ion-icon 
+            [name]="artist.isFavorite ? 'star' : 'star-outline'" 
+            class="favorite-icon"
+            [class.active]="artist.isFavorite"
+            (click)="toggleFavorite(artist); $event.stopPropagation()">
+          </ion-icon>
+          <div class="card-image" [style.background-image]="'url(' + artist.imageUrl + ')'"></div>
+          <ion-card-content>
+            <h3>{{ artist.name }}</h3>
+            <p>{{ artist.category }}</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+  </div>
+</ion-content>

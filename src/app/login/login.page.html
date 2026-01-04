@@ -1,0 +1,67 @@
+<ion-content class="login-content">
+  <div class="login-container">
+    
+    <div class="header-section">
+      <div class="logo-wrapper">
+        <img src="assets/logo/logo.png"  alt="Logo Talent" class="app-logo">
+      </div>
+      <h1 class="welcome-text">Révélez votre talent</h1>
+      <p class="subtitle">La scène n'attend que vous.</p>
+    </div>
+
+    <div class="form-section">
+      <div class="input-group">
+        <ion-icon name="mail-outline" class="input-icon"></ion-icon>
+        <ion-input
+          [(ngModel)]="email"
+          type="email"
+          placeholder="Email"
+          class="custom-input">
+        </ion-input>
+      </div>
+
+      <div class="input-group">
+        <ion-icon name="lock-closed-outline" class="input-icon"></ion-icon>
+        <ion-input
+          [(ngModel)]="password"
+          [type]="showPassword ? 'text' : 'password'"
+          placeholder="Mot de passe"
+          class="custom-input">
+        </ion-input>
+        <ion-icon 
+          [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"
+          (click)="togglePasswordVisibility()"
+          class="toggle-password">
+        </ion-icon>
+      </div>
+
+      <div class="forgot-password">
+        <a (click)="navigateToForgotPassword()">Mot de passe oublié ?</a>
+      </div>
+
+      <ion-button 
+        expand="block" 
+        (click)="loginWithEmail()"
+        class="login-button">
+        Se connecter
+      </ion-button>
+
+      <div class="divider">
+        <span>OU</span>
+      </div>
+
+      <div class="social-login">
+        <button (click)="loginWithGoogle()" class="social-btn google">
+          <ion-icon name="logo-google"></ion-icon>
+        </button>
+        <button (click)="loginWithFacebook()" class="social-btn facebook">
+          <ion-icon name="logo-facebook"></ion-icon>
+        </button>
+      </div>
+
+      <div class="register-link">
+        <p>Pas encore de compte ? <a (click)="navigateToRegister()">S'inscrire</a></p>
+      </div>
+    </div>
+  </div>
+</ion-content>

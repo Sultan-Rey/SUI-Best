@@ -1,0 +1,59 @@
+<ion-header [translucent]="true" class="header">
+  <ion-toolbar class="header-toolbar">
+    <div class="search-container">
+      <div class="search-wrapper">
+        <ion-icon name="search" class="search-icon"></ion-icon>
+        <input
+          type="text"
+          placeholder="Search Artists, Schools, Categories..."
+          class="search-input"
+        />
+      </div>
+      <button class="notification-button">
+        <ion-icon name="notifications-outline" class="notification-icon"></ion-icon>
+        <span class="notification-badge"></span>
+      </button>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="content">
+  <div class="video-container">
+    <img [src]="currentPost.videoThumbnail" [alt]="currentPost.artistName" class="video-thumbnail">
+    <div class="video-overlay"></div>
+  </div>
+
+  <!-- Bouton Play -->
+  <div class="play-button-container">
+    <ion-button class="play-button" (click)="playVideo()">
+      <ion-icon name="play" class="play-icon"></ion-icon>
+    </ion-button>
+  </div>
+
+  <!-- Contenu principal -->
+  <div class="main-content">
+    <!-- Informations de l'artiste -->
+    <div class="artist-info">
+      <div class="artist-header">
+        <img [src]="currentPost.artistAvatar" [alt]="currentPost.artistName" class="artist-avatar">
+        <div class="artist-details">
+          <h3 class="artist-name">{{ currentPost.artistName }}</h3>
+          <p class="artist-location">{{ currentPost.location }}</p>
+        </div>
+      </div>
+      <ion-button class="vote-button" expand="block" (click)="voteForArtist()">
+        Voter pour cet artiste
+      </ion-button>
+    </div>
+
+    <!-- Actions latérales -->
+    <div class="side-actions">
+      <button class="action-button" *ngFor="let action of actions" (click)="handleAction(action)">
+        <div class="action-icon">
+          <ion-icon [name]="action.icon" class="action-icon-svg"></ion-icon>
+        </div>
+        <span class="action-count" *ngIf="action.count">{{ action.count }}</span>
+      </button>
+    </div>
+  </div>
+</ion-content>

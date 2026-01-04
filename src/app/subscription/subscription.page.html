@@ -1,0 +1,86 @@
+<ion-header class="custom-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Choisir votre plan</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="subscription-content">
+  <div class="subscription-container">
+    
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="icon-wrapper">
+        <ion-icon name="sparkles" class="main-icon"></ion-icon>
+      </div>
+      <h1>Choisissez votre expérience</h1>
+      <p>Sélectionnez le plan qui vous convient le mieux</p>
+    </div>
+
+    <!-- Plans Grid -->
+    <div class="plans-grid">
+      <div 
+        *ngFor="let plan of plans" 
+        class="plan-card"
+        [class.selected]="selectedPlan === plan.id"
+        [class.popular]="plan.popular"
+        (click)="selectPlan(plan.id)"
+      >
+        <!-- Popular Badge -->
+        <div class="popular-badge" *ngIf="plan.popular">
+          <ion-icon name="flame"></ion-icon>
+          Populaire
+        </div>
+
+        <!-- Plan Header -->
+        <div class="plan-header" [style.background]="plan.color">
+          <ion-icon [name]="plan.icon" class="plan-icon"></ion-icon>
+          <h2>{{ plan.name }}</h2>
+        </div>
+
+        <!-- Plan Price -->
+        <div class="plan-price">
+          <span class="currency" *ngIf="plan.price > 0">€</span>
+          <span class="amount">{{ plan.price === 0 ? 'Gratuit' : plan.price }}</span>
+          <span class="period" *ngIf="plan.price > 0">{{ plan.period }}</span>
+        </div>
+
+        <!-- Plan Features -->
+        <div class="plan-features">
+          <div class="feature" *ngFor="let feature of plan.features">
+            <ion-icon name="checkmark-circle" class="check-icon"></ion-icon>
+            <span>{{ feature }}</span>
+          </div>
+        </div>
+
+        <!-- Selection Indicator -->
+        <div class="selection-indicator" *ngIf="selectedPlan === plan.id">
+          <ion-icon name="checkmark-circle"></ion-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Button -->
+    <div class="cta-section">
+      <ion-button
+        expand="block"
+        class="subscribe-btn"
+        [disabled]="!selectedPlan"
+        (click)="subscribe()"
+      >
+        <ion-icon name="rocket" slot="start"></ion-icon>
+        Commencer maintenant
+      </ion-button>
+      
+      <p class="terms">
+        En continuant, vous acceptez nos 
+        <a href="#">conditions d'utilisation</a>
+      </p>
+    </div>
+
+  </div>
+</ion-content>

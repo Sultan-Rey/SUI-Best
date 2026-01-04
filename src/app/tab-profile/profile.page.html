@@ -1,0 +1,181 @@
+<ion-header color="dark" [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-buttons slot="end">
+      <ion-button (click)="presentShareOptions()">
+        <ion-icon slot="icon-only" name="share-social-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="presentMoreOptions()">
+        <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" color="dark">
+  <div class="profile-container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <div class="avatar-container">
+        <div class="avatar-wrapper">
+          <img [src]="userProfile.avatar" [alt]="userProfile.displayName" class="avatar">
+          <div class="avatar-border"></div>
+        </div>
+        <ion-button 
+          fill="clear" 
+          class="add-story-btn"
+          size="small">
+          <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+
+      <div class="profile-info">
+        <div class="name-row">
+          <h1 class="display-name">{{ userProfile.displayName }}</h1>
+          <ion-icon 
+            *ngIf="userProfile.isVerified" 
+            name="checkmark-circle" 
+            class="verified-badge">
+          </ion-icon>
+        </div>
+        <p class="username">{{ userProfile.username }}</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-value">{{ userProfile.stats.posts }}</div>
+          <div class="stat-label">Posts</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ formatNumber(userProfile.stats.fans) }}</div>
+          <div class="stat-label">Fans</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ formatNumber(userProfile.stats.votes) }}</div>
+          <div class="stat-label">Votes</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ userProfile.stats.stars }}</div>
+          <div class="stat-label">Stars</div>
+        </div>
+      </div>
+
+      <!-- Bio Section -->
+      <div class="bio-section">
+        <p class="bio-text">{{ userProfile.bio }}</p>
+        
+        <div class="info-items">
+          <div class="info-item">
+            <ion-icon name="location-outline" class="info-icon"></ion-icon>
+            <span>{{ userProfile.location }}</span>
+          </div>
+          <div class="info-item">
+            <ion-icon name="link-outline" class="info-icon"></ion-icon>
+            <span>{{ userProfile.website }}</span>
+          </div>
+          <div class="info-item">
+            <ion-icon name="calendar-outline" class="info-icon"></ion-icon>
+            <span>Membre depuis {{ userProfile.memberSince }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <ion-button 
+          [color]="userProfile.isFollowing ? 'medium' : 'warning'"
+          expand="block"
+          (click)="toggleFollow()"
+          class="follow-btn">
+          <span *ngIf="!userProfile.isFollowing">S'abonner</span>
+          <span *ngIf="userProfile.isFollowing">Abonné</span>
+        </ion-button>
+        
+        <ion-button 
+          color="dark"
+          expand="block"
+          (click)="sendMessage()"
+          class="message-btn">
+          Message
+        </ion-button>
+
+        <ion-button 
+          fill="clear"
+          class="external-btn"
+          size="small">
+          <ion-icon name="open-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <div 
+        class="tab-item"
+        [class.active]="selectedTab === 'posts'"
+        (click)="selectTab('posts')">
+        Posts
+      </div>
+      <div 
+        class="tab-item"
+        [class.active]="selectedTab === 'success'"
+        (click)="selectTab('success')">
+        Succès
+      </div>
+      <div 
+        class="tab-item"
+        [class.active]="selectedTab === 'info'"
+        (click)="selectTab('info')">
+        Info
+      </div>
+    </div>
+
+    <!-- Posts Grid -->
+    <div class="posts-grid" *ngIf="selectedTab === 'posts'">
+      <div 
+        class="post-item" 
+        *ngFor="let post of userPosts"
+        (click)="openPost(post)">
+        <img [src]="post.imageUrl" [alt]="post.title">
+        <div class="post-overlay">
+          <div class="post-votes">
+            <ion-icon name="heart"></ion-icon>
+            <span>{{ formatNumber(post.votes) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Tab -->
+    <div class="success-content" *ngIf="selectedTab === 'success'">
+      <div class="empty-state">
+        <ion-icon name="trophy-outline" class="empty-icon"></ion-icon>
+        <p class="empty-text">Aucun succès pour le moment</p>
+      </div>
+    </div>
+
+    <!-- Info Tab -->
+    <div class="info-content" *ngIf="selectedTab === 'info'">
+      <div class="info-card">
+        <h3>À propos</h3>
+        <p>{{ userProfile.bio }}</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>Informations</h3>
+        <div class="info-row">
+          <span class="info-label">Localisation</span>
+          <span class="info-value">{{ userProfile.location }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Site web</span>
+          <span class="info-value">{{ userProfile.website }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Membre depuis</span>
+          <span class="info-value">{{ userProfile.memberSince }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
