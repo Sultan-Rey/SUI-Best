@@ -1,0 +1,101 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Publication</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" *ngIf="content">
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner></ion-spinner>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <div *ngIf="content" class="post-container">
+    <!-- En-tête du post -->
+    <div class="post-header">
+      <ion-avatar class="post-avatar">
+        <img [src]="content.duration" alt="Profile">
+      </ion-avatar>
+      <div class="post-user-info">
+        <h3>{{ content.challengeId }}</h3>
+        <p>{{ content.createdAt | date:'dd/MM/yyyy' }}</p>
+      </div>
+      <ion-button fill="clear" class="post-options">
+        <ion-icon name="ellipsis-horizontal"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Contenu du post -->
+    <div class="post-content">
+      <div class="post-media" *ngIf="content.fileUrl">
+        <img [src]="getFullFileUrl(content.fileUrl)" [alt]="content.title" (click)="toggleMedia()">
+      </div>
+      <div class="post-caption">
+        <p><strong>{{ content.allowComments }}</strong> {{ content.description }}</p>
+      </div>
+    </div>
+
+    <!-- Actions du post -->
+    <div class="post-actions">
+      <div class="action-buttons">
+        <ion-button fill="clear" (click)="toggleLike()">
+          <ion-icon [name]="isLiked ? 'heart' : 'heart-outline'" [color]="isLiked ? 'danger' : ''"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" (click)="focusCommentInput()">
+          <ion-icon name="chatbubble-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" (click)="sharePost()">
+          <ion-icon name="paper-plane-outline"></ion-icon>
+        </ion-button>
+      </div>
+      <ion-button fill="clear" (click)="toggleSave()">
+        <ion-icon [name]="isSaved ? 'bookmark' : 'bookmark-outline'"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Likes et commentaires -->
+    <div class="post-stats">
+      <p *ngIf="content.likeCount > 0" class="likes-count">{{ content.likeCount }} j'aime</p>
+      <p *ngIf="content.commentCount > 0" class="comments-count" (click)="scrollToComments()">Voir les {{ content.commentCount }} commentaires</p>
+    </div>
+
+    <!-- Section commentaires -->
+    <div class="comments-section" #commentsSection>
+      <div class="comment" *ngFor="let comment of comments">
+        <ion-avatar class="comment-avatar">
+          <img [src]="comment.user.avatar || 'assets/avatar-default.png'" alt="Profile">
+        </ion-avatar>
+        <div class="comment-content">
+          <p><strong>{{ comment.user.username }}</strong> {{ comment.text }}</p>
+          <div class="comment-actions">
+            <span>{{ comment.timestamp | date:'dd/MM/yyyy' }}</span>
+            <span class="like-comment" (click)="likeComment('10')">J'aime</span>
+            <span *ngIf="comment.likes > 0" class="comment-likes">{{ comment.likes }} j'aime</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Champ de commentaire -->
+  <ion-footer class="comment-input-container">
+    <ion-avatar class="current-user-avatar">
+      <img [src]="currentUser?.email" alt="You">
+    </ion-avatar>
+    <ion-input 
+      #commentInput
+      placeholder="Ajouter un commentaire..." 
+      [(ngModel)]="newComment"
+      (keyup.enter)="addComment()"
+    ></ion-input>
+    <ion-button fill="clear" [disabled]="!newComment" (click)="addComment()">
+      <ion-icon name="send" [color]="newComment ? 'primary' : 'medium'"></ion-icon>
+    </ion-button>
+  </ion-footer>
+</ion-content>

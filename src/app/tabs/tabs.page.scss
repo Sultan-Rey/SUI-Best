@@ -24,3 +24,31 @@ ion-tab-bar {
     }
   }
 }
+
+
+.profile-tab {
+  position: relative;
+  display: inline-block;
+}
+
+.led-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--ion-color-light);
+
+  &.active {
+    background-color: #2dd36f; // Vert pour actif
+  }
+
+  &.expiring {
+    background-color: #ffc409; // Orange pour bientôt expiré
+  }
+
+  &.expired, &.inactive {
+    background-color: #eb445a; // Rouge pour expiré/inactif
+  }
+}

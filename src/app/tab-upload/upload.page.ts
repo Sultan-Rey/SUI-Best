@@ -1,82 +1,203 @@
-import { Component, OnInit } from '@angular/core';
-import { CameraService, UserPhoto } from '../../services/CAMERA_SERVICE/camera-service';
-import { ActionSheetController, ToastController } from '@ionic/angular/standalone';
-import {  IonContent, IonButton, IonIcon, IonLabel, IonSpinner, IonTextarea,  IonItem, IonList, IonListHeader, IonToggle, IonSkeletonText } from '@ionic/angular/standalone';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { Content, ContentStatus, ContentType } from 'src/models/Content';
+import { Component, OnDestroy } from '@angular/core';
+import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
+import { CameraService } from '../../services/CAMERA_SERVICE/camera-service';
 import { CreationService } from '../../services/CREATION/creation-service';
-import { Challenge } from 'src/models/Challenge';
-import { Observable } from 'rxjs';
+import { Content, ContentSource, ContentType } from '../../models/Content';
+import { IonButton,  IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonProgressBar, IonList, IonToolbar, IonTitle, IonRadioGroup, IonButtons, IonListHeader, IonRadio } from "@ionic/angular/standalone";
+import { NgIf, NgFor } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
-import { 
-  close,
-  camera,
-  images,
-  videocam,
-  checkmarkCircle,
-  cloudUploadOutline, trashOutline, send } from 'ionicons/icons';
+import { camera, arrowBack, closeCircle, close, image, images, globe, lockClosed, download } from 'ionicons/icons';
+import { Challenge } from 'src/models/Challenge';
+import { Auth } from 'src/services/AUTH/auth';
+
 @Component({
   selector: 'app-upload',
-  templateUrl: 'upload.page.html',
-  styleUrls: ['upload.page.scss'],
+  templateUrl: './upload.page.html',
+  styleUrls: ['./upload.page.scss'],
   standalone: true,
-  imports: [IonSpinner,  IonToggle,IonListHeader, IonList, IonItem, IonContent, IonButton, IonIcon, IonLabel, IonTextarea, FormsModule, CommonModule]
+  imports:[NgIf, NgFor, FormsModule,  IonButton, IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonButtons, IonProgressBar, IonList, IonToolbar, IonTitle,  IonListHeader, IonRadio, IonRadioGroup]
 })
-export class UploadPage implements OnInit {
-
- visibility: 'public' | 'private' = 'public';
- currentStep: number = 1;
-  totalSteps: number = 3;
-  title: string = '';
-  description: string = '';
-   galleryPhotos: UserPhoto[] = [];
-  selectedPhoto: UserPhoto | null = null;
-selectedFiles: Array<{ type: 'photo' | 'video', url: string, file?: File }> = [];
-  newContent: Content = {
+export class UploadPage implements OnDestroy {
+  // État du formulaire
+  content: Partial<Content> = {
     title: '',
     description: '',
-    contentType: ContentType.IMAGE, // Par défaut
-    fileName: '',
-    fileSize: 0,
-    mimeType: '',
     isPublic: true,
-    allowComments: true,
-    allowDownloads: false,
-    status: ContentStatus.DRAFT,
-    userId: 'current-user-id', // À remplacer par l'ID de l'utilisateur connecté
-    tags: [],
-    categories: [],
-    createdAt: new Date(),
-    contentUrl: '',
-    viewCount: 0,
-    likeCount: 0,
-    commentCount: 0,
-    downloadCount: 0,
-    isChallengeEntry: false
+    allowDownloads: true,
+    allowComments:true,
+    source: ContentSource.CAMERA
   };
-   availableChallenges$!: Observable<Challenge[]>;
-  isLoadingChallenges = true;
+  challenges: Challenge[] = [];  // Liste des challenges
+  selectedChallengeId: string | null = null;  // ID du challenge sélectionné
+
+  selectedFile: File | null = null;
+  previewUrl: string | null = null;
+  isUploading = false;
+  currentStep = 1;
+  totalSteps = 4;
 
   constructor(
     private cameraService: CameraService,
-    private toastController: ToastController,
+    private creationService: CreationService,
+    private authService: Auth,
+    private loadingCtrl: LoadingController,
     private actionSheetCtrl: ActionSheetController,
-    private creationService: CreationService
-  ) {addIcons({
-  trashOutline,
-  cloudUploadOutline,
-  checkmarkCircle,
-  send,
-  'images': images,
-  'image':images,
-  'videocam': videocam,
-  'camera': camera,
-  'close': close
-});}
+    private toastCtrl: ToastController
+  ) {this.loadChallenges();
+    addIcons({arrowBack,close,images,closeCircle,camera,image,globe,lockClosed,download});}
 
-  // Les défis sont maintenant chargés via le service CreationService
-  // et sont accessibles via l'observable availableChallenges$
+ 
+  async loadChallenges() {
+  try {
+    // Supprimez le await inutile car on utilise subscribe
+    this.creationService.getChallengesByCreator(
+      this.authService.getCurrentUser()?.id as string || ''
+    ).subscribe({
+      next: (challenges: Challenge[]) => {
+        this.challenges = challenges;
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des challenges:', error);
+        this.showError('Impossible de charger les défis');
+      }
+    });
+  } catch (error) {
+    console.error('Erreur inattendue lors du chargement des challenges:', error);
+    this.showError('Une erreur inattendue est survenue');
+  }
+}
+
+  isImage(): boolean {
+  if (!this.selectedFile) return false;
+  return this.selectedFile.type.startsWith('image/');
+  }
+
+  isVideo(): boolean {
+  if (!this.selectedFile) return false;
+  return this.selectedFile.type.startsWith('video/');
+}
+
+  // Prendre une photo avec la caméra
+  async takePhoto() {
+    try {
+      const photo = await this.cameraService.takePhoto();
+      this.selectedFile = await this.cameraService.convertPhotoToFile(photo);
+      this.previewUrl = photo.webPath || null;
+      this.content.source = ContentSource.CAMERA;
+    } catch (error) {
+      console.error('Erreur avec la caméra:', error);
+      this.showError('Impossible d\'accéder à la caméra');
+    }
+  }
+
+  // Choisir depuis la galerie
+  async pickFromGallery() {
+    try {
+      const photo = await this.cameraService.pickFromGallery();
+      this.selectedFile = await this.cameraService.convertPhotoToFile(photo);
+      this.previewUrl = photo.webPath || null;
+      this.content.source = ContentSource.GALLERY;
+    } catch (error) {
+      console.error('Erreur avec la galerie:', error);
+      this.showError('Impossible d\'accéder à la galerie');
+    }
+  }
+
+  // Méthodes de navigation
+canProceed(): boolean {
+  switch (this.currentStep) {
+    case 1: return !!this.selectedFile;
+    case 2: return !!this.content.title?.trim();
+    case 3: return true;  // L'étape de sélection du challenge est optionnelle
+    default: return true;
+  }
+}
+
+canSubmit(): boolean {
+  return !!this.selectedFile && !!this.content.title?.trim();
+}
+
+// Pour fermer le formulaire
+close() {
+  // Implémentez la logique pour fermer le modal ou revenir en arrière
+}
+
+// Pour afficher les options de média
+async presentMediaOptions() {
+  if (this.selectedFile) return;
+  
+  const actionSheet = await this.actionSheetCtrl.create({
+    header: 'Ajouter des médias',
+    buttons: [
+      {
+        text: 'Prendre une photo',
+        icon: 'camera',
+        handler: () => this.takePhoto()
+      },
+      {
+        text: 'Choisir depuis la galerie',
+        icon: 'images',
+        handler: () => this.pickFromGallery()
+      },
+      {
+        text: 'Annuler',
+        icon: 'close',
+        role: 'cancel'
+      }
+    ]
+  });
+  
+  await actionSheet.present();
+}
+
+// Mettez à jour removeMedia
+removeMedia(event: Event) {
+  event.stopPropagation();
+  this.selectedFile = null;
+  this.previewUrl = null;
+}
+
+  // Soumettre le formulaire
+  async submit() {
+    if (!this.selectedFile) {
+      this.showError('Veuillez sélectionner un fichier');
+      return;
+    }
+
+    if (!this.content.title?.trim()) {
+      this.showError('Veuillez ajouter un titre');
+      return;
+    }
+
+    const loading = await this.loadingCtrl.create({
+      message: 'Publication en cours...'
+    });
+    await loading.present();
+
+    try {
+      await this.creationService.createContentWithFile(
+        this.selectedFile,
+        {
+          title: this.content.title,
+          description: this.content.description,
+          isPublic: this.content.isPublic ?? true,
+          allowDownloads: this.content.allowDownloads ?? true,
+          allowComments: this.content.allowComments ?? false,
+          challengeId: this.content.challengeId,
+          source: this.content.source || ContentSource.CAMERA
+        }
+      ).toPromise();
+
+      await loading.dismiss();
+      this.showSuccess('Contenu publié avec succès!');
+      this.resetForm();
+    } catch (error) {
+      console.error('Erreur lors de la publication:', error);
+      await loading.dismiss();
+      this.showError('Erreur lors de la publication');
+    }
+  }
 
   // Navigation entre les étapes
   nextStep() {
@@ -91,236 +212,43 @@ selectedFiles: Array<{ type: 'photo' | 'video', url: string, file?: File }> = []
     }
   }
 
-  ngOnInit() {
-    this.loadChallenges();
+  // Réinitialisation du formulaire
+  private resetForm() {
+    this.content = {
+      title: '',
+      description: '',
+      isPublic: true,
+      allowDownloads: true,
+      allowComments: false,
+    };
+    this.selectedFile = null;
+    this.previewUrl = null;
+    this.currentStep = 1;
   }
 
-  private loadChallenges() {
-    this.isLoadingChallenges = true;
-    this.availableChallenges$ = this.creationService.getActiveChallenges();
-    this.availableChallenges$.subscribe({
-      next: () => {
-        this.isLoadingChallenges = false;
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des défis', error);
-        this.isLoadingChallenges = false;
-        // Afficher un message d'erreur à l'utilisateur
-        this.presentToast('vous n\'avez aucun défis en cours', 'warning');
-      }
-    });
-  }
-
-  private async presentToast(message: string, color: 'success' | 'danger' | 'warning' = 'success') {
-    const toast = await this.toastController.create({
-      message: message,
+  // Affichage des messages
+  private async showError(message: string) {
+    const toast = await this.toastCtrl.create({
+      message,
       duration: 3000,
-      color: color,
-      position: 'bottom'
+      color: 'danger'
     });
     await toast.present();
   }
 
- // Ajoutez ces méthodes à votre classe UploadPage
-
-async presentActionSheet() {
-  const actionSheet = await this.actionSheetCtrl.create({
-    header: 'Sélectionner un média',
-    buttons: [
-      {
-        text: 'Prendre une photo',
-        icon: 'camera',
-        handler: () => {
-          this.takePhoto();
-        }
-      },
-      {
-        text: 'Choisir depuis la galerie',
-        icon: 'images',
-        handler: () => {
-          this.pickFromGallery();
-        }
-      },
-      {
-        text: 'Annuler',
-        icon: 'close',
-        role: 'cancel'
-      }
-    ]
-  });
-  await actionSheet.present();
-}
-
-async takePhoto() {
-  try {
-    const photo = await this.cameraService.addNewToGallery();
-    if (photo) {
-      this.updateMediaPreview(photo);
-    }
-  } catch (error) {
-    console.error('Erreur lors de la prise de photo:', error);
-   
-  }
-}
-
-async pickFromGallery() {
-  try {
-    const photo = await this.cameraService.getGalleryPhotos();
-    this.updateMediaPreview(photo);
-  } catch (e) { console.warn('Galerie fermée'); }
-}
-
-updateMediaPreview(photo: UserPhoto) {
-  this.newContent.contentUrl = photo.webviewPath as string;
-  this.newContent.mimeType = 'image/jpeg'; // À adapter selon le type de média
-  this.newContent.fileName = photo.filepath;
-}
-
-removeMedia(event: Event) {
-  event.stopPropagation();
-  this.newContent.contentUrl = '';
-  this.newContent.mimeType = '';
-  this.newContent.fileName = '';
-}
-
-isImage(mimeType: string): boolean {
-  return mimeType?.startsWith('image/');
-}
-
-isVideo(mimeType: string): boolean {
-  return mimeType?.startsWith('video/');
-}
-
-  browseFiles() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,video/*';
-    input.multiple = true;
-    input.onchange = (event: any) => {
-      const files = event.target.files;
-      for (let file of files) {
-        const url = URL.createObjectURL(file);
-        const type = file.type.startsWith('video/') ? 'video' : 'photo';
-        this.selectedFiles.push({
-          type: type,
-          url: url,
-          file: file
-        });
-      }
-    };
-    input.click();
+  private async showSuccess(message: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 3000,
+      color: 'success'
+    });
+    await toast.present();
   }
 
-  removeFile(index: number) {
-    this.selectedFiles.splice(index, 1);
-  }
-
-  setVisibility(visibility: 'public' | 'private') {
-    this.visibility = visibility;
-  }
-
-  onVisibilityChange() {
-    // Si la publication devient publique, on réinitialise la sélection de défi
-    if (this.newContent.isPublic) {
-      this.newContent.challengeId = undefined;
-      this.newContent.challengeName = undefined;
-      this.newContent.isChallengeEntry = false;
-    } else {
-      this.newContent.isChallengeEntry = true;
+  // Nettoyage
+  ngOnDestroy() {
+    if (this.previewUrl) {
+      URL.revokeObjectURL(this.previewUrl);
     }
   }
-
-  selectChallenge(challenge: any) {
-    if (this.newContent.challengeId === challenge.id) {
-      // Désélectionner le défi
-      this.newContent.challengeId = undefined;
-      this.newContent.challengeName = undefined;
-    } else {
-      // Sélectionner le nouveau défi
-      this.newContent.challengeId = challenge.id;
-      this.newContent.challengeName = challenge.name;
-    }
-  }
-
-  canProceedToNextStep(): boolean {
-  switch (this.currentStep) {
-    case 1:
-      return !!this.newContent.contentUrl;  // Vérifie si un média a été sélectionné
-    case 2:
-      return true;
-    default:
-      return true;
-  }
-}
-
-  canSubmit(): boolean {
-    // Si la publication est publique, on peut publier directement
-    if (this.newContent.isPublic) return true;
-    
-    // Si la publication est privée, on vérifie qu'un défi est sélectionné
-    return !!this.newContent.challengeId;
-  }
-
-  async submitPost() {
-    try {
-      // Mettre à jour les propriétés du contenu
-      this.newContent.createdAt = new Date();
-      this.newContent.status = ContentStatus.PUBLISHED;
-      
-      // Logique de soumission...
-      console.log('Nouvelle publication:', this.newContent);
-      
-      // Afficher un message de succès
-      const toast = await this.toastController.create({
-        message: 'Publication partagée avec succès!',
-        duration: 3000,
-        position: 'bottom',
-        color: 'success'
-      });
-      await toast.present();
-      
-      // Réinitialiser le formulaire
-      this.resetForm();
-      
-    } catch (error) {
-      console.error('Erreur lors de la publication:', error);
-      const toast = await this.toastController.create({
-        message: 'Une erreur est survenue lors de la publication',
-        duration: 3000,
-        position: 'bottom',
-        color: 'danger'
-      });
-      await toast.present();
-    }
-  }
-
-  private resetForm() {
-    this.currentStep = 1;
-    this.selectedFiles = [];
-    this.newContent = {
-      title: '',
-      description: '',
-      contentType: ContentType.IMAGE,
-      fileName: '',
-      fileSize: 0,
-      mimeType: '',
-      isPublic: true,
-      isChallengeEntry: false,
-      allowComments: true,
-      allowDownloads: false,
-      status: ContentStatus.DRAFT,
-      userId: 'current-user-id',
-      tags: [],
-      categories: [],
-      createdAt: new Date(),
-      contentUrl: '',
-      viewCount: 0,
-      likeCount: 0,
-      commentCount: 0,
-      downloadCount: 0
-    };
-  }
-
-  
-
 }

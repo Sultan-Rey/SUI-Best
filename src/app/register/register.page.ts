@@ -1,4 +1,5 @@
 import { Auth } from '../../services/AUTH/auth';
+import { UserProfile } from '../../models/User';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { Component, OnInit, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
@@ -47,19 +48,18 @@ import {
   IonInput,
   IonTitle,
   IonButtons,
-   IonSpinner,
-  IonContent 
-} from '@ionic/angular/standalone';
+  IonContent, IonLoading } from '@ionic/angular/standalone';
 import { User } from 'src/models/User';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
-import { firstValueFrom, tap } from 'rxjs';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { Plan } from 'src/models/Plan';
 
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-   imports: [NgIf,NgFor,DatePipe, FormsModule,IonHeader, IonDatetime, IonModal, IonToolbar, IonIcon, IonButton, IonInput, IonTitle, IonButtons, IonContent, IonItem,  IonSpinner, IonLabel]
+   imports: [IonLoading, NgIf,NgFor,DatePipe, FormsModule,IonHeader, IonDatetime, IonModal, IonToolbar, IonIcon, IonButton, IonInput, IonTitle, IonButtons, IonContent, IonItem, IonLabel]
 })
 export class RegisterPage implements OnInit {
   isLoading = false;
@@ -76,6 +76,9 @@ maxDate = new Date().toISOString();
   last_name: '',
   gender: '',
   birthDate: new Date(),
+  myFollow:[],
+  myPlan: {} as Plan,
+  readonly:false,
   age: 0,
   email: '',
   password: '',
@@ -107,7 +110,7 @@ maxDate = new Date().toISOString();
   ];
 
   accountTypes: { 
-  value: 'student' | 'fan' | 'artist' | 'subscriber' | 'admin' | 'creator',
+  value: 'fan' | 'artist' | 'admin' | 'creator',
   label: string,
   icon: string,
   description: string
@@ -135,6 +138,7 @@ maxDate = new Date().toISOString();
   constructor(
     private router: Router,
     private userService: UserService,
+    private profileService: ProfileService,
     private auth: Auth,
   ) {
     addIcons({
@@ -352,94 +356,48 @@ stopScan() {
     }, 2000);
   }
 
-  // Inscription finale
-async register() {
-  // 1️⃣ Validate form
+
+
+async PrepareRegister() {
+  // 1️⃣ Valider le formulaire
   if (!this.validateStep1() || !this.validateStep2()) {
     return;
   }
 
-  // 3️⃣ Set registration date
+  // 2️⃣ Préparer les données d'inscription
   this.registrationData.registration_date = new Date().toISOString();
 
-  // 4️⃣ Show loading
-  this.isLoading = true;
-
   try {
-    // Hacher le mot de passe avant l'envoi
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(this.registrationData.password as string, salt);
-
-  // Créer une copie des données avec le mot de passe haché
-  const userData = {
-    ...this.registrationData,
-    password_hash: hashedPassword,  // Now this is a string, not a Promise
-    password: undefined // Ne pas envoyer le mot de passe en clair
-  };
-
-  delete (userData as any).id;
-  delete userData.password; // Supprimer le champ password
-
-  console.log('Données envoyées au serveur :', JSON.stringify(userData, null, 2));
-
-  // 5️⃣ Appeler le service utilisateur pour créer l'utilisateur
-  const userCreated = await firstValueFrom(
-    this.userService.createUser(userData).pipe(
-      tap({
-        next: (response) => console.log('Réponse du serveur :', response),
-        error: (error) => console.error('Erreur du serveur :', error)
-      })
-    )
-  );
+    // 3️⃣ Hacher le mot de passe
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(this.registrationData.password as string, salt);
     
-    if (!userCreated) {
-      throw new Error('La création du compte a échoué. Le serveur n\'a pas renvoyé d\'ID utilisateur valide.');
-    }
+    // 4️⃣ Créer l'objet utilisateur
+    const userData = {
+      ...this.registrationData,
+      password_hash: hashedPassword,
+      password: undefined // Ne pas envoyer le mot de passe en clair
+    };
 
-    this.registrationData.id = userCreated.id;
-    this.registrationData.password_hash = "";
-    this.registrationData.QR_proof = "";
-    this.registrationData.status = "pending";
-    this.registrationData.first_name = "";
-    this.registrationData.last_name = "";
-    this.registrationData.gender = "";
-    this.registrationData.birthDate = new Date();
-    this.registrationData.age = 0;
-    this.registrationData.email = "";
-    this.registrationData.password = "";
-    this.registrationData.user_type = "fan";
-    this.registrationData.user_status = "other";
-    this.registrationData.registration_date = "";
+    // 5️⃣ Nettoyer les données
+    delete (userData as any).id;
+    delete userData.password;
+    
+    console.log('Redirection vers la page d\'abonnement avec les données :', userData);
 
- 
-    // 6️⃣ Show success message
-    await Dialog.alert({
-      title: 'Bienvenue',
-      message: 'Votre compte a été créé avec succès',
-      buttonTitle: 'Continuer'
+    // 6️⃣ Rediriger vers la page d'abonnement avec les données
+    await this.router.navigate(['/subscription'], {
+      state: { registrationData: userData }
     });
 
-    
-
-    // 7️⃣ Navigate to subscription
-    await this.router.navigate(['/subscription']);
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Erreur lors de la préparation des données:', error);
     await Dialog.alert({
       title: 'Erreur',
-      message: error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'inscription',
+      message: 'Une erreur est survenue lors de la préparation des données d\'inscription',
       buttonTitle: 'OK'
     });
-  } finally {
-    this.isLoading = false;
   }
-}
-
-
-  
-  // Dans register.page.ts
-triggerFileInput() {
-  document.getElementById('fileInput')?.click();
 }
 
   togglePasswordVisibility(field: string) {

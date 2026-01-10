@@ -258,6 +258,25 @@
   }
 }
 
+.app-loading-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-loading-box {
+  background: #fff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 220px;
+}
+
 @keyframes fadeInDown {
   from {
     opacity: 0;

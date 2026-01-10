@@ -10,12 +10,11 @@
 </ion-header>
 
 <ion-content class="register-content" [fullscreen]="true">
-  <div class="app-loading-backdrop" *ngIf="isLoading">
-  <div class="app-loading-box">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Création de votre compte…</p>
-  </div>
-</div>
+  <ion-loading 
+  [isOpen]="isLoading" 
+  message="Chargement en cours..."
+  spinner="circles">
+</ion-loading>
 
 
   <div class="register-container">
@@ -162,7 +161,7 @@
           <ion-icon [name]="showPassword ? 'eye-off' : 'eye'" slot="end" (click)="showPassword = !showPassword"></ion-icon>
         </ion-item>
 
-        <ion-button expand="block" class="main-btn finish" (click)="register()">
+        <ion-button expand="block" class="main-btn finish" (click)="PrepareRegister()">
           C'est parti !
         </ion-button>
       </div>

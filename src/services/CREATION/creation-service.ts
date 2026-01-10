@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { catchError, Observable, switchMap, throwError } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
-import { Content, ContentStatus } from '../../models/Content';
+import { Content, ContentSource, ContentStatus } from '../../models/Content';
 import { Challenge } from '../../models/Challenge';
 
 @Injectable({
@@ -10,6 +10,7 @@ import { Challenge } from '../../models/Challenge';
 export class CreationService {
   private readonly contentResource = 'contents';
   private readonly challengeResource = 'challenges';
+  private readonly uploadResource = 'api/upload'
 
   constructor(private api: ApiJSON) {}
 
@@ -17,17 +18,70 @@ export class CreationService {
   // MÉTHODES POUR LES CONTENUS
   // =====================
 
-  createContent(content: Omit<Content, 'id' | 'createdAt' | 'status' | 'viewCount' | 'likeCount' | 'commentCount' | 'downloadCount'>): Observable<Content> {
-    const newContent = {
-      ...content,
-      createdAt: new Date().toISOString(),
-      status: ContentStatus.DRAFT,
-      viewCount: 0,
-      likeCount: 0,
-      commentCount: 0,
-      downloadCount: 0
-    };
-    return this.api.create<Content>(this.contentResource, newContent);
+  createContentWithFile(
+  file: File,
+  metadata: {
+    title: string;
+    description?: string;
+    isPublic: boolean;
+    allowDownloads: boolean;
+    allowComments: boolean;
+    challengeId?: string;
+    source: ContentSource;
+  },
+  progressCallback?: (progress: number) => void
+): Observable<Content> {
+  // 1. Upload du fichier avec suivi de progression
+  return this.api.upload<{ file: { path: string } }>(
+    this.uploadResource, 
+    file, 
+    'file',
+    !!progressCallback // Active le reportProgress uniquement si un callback est fourni
+  ).pipe(
+    switchMap((event: any) => {
+      // Si c'est un événement de progression
+      if (event.type) {
+        if (progressCallback && event.loaded !== undefined && event.total) {
+          const progress = Math.round((100 * event.loaded) / event.total);
+          progressCallback(progress);
+        }
+        // On ignore les événements de progression dans le switchMap
+        return new Observable<never>(() => {});
+      }
+
+      // Si c'est la réponse finale
+      const uploadResponse = event.body || event;
+      
+      // 2. Création du contenu avec les métadonnées
+      const contentData: Omit<Content, 'id'> = {
+        ...metadata,
+        userId: 'current-user-id',
+        fileUrl: uploadResponse.file.path,
+        mimeType: file.type,
+        fileSize: file.size,
+        status: ContentStatus.PUBLISHED,
+        viewCount: 0,
+        likeCount: 0,
+        commentCount: 0,
+        downloadCount: 0,
+        createdAt: new Date().toISOString(),
+        tags: this.extractTags(metadata.description || '')
+      };
+
+      // 3. Enregistrement des métadonnées en base
+      return this.api.create<Content>(this.contentResource, contentData);
+    }),
+    catchError(error => {
+      console.error('Erreur lors de la création du contenu:', error);
+      return throwError(() => error);
+    })
+  );
+}
+  // Extrait les tags du texte (ex: #tag)
+  private extractTags(text: string): string[] {
+    const tagRegex = /#(\w+)/g;
+    const matches = text.match(tagRegex) || [];
+    return matches.map(tag => tag.substring(1)); // Enlève le #
   }
 
   /**
@@ -42,6 +96,9 @@ getUserContents(userId: string): Observable<Content[]> {
   });
 }
 
+getContentById(id: string): Observable<Content> {
+  return this.api.getById<Content>(this.contentResource, id);
+}
   // =====================
   // MÉTHODES POUR LES DÉFIS
   // =====================

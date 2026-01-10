@@ -31,9 +31,14 @@ export const routes: Routes = [
     loadComponent: () => import('./tab-profile/profile.page').then( m => m.ProfilePage)
   },
   {
+    path: 'content-detail/:id',
+    loadComponent: () => import('./content-detail/content-detail.page').then( m => m.ContentDetailPage)
+  },
+  {
     path: '**',
     redirectTo: 'login'
   },
+  
  
   
   

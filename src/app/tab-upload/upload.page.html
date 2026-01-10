@@ -1,165 +1,163 @@
-<ion-content [fullscreen]="true" color="dark" class="ion-padding">
-  <div class="create-post-container">
-    <!-- En-tête avec indicateur d'étapes -->
-    <div class="header-section ion-text-center ion-margin-bottom">
-      <h1 class="main-title">
-        <span *ngIf="currentStep === 1">Média</span>
-        <span *ngIf="currentStep === 2">Options</span>
-        <span *ngIf="currentStep === 3">Défi</span>
-      </h1>
-      <div class="step-indicator">
-        <div *ngFor="let step of [1, 2, 3]" 
-             [class.active]="step === currentStep" 
-             [class.completed]="step < currentStep"
-             class="step-dot"></div>
+<ion-header class="ion-no-border">
+  <ion-toolbar color="light">
+    <ion-buttons slot="start">
+      <ion-button (click)="prevStep()" *ngIf="currentStep > 1">
+        <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button (click)="close()" *ngIf="currentStep === 1">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title class="ion-text-center">
+      <span *ngIf="currentStep === 1">Nouvelle publication</span>
+      <span *ngIf="currentStep === 2">Détails</span>
+      <span *ngIf="currentStep === 3">Vérification</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nextStep()" [disabled]="!canProceed()" *ngIf="currentStep < 4">
+        <span>Suivant</span>
+      </ion-button>
+      <ion-button (click)="submit()" [disabled]="!canSubmit()" *ngIf="currentStep === 4">
+        <span>Publier</span>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-progress-bar [value]="currentStep / totalSteps" color="primary"></ion-progress-bar>
+</ion-header>
+
+<ion-content class="ion-padding" [fullscreen]="true">
+  <!-- Étape 1: Sélection du média -->
+  <div *ngIf="currentStep === 1" class="upload-step">
+    <div class="upload-container" (click)="presentMediaOptions()" [class.has-file]="previewUrl">
+      <div *ngIf="!previewUrl" class="upload-placeholder">
+        <ion-icon name="images" class="upload-icon"></ion-icon>
+        <h3>Ajouter des photos ou vidéos</h3>
+        <p>Glissez des médias ici ou appuyez pour sélectionner</p>
+      </div>
+      
+      <div *ngIf="previewUrl" class="media-preview">
+        <div class="media-container">
+          <img *ngIf="isImage()" [src]="previewUrl" alt="Aperçu">
+          <video *ngIf="isVideo()" [src]="previewUrl" controls></video>
+          <button class="remove-media" (click)="removeMedia($event)">
+            <ion-icon name="close-circle"></ion-icon>
+          </button>
+        </div>
       </div>
     </div>
 
-    <form (ngSubmit)="submitPost()" #postForm="ngForm">
-      <!-- Étape 1: Sélection du média -->
-<div *ngIf="currentStep === 1" class="step-content">
-  <div class="upload-container ion-margin-vertical" (click)="presentActionSheet()">
-    <div class="upload-content">
-      <!-- Aperçu du média s'il y en a un -->
-      <div *ngIf="newContent.contentUrl" class="media-preview">
-        <img *ngIf="isImage(newContent.mimeType)" [src]="newContent.contentUrl" class="preview-image">
-        <video *ngIf="isVideo(newContent.mimeType)" class="preview-video" controls>
-          <source [src]="newContent.contentUrl" [type]="newContent.mimeType">
-        </video>
-        <ion-button fill="clear" color="danger" (click)="removeMedia($event)" class="remove-media-btn">
-          <ion-icon name="trash-outline"></ion-icon>
-        </ion-button>
-      </div>
+    <div class="quick-actions" *ngIf="!previewUrl">
+      <ion-button fill="clear" (click)="takePhoto()" class="action-button">
+        <ion-icon slot="start" name="camera"></ion-icon>
+        Appareil photo
+      </ion-button>
+      <ion-button fill="clear" (click)="pickFromGallery()" class="action-button">
+        <ion-icon slot="start" name="image"></ion-icon>
+        Galerie
+      </ion-button>
+    </div>
+  </div>
 
-      <!-- Zone de dépôt si pas de média -->
-      <div *ngIf="!newContent.contentUrl" class="upload-placeholder">
-        <ion-icon name="cloud-upload-outline" class="upload-icon"></ion-icon>
-        <p class="upload-text">Glissez votre fichier ici</p>
-        <p class="upload-subtext">ou cliquez pour sélectionner</p>
+  <!-- Étape 2: Détails -->
+  <div *ngIf="currentStep === 2" class="ion-padding">
+    <ion-list lines="full" class="ion-margin-bottom">
+      <ion-item>
+        <ion-textarea
+          [(ngModel)]="content.title"
+          placeholder="Titre (obligatoire)"
+          rows="1"
+          autoGrow="true"
+          required
+        ></ion-textarea>
+      </ion-item>
+      
+      <ion-item>
+        <ion-textarea
+          [(ngModel)]="content.description"
+          placeholder="Ajoutez une description..."
+          rows="3"
+          autoGrow="true"
+        ></ion-textarea>
+      </ion-item>
+    </ion-list>
+
+    <ion-list lines="full" class="settings-list">
+      <ion-item>
+        <ion-label class="ion-text-wrap">
+          <h3>Rendre public</h3>
+          <p>Visible par tous les utilisateurs</p>
+        </ion-label>
+        <ion-toggle slot="end" [(ngModel)]="content.isPublic"></ion-toggle>
+      </ion-item>
+      
+      <ion-item>
+        <ion-label class="ion-text-wrap">
+          <h3>Autoriser les commentaires</h3>
+          <p>Les utilisateurs pourront commenter votre publication</p>
+        </ion-label>
+        <ion-toggle slot="end" [(ngModel)]="content.allowComments"></ion-toggle>
+      </ion-item>
+      
+      <ion-item>
+        <ion-label class="ion-text-wrap">
+          <h3>Autoriser le téléchargement</h3>
+          <p>Les utilisateurs pourront télécharger votre média</p>
+        </ion-label>
+        <ion-toggle slot="end" [(ngModel)]="content.allowDownloads"></ion-toggle>
+      </ion-item>
+    </ion-list>
+  </div>
+<!-- Étape 3: Sélection du défi -->
+<div *ngIf="currentStep === 3" class="challenge-step ion-padding">
+  <h2>Associer à un défi</h2>
+  <p class="ion-margin-bottom">Sélectionnez un défi existant (optionnel)</p>
+
+  <ion-list>
+    <ion-radio-group [(ngModel)]="selectedChallengeId">
+      <ion-list-header>
+        <ion-label>Défis disponibles</ion-label>
+      </ion-list-header>
+
+      <ion-item *ngFor="let challenge of challenges">
+        <ion-radio slot="start" [value]="challenge.id"></ion-radio>
+        <ion-label class="ion-text-wrap">
+          <h3>{{ challenge.name }}</h3>
+          <p *ngIf="challenge.description">{{ challenge.description }}</p>
+        </ion-label>
+      </ion-item>
+
+      <ion-item>
+        <ion-radio slot="start" [value]="null"></ion-radio>
+        <ion-label class="ion-text-wrap">
+          <h3>Ne pas associer à un défi</h3>
+        </ion-label>
+      </ion-item>
+    </ion-radio-group>
+  </ion-list>
+</div>
+
+<!-- Étape 4: Vérification -->
+<div *ngIf="currentStep === 4" class="preview-step">
+  <div class="preview-card">
+    <div class="preview-media">
+      <img *ngIf="isImage()" [src]="previewUrl" alt="Aperçu">
+      <video *ngIf="isVideo()" [src]="previewUrl" controls></video>
+    </div>
+    <div class="preview-details">
+      <h3>{{ content.title || 'Sans titre' }}</h3>
+      <p class="description" *ngIf="content.description">{{ content.description }}</p>
+      <div class="meta-info">
+        <span class="visibility">
+          <ion-icon name="globe" *ngIf="content.isPublic"></ion-icon>
+          <ion-icon name="lock-closed" *ngIf="!content.isPublic"></ion-icon>
+          {{ content.isPublic ? 'Publique' : 'Privé' }}
+        </span>
+        <span class="downloads" *ngIf="content.allowDownloads">
+          <ion-icon name="download"></ion-icon>
+          Téléchargement autorisé
+        </span>
       </div>
     </div>
   </div>
 </div>
-
-      <!-- Étape 2: Options de publication -->
-      <div *ngIf="currentStep === 2" class="step-content">
-        <ion-list class="ion-margin-vertical" lines="none">
-          <ion-list-header>
-            <ion-label>Options de publication</ion-label>
-          </ion-list-header>
-
-          <ion-item color="dark">
-            <ion-label>Publique</ion-label>
-            <ion-toggle 
-              [(ngModel)]="newContent.isPublic" 
-              name="isPublic" 
-              (ionChange)="onVisibilityChange()"
-              checked="true">
-            </ion-toggle>
-          </ion-item>
-
-          <ion-item color="dark">
-            <ion-label>Autoriser les commentaires</ion-label>
-            <ion-toggle 
-              [(ngModel)]="newContent.allowComments" 
-              name="allowComments" 
-              checked="true">
-            </ion-toggle>
-          </ion-item>
-
-          <ion-item color="dark">
-            <ion-label>Autoriser le téléchargement</ion-label>
-            <ion-toggle 
-              [(ngModel)]="newContent.allowDownloads" 
-              name="allowDownloads">
-            </ion-toggle>
-          </ion-item>
-        </ion-list>
-
-        <div class="description-section">
-          <ion-item color="dark" class="ion-margin-bottom">
-            <ion-label position="stacked">Description (facultatif)</ion-label>
-            <ion-textarea 
-              [(ngModel)]="newContent.description" 
-              name="description"
-              rows="3" 
-              placeholder="Décrivez votre publication...">
-            </ion-textarea>
-          </ion-item>
-        </div>
-      </div>
-
-      <!-- Étape 3: Sélection du défi (uniquement si non public) -->
-      <div *ngIf="currentStep === 3 && !newContent.isPublic" class="step-content">
-        <h2 class="ion-text-center">Choisissez un défi</h2>
-        <p class="ion-text-center ion-margin-bottom">Sélectionnez le défi auquel vous souhaitez participer</p>
-        
-        <!-- État de chargement -->
-        <div *ngIf="isLoadingChallenges" class="ion-text-center ion-padding">
-          <ion-spinner></ion-spinner>
-          <p>Chargement des défis en cours...</p>
-        </div>
-
-        <!-- Liste des défis -->
-        <ion-list class="challenge-list">
-          <!-- Utilisation de l'opérateur async pour souscrire à l'observable -->
-          <ng-container *ngIf="availableChallenges$ | async as challenges">
-            <!-- Message si aucun défi n'est disponible -->
-            <div *ngIf="challenges.length === 0" class="ion-text-center ion-padding">
-              <p>Aucun défi actif pour le moment.</p>
-            </div>
-
-            <!-- Liste des défis -->
-            <ion-item *ngFor="let challenge of challenges" 
-                     button 
-                     detail="false" 
-                     (click)="selectChallenge(challenge)"
-                     [class.selected]="newContent.challengeId === challenge.id">
-              <ion-label>
-                <h3>{{ challenge.name || 'Sans titre' }}</h3>
-                <p>{{ challenge.description || 'Aucune description disponible' }}</p>
-                <p class="challenge-meta" *ngIf="challenge.created_at">
-                  <small>Du {{ challenge.created_at| date:'dd/MM/yyyy' }} au {{ challenge.end_date | date:'dd/MM/yyyy' }}</small>
-                </p>
-              </ion-label>
-              <ion-icon *ngIf="newContent.challengeId === challenge.id" 
-                       name="checkmark-circle" 
-                       color="primary"
-                       slot="end">
-              </ion-icon>
-            </ion-item>
-          </ng-container>
-        </ion-list>
-      </div>
-
-      <!-- Boutons de navigation -->
-      <div class="navigation-buttons">
-        <!-- Bouton Précédent -->
-        <ion-button *ngIf="currentStep > 1" 
-                   fill="clear" 
-                   (click)="prevStep()"
-                   class="nav-button">
-          Précédent
-        </ion-button>
-        
-        <div class="spacer" *ngIf="currentStep === 1"></div>
-        
-        <!-- Bouton Suivant/Partager -->
-        <ion-button *ngIf="currentStep < totalSteps" 
-                   [disabled]="!canProceedToNextStep()"
-                   (click)="nextStep()"
-                   class="nav-button next">
-          Suivant
-        </ion-button>
-        
-        <ion-button *ngIf="currentStep === totalSteps" 
-                   type="submit" 
-                   [disabled]="!canSubmit()"
-                   class="share-button">
-          <ion-icon name="send" slot="start"></ion-icon>
-          Partager
-        </ion-button>
-      </div>
-    </form>
-  </div>
 </ion-content>

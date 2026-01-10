@@ -1,6 +1,6 @@
 // src/app/services/user.service.ts
 import { Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { map, Observable, of, switchMap } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { User } from '../../models/User';
 
@@ -80,4 +80,38 @@ export class UserService {
   deleteUser(id: number): Observable<void> {
     return this.api.delete(this.resource, id);
   }
+
+  /* ====================
+     FOLLOW/UNFOLLOW
+     ==================== */
+     followProfile(userId: string, profileIdToFollow: string): Observable<User> {
+    return this.api.getById<User>(this.resource, userId).pipe(
+      switchMap(user => {
+        if (!user.myFollow.includes(profileIdToFollow)) {
+          user.myFollow = [...user.myFollow, profileIdToFollow];
+          return this.api.update<User>(this.resource, userId, user);
+        }
+        return of(user);
+      })
+    );
+  }
+
+
+   unfollowProfile(userId: string, profileIdToUnfollow: string): Observable<User> {
+    return this.api.getById<User>(this.resource, userId).pipe(
+      switchMap(user => {
+        user.myFollow = user.myFollow.filter(id => id !== profileIdToUnfollow);
+        return this.api.update<User>(this.resource, userId, user);
+      })
+    );
+  }
+
+  isFollowing(userId: string, profileId: string): Observable<boolean> {
+    return this.api.getById<User>(this.resource, userId).pipe(
+      map(user => user.myFollow.includes(profileId))
+    );
+  }
+
+
+  
 }

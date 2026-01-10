@@ -2,7 +2,7 @@ import { Auth } from '../../services/AUTH/auth';
 import { Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AlertController } from '@ionic/angular';
+import { LoadingController, } from '@ionic/angular';
 import { Dialog } from '@capacitor/dialog';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
@@ -21,14 +21,13 @@ import {
   IonButton, 
   IonInput,
  
-  IonContent 
-} from '@ionic/angular/standalone';
+  IonContent, IonLoading } from '@ionic/angular/standalone';
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [
+  imports: [IonLoading, 
     CommonModule,
     FormsModule,
     IonContent,
@@ -41,22 +40,14 @@ export class LoginPage implements OnInit {
   email: string = '';
   password: string = '';
   showPassword: boolean = false;
-
+  isLoading: boolean = false;
   constructor(
     private auth: Auth,
     private router: Router,
-    private alertController: AlertController,
+    private loadingController: LoadingController,
     private ngZone: NgZone
   ) {
-    addIcons({
-      'logo-google': logoGoogle,
-      'logo-facebook': logoFacebook,
-      'mail-outline': mailOutline,
-      'lock-closed-outline': lockClosedOutline,
-      'eye-outline': eyeOutline,
-      'eye-off-outline': eyeOffOutline,
-      'shield-checkmark': shieldCheckmark
-    });
+    addIcons({mailOutline,lockClosedOutline,logoGoogle,logoFacebook,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,'shieldCheckmark':shieldCheckmark});
   }
 
   ngOnInit() { }
@@ -65,39 +56,49 @@ export class LoginPage implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  loginWithEmail(): void {
-    this.router.navigateByUrl('/tabs/tabs/home');
-  /*if (!this.email || !this.password) {
-    this.showError(
-      'Identifiant invalide',
-      'Veuillez saisir votre email et votre mot de passe'
-    );
+loginWithEmail(): void {
+  if (!this.email || !this.password) {
+    this.showError('Erreur', 'Veuillez saisir un email et un mot de passe');
     return;
   }
 
-  this.auth.login(this.email, this.password).subscribe({
-    next: () => {
-      this.router.navigateByUrl('/tabs/tabs/home');
+  this.loadingController.create({
+    message: 'Connexion en cours...',
+    spinner: 'crescent',
+    
+  }).then(loading => {
+    loading.present();
+     this.auth.login(this.email, this.password).subscribe({
+    next: async () => {
+      try {
+        await this.router.navigateByUrl('/tabs/tabs/home');
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }finally{
+        loading.dismiss();
+      }
     },
     error: (err: Error) => {
-      let message = 'Email ou mot de passe incorrect';
-
-      switch (err.message) {
-        case 'USER_NOT_FOUND':
-          message = 'Utilisateur introuvable';
-          break;
-        case 'INVALID_PASSWORD':
-          message = 'Mot de passe incorrect';
-          break;
-        case 'USER_BLOCKED':
-          message = 'Compte bloqué';
-          break;
+      let message = 'Identifiants incorrects';
+      
+      if (err.message.startsWith('TOO_MANY_ATTENTES:')) {
+        const minutes = err.message.split(':')[1];
+        message = `Trop de tentatives. Réessayez dans ${minutes} minutes.`;
+      } else if (err.message === 'ACCOUNT_INACTIVE') {
+        message = 'Ce compte est désactivé. Contactez le support.';
       }
 
-      this.showError('Échec de la connexion', message);
+      this.showError('Erreur de connexion', message);
       this.password = '';
-    },
-  });*/
+      loading.dismiss();
+    }
+  });
+  });
+  
+ 
+
+
+
 }
 
 

@@ -1,5 +1,11 @@
-<ion-header color="dark" [translucent]="true">
+<ion-header [translucent]="true">
   <ion-toolbar color="dark">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" class="back-circle">
+        <ion-icon name="chevron-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ userProfile.displayName }}</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="presentShareOptions()">
         <ion-icon slot="icon-only" name="share-social-outline"></ion-icon>
@@ -12,7 +18,7 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" color="dark">
-  <div class="profile-container">
+  <div class="profile-container"    *ngIf="userProfile.id; else loading">
     <!-- Profile Header -->
     <div class="profile-header">
       <div class="avatar-container">
@@ -20,11 +26,12 @@
           <img [src]="userProfile.avatar" [alt]="userProfile.displayName" class="avatar">
           <div class="avatar-border"></div>
         </div>
-        <ion-button 
-          fill="clear" 
+        <ion-button *ngIf="isWrite_toRight"
+          color="light"
+          shape="round"
           class="add-story-btn"
           size="small">
-          <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+          <ion-icon name="star" size="small" slot="icon-only"></ion-icon>
         </ion-button>
       </div>
 
@@ -65,15 +72,15 @@
         <p class="bio-text">{{ userProfile.bio }}</p>
         
         <div class="info-items">
-          <div class="info-item">
-            <ion-icon name="location-outline" class="info-icon"></ion-icon>
-            <span>{{ userProfile.location }}</span>
+          <div class="info-item" *ngIf="userProfile.school">
+            <ion-icon name="school-outline" class="info-icon"></ion-icon>
+            <span>{{ userProfile.school }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item" *ngIf="userProfile.contact">
             <ion-icon name="link-outline" class="info-icon"></ion-icon>
-            <span>{{ userProfile.website }}</span>
+            <span>{{ userProfile.contact }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item" *ngIf="userProfile.memberSince">
             <ion-icon name="calendar-outline" class="info-icon"></ion-icon>
             <span>Membre depuis {{ userProfile.memberSince }}</span>
           </div>
@@ -83,10 +90,13 @@
       <!-- Action Buttons -->
       <div class="action-buttons">
         <ion-button 
+          *ngIf="currentUserId !== userProfile.id"
           [color]="userProfile.isFollowing ? 'medium' : 'warning'"
           expand="block"
           (click)="toggleFollow()"
-          class="follow-btn">
+          class="follow-btn"
+          [disabled] = "isLoading">
+           <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
           <span *ngIf="!userProfile.isFollowing">S'abonner</span>
           <span *ngIf="userProfile.isFollowing">Abonné</span>
         </ion-button>
@@ -104,6 +114,86 @@
           class="external-btn"
           size="small">
           <ion-icon name="open-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- ======================================= -->
+    <!-- SECTION CHALLENGES (Nouveauté) -->
+    <!-- ======================================= -->
+    <div class="challenges-section" *ngIf="userProfile.userType === 'creator' && activeChallengesCount > 0">
+      <div class="challenges-header">
+        <div class="challenges-title">
+          <ion-icon name="trophy-outline" class="challenges-icon"></ion-icon>
+          <h2>Challenges Actifs</h2>
+          <ion-badge color="danger" class="challenges-count">{{ activeChallengesCount }}</ion-badge>
+        </div>
+        <ion-button 
+          fill="clear" 
+          size="small"
+          (click)="viewAllChallenges()"
+          class="view-all-btn">
+          Voir tout
+        </ion-button>
+      </div>
+
+      <div class="challenges-carousel">
+        <div class="challenge-card" *ngFor="let challenge of activeChallenges$ | async" (click)="openChallenge(challenge)">
+          <!-- Image de couverture -->
+          <div class="challenge-cover">
+            <img [src]="challenge.cover_image_url" [alt]="challenge.name">
+            <div class="challenge-overlay">
+              <ion-badge 
+                [color]="getStatusBadgeColor(getChallengeStatus(challenge))" 
+                class="status-badge">
+                <ion-icon name="flame-outline" class="badge-icon"></ion-icon>
+                {{ getStatusText(getChallengeStatus(challenge)) }}
+              </ion-badge>
+            </div>
+          </div>
+
+          <!-- Contenu de la carte -->
+          <div class="challenge-content">
+            <h3 class="challenge-name">{{ challenge.name }}</h3>
+            <p class="challenge-description">{{ challenge.description }}</p>
+
+            <!-- Métriques -->
+            <div class="challenge-metrics">
+              <div class="metric-item">
+                <ion-icon name="people-outline"></ion-icon>
+                <span>{{ challenge.participants_count }} participants</span>
+              </div>
+              <div class="metric-item">
+                <ion-icon name="musical-notes-outline"></ion-icon>
+                <span>{{ challenge.entries_count }} entrées</span>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="challenge-footer">
+              <div class="time-remaining">
+                <ion-icon name="time-outline" class="time-icon"></ion-icon>
+                <span class="time-text">{{ getDaysRemaining(challenge.end_date) }} jours restants</span>
+              </div>
+              <div class="prize-badge" *ngIf="challenge.prize">
+                <ion-icon name="trophy-outline"></ion-icon>
+                <span>{{ challenge.prize }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si créateur sans challenges actifs -->
+    <div class="no-challenges-section" *ngIf="userProfile.userType === 'creator' && activeChallengesCount <=0 && isOwnProfile">
+      <div class="empty-challenges">
+        <ion-icon name="trophy-outline" class="empty-icon"></ion-icon>
+        <h3>Aucun challenge actif</h3>
+        <p>Créez votre premier challenge pour engager votre communauté !</p>
+        <ion-button color="warning" (click)="createChallenge()">
+          <ion-icon name="add" slot="start"></ion-icon>
+          Créer un challenge
         </ion-button>
       </div>
     </div>
@@ -131,20 +221,29 @@
     </div>
 
     <!-- Posts Grid -->
-    <div class="posts-grid" *ngIf="selectedTab === 'posts'">
-      <div 
-        class="post-item" 
-        *ngFor="let post of userPosts"
-        (click)="openPost(post)">
-        <img [src]="post.imageUrl" [alt]="post.title">
-        <div class="post-overlay">
-          <div class="post-votes">
-            <ion-icon name="heart"></ion-icon>
-            <span>{{ formatNumber(post.votes) }}</span>
-          </div>
-        </div>
+    <div class="contents-grid" *ngIf="selectedTab === 'posts'">
+    <div *ngIf="isLoadingContents" class="loading-container">
+      <ion-spinner></ion-spinner>
+    </div>
+
+    <div *ngIf="!isLoadingContents && userContents.length === 0" class="no-contents">
+      <p>Aucun contenu partagé pour le moment</p>
+    </div>
+
+    <div *ngFor="let content of userContents" 
+         class="content-item"
+         (click)="openContent(content)">
+      <img [src]="getFullFileUrl(content.fileUrl)"  [alt]="content.title" *ngIf="content.fileUrl">
+      <div class="content-overlay" *ngIf="content.likeCount || content.commentCount">
+        <span *ngIf="content.likeCount">
+          <ion-icon name="heart"></ion-icon> {{ content.likeCount }}
+        </span>
+        <span *ngIf="content.commentCount">
+          <ion-icon name="chatbubble"></ion-icon> {{ content.commentCount }}
+        </span>
       </div>
     </div>
+  </div>
 
     <!-- Success Tab -->
     <div class="success-content" *ngIf="selectedTab === 'success'">
@@ -164,12 +263,12 @@
       <div class="info-card">
         <h3>Informations</h3>
         <div class="info-row">
-          <span class="info-label">Localisation</span>
-          <span class="info-value">{{ userProfile.location }}</span>
+          <span class="info-label">Institution</span>
+          <span class="info-value">{{ userProfile.school }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">Site web</span>
-          <span class="info-value">{{ userProfile.website }}</span>
+          <span class="info-label">Contact</span>
+          <span class="info-value">{{ userProfile.contact }}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Membre depuis</span>
@@ -178,4 +277,19 @@
       </div>
     </div>
   </div>
+
+  <!-- FAB Button pour créer un challenge (visible seulement pour le propriétaire créateur) -->
+  <ion-fab 
+    vertical="bottom" 
+    horizontal="end" 
+    slot="fixed"
+    *ngIf="userProfile.userType === 'creator' && isOwnProfile && isWrite_toRight">
+    <ion-fab-button color="warning" (click)="createChallenge()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <ng-template #loading>
+    <ion-spinner></ion-spinner>
+  </ng-template>
 </ion-content>

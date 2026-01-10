@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpEvent, HttpHeaders, HttpParams } from '@angular/common/http';
+import { catchError, Observable, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -91,14 +91,47 @@ export class ApiJSON {
   }
 
   /* ========= UPLOAD ========= */
-  upload<T>(resource: string, file: File, fieldName: string = 'file'): Observable<T> {
-    const formData = new FormData();
-    formData.append(fieldName, file);
+  upload<T>(
+  resource: string, 
+  file: File, 
+  fieldName: string = 'file',
+  reportProgress = false
+): Observable<T | HttpEvent<T>> {
+  const formData = new FormData();
+  formData.append(fieldName, file);
 
-    return this.http.post<T>(
-      `${this.BASE_URL}/${resource}`,
-      formData,
-      { headers: new HttpHeaders({ 'Authorization': `Bearer ${this.AUTH_TOKEN}` }) } // FormData ne doit pas avoir Content-Type
-    );
-  }
+  return this.http.post<T>(
+    `${this.BASE_URL}/${resource}`,
+    formData,
+    { 
+      headers: { 'Authorization': `Bearer ${this.AUTH_TOKEN}` },
+      reportProgress: true,
+      observe: reportProgress ? 'events' : 'body'
+    } as any
+  );
+}
+
+// Dans api-json.ts
+/**
+ * Récupère un fichier depuis le serveur
+ * @param filePath Chemin relatif du fichier
+ * @returns Observable avec les données du fichier sous forme de Blob
+ */
+getFile(filePath: string): Observable<Blob> {
+  const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+  const url = `${this.BASE_URL}/${cleanPath}`;
+  
+  return this.http.get(url, {
+    responseType: 'blob',
+    headers: this.getAuthHeaders(),
+    withCredentials: true // Important pour les requêtes avec authentification
+  }).pipe(
+    catchError(error => {
+      console.error('Erreur lors de la récupération du fichier:', error);
+      // Retourne un blob vide en cas d'erreur
+      return of(new Blob());
+    })
+  );
+}
+
 }
