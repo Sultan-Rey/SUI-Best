@@ -76,7 +76,6 @@ maxDate = new Date().toISOString();
   last_name: '',
   gender: '',
   birthDate: new Date(),
-  myFollow:[],
   myPlan: {} as Plan,
   readonly:false,
   age: 0,

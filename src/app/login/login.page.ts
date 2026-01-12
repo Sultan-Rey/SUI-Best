@@ -12,6 +12,8 @@ import {
   logoFacebook, 
   mailOutline,
   lockClosedOutline,
+  createOutline,
+  settingsOutline,
   eyeOutline,
   eyeOffOutline,
   shieldCheckmark
@@ -45,9 +47,8 @@ export class LoginPage implements OnInit {
     private auth: Auth,
     private router: Router,
     private loadingController: LoadingController,
-    private ngZone: NgZone
   ) {
-    addIcons({mailOutline,lockClosedOutline,logoGoogle,logoFacebook,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,'shieldCheckmark':shieldCheckmark});
+    addIcons({mailOutline,lockClosedOutline,logoGoogle,logoFacebook,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,'shieldCheckmark':shieldCheckmark,createOutline,settingsOutline});
   }
 
   ngOnInit() { }

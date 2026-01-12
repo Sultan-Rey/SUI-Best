@@ -1,0 +1,53 @@
+/* challenge-form.component.scss */
+ion-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+}
+
+ion-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --border-color: var(--ion-color-light-shade);
+  margin-bottom: 16px;
+}
+
+ion-button[type="submit"] {
+  margin-top: 24px;
+}
+
+.rules-container {
+  margin: 16px 0;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  
+  ion-input {
+    flex: 1;
+    margin-right: 8px;
+  }
+}
+
+.required {
+  color: var(--ion-color-danger);
+}
+
+/* Style pour le modal */
+ion-modal.auto-height {
+  --height: auto;
+  --border-radius: 16px;
+  --max-height: 90vh;
+  
+  &::part(content) {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  ion-content {
+    --overflow: auto;
+  }
+}

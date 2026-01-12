@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { catchError, Observable, switchMap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, EMPTY, map, Observable, of, switchMap, throwError } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { Content, ContentSource, ContentStatus } from '../../models/Content';
 import { Challenge } from '../../models/Challenge';
@@ -11,66 +11,69 @@ export class CreationService {
   private readonly contentResource = 'contents';
   private readonly challengeResource = 'challenges';
   private readonly uploadResource = 'api/upload'
+  private newContentSubject = new BehaviorSubject<Content | null>(null);
+newContent$ = this.newContentSubject.asObservable();
 
   constructor(private api: ApiJSON) {}
 
   // =====================
   // MÉTHODES POUR LES CONTENUS
   // =====================
-
-  createContentWithFile(
+// Dans la méthode createContentWithFile, après le succès de la création
+createContentWithFile(
   file: File,
   metadata: {
     title: string;
+    userId: string;
     description?: string;
     isPublic: boolean;
     allowDownloads: boolean;
     allowComments: boolean;
+    commentIds:[],
+    likedIds:[],
     challengeId?: string;
     source: ContentSource;
   },
   progressCallback?: (progress: number) => void
 ): Observable<Content> {
-  // 1. Upload du fichier avec suivi de progression
   return this.api.upload<{ file: { path: string } }>(
     this.uploadResource, 
     file, 
     'file',
-    !!progressCallback // Active le reportProgress uniquement si un callback est fourni
+    !!progressCallback
   ).pipe(
     switchMap((event: any) => {
-      // Si c'est un événement de progression
-      if (event.type) {
-        if (progressCallback && event.loaded !== undefined && event.total) {
-          const progress = Math.round((100 * event.loaded) / event.total);
-          progressCallback(progress);
-        }
-        // On ignore les événements de progression dans le switchMap
-        return new Observable<never>(() => {});
-      }
+  // Handle progress events
+  if (event.type) {
+    if (progressCallback && event.loaded !== undefined && event.total) {
+      const progress = Math.round((100 * event.loaded) / event.total);
+      progressCallback(progress);
+    }
+    // Return an empty observable that doesn't emit any values
+    return EMPTY;
+  }
 
-      // Si c'est la réponse finale
-      const uploadResponse = event.body || event;
-      
-      // 2. Création du contenu avec les métadonnées
-      const contentData: Omit<Content, 'id'> = {
-        ...metadata,
-        userId: 'current-user-id',
-        fileUrl: uploadResponse.file.path,
-        mimeType: file.type,
-        fileSize: file.size,
-        status: ContentStatus.PUBLISHED,
-        viewCount: 0,
-        likeCount: 0,
-        commentCount: 0,
-        downloadCount: 0,
-        createdAt: new Date().toISOString(),
-        tags: this.extractTags(metadata.description || '')
-      };
+  // Handle the final response
+  const uploadResponse = event.body || event;
+  
+  // Create content data
+  const contentData: Omit<Content, 'id'> = {
+    ...metadata,
+    fileUrl: uploadResponse.file.path,
+    mimeType: file.type,
+    fileSize: file.size,
+    status: ContentStatus.PUBLISHED,
+    viewCount: 0,
+    likeCount: 0,
+    commentCount: 0,
+    downloadCount: 0,
+    createdAt: new Date().toISOString(),
+    tags: this.extractTags(metadata.description || '')
+  };
 
-      // 3. Enregistrement des métadonnées en base
-      return this.api.create<Content>(this.contentResource, contentData);
-    }),
+  // Return the API call that creates the content
+  return this.api.create<Content>(this.contentResource, contentData);
+}),
     catchError(error => {
       console.error('Erreur lors de la création du contenu:', error);
       return throwError(() => error);
@@ -90,15 +93,112 @@ export class CreationService {
  * @returns Observable<Content[]> Liste des contenus de l'utilisateur triés par date de création décroissante
  */
 getUserContents(userId: string): Observable<Content[]> {
-  return this.api.getAll<Content>(this.contentResource, {
-    'user_id': userId,
-    '_sort': 'created_at:desc'
-  });
+  return this.api.getAll<Content>(this.contentResource).pipe(  // Supprimez les crochets ici
+    map((contents: Content[]) => {  // Typez explicitement le paramètre contents
+      // Filtre les contenus par userId
+      const filteredContents = contents.filter(content => 
+        content.userId === userId
+      );
+      
+      // Trie par date de création décroissante
+      return filteredContents.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }),
+    catchError(error => {
+      console.error('Erreur lors de la récupération des contenus:', error);
+      return of([]); // Retourne un tableau vide en cas d'erreur
+    })
+  );
 }
+
 
 getContentById(id: string): Observable<Content> {
   return this.api.getById<Content>(this.contentResource, id);
 }
+
+/**
+ * Récupère tous les contenus publiés pour le fil d'actualité global
+ * @param page Le numéro de la page (commence à 1 ou 0 selon ton API)
+ * @param limit Le nombre de contenus à charger par appel
+ * @returns Observable<Content[]>
+ */
+getFeedContents(page: number = 1, limit: number = 10): Observable<Content[]> {
+  const params = {
+    'status': ContentStatus.PUBLISHED, // Sécurité : on ne prend que le publier
+    '_sort': 'createdAt:desc',         // Plus récent en premier
+    '_page': page.toString(),          // Pagination
+    '_limit': limit.toString()         // Limitation
+  };
+
+  return this.api.getAll<Content>(this.contentResource, params).pipe(
+    map(contents => contents.map(content => ({
+      ...content,
+      // Optionnel : on peut forcer la sécurisation de l'URL ici si besoin
+      safeUrl: content.fileUrl 
+    }))),
+    catchError(error => {
+      console.error('Erreur lors de la récupération du flux:', error);
+      return throwError(() => new Error('Impossible de charger le fil d\'actualité.'));
+    })
+  );
+}
+
+  // Dans creation-service.ts
+
+// ...
+
+  /**
+   * Ajoute un like à un contenu
+   */
+  likeContent(contentId: string, userId: string): Observable<Content> {
+    // Récupérer d'abord le contenu actuel
+    return this.api.getById<Content>(this.contentResource, contentId).pipe(
+      switchMap(content => {
+        const updatedLikes = [...(content.likedIds || []), userId];
+        return this.api.patch<Content>(this.contentResource, contentId, {
+          likedIds: updatedLikes,
+          likeCount: updatedLikes.length
+        });
+      }),
+      catchError(error => {
+        console.error('Erreur lors de l\'ajout du like:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Retire un like d'un contenu
+   */
+  unlikeContent(contentId: string, userId: string): Observable<Content> {
+    return this.api.getById<Content>(this.contentResource, contentId).pipe(
+      switchMap(content => {
+        const updatedLikes = (content.likedIds || []).filter(id => id !== userId);
+        return this.api.patch<Content>(this.contentResource, contentId, {
+          likedIds: updatedLikes,
+          likeCount: updatedLikes.length
+        });
+      }),
+      catchError(error => {
+        console.error('Erreur lors de la suppression du like:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Vérifie si un utilisateur a aimé un contenu
+   */
+  hasLikedContent(contentId: string, userId: string): Observable<boolean> {
+    return this.api.getById<Content>(this.contentResource, contentId).pipe(
+      map(content => (content.likedIds || []).includes(userId)),
+      catchError(error => {
+        console.error('Erreur lors de la vérification du like:', error);
+        return of(false);
+      })
+    );
+  }
   // =====================
   // MÉTHODES POUR LES DÉFIS
   // =====================

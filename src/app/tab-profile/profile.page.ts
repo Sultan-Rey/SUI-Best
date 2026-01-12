@@ -1,7 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
+import { NgIf, CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ModalController } from '@ionic/angular';
+import { ChallengeFormComponent } from '../components/challenge-form/challenge-form.component';
 import { addIcons } from 'ionicons';
+
 import { 
   shareSocialOutline, 
   ellipsisVertical, 
@@ -11,17 +14,24 @@ import {
   linkOutline, 
   calendarOutline, 
   openOutline,
+  flag,
+  ban,
+  close,
   heart,
+  createOutline,
+  settingsOutline,
   trophyOutline,
   schoolOutline,
   flameOutline,
   peopleOutline,
   timeOutline,
-  add, musicalNotesOutline, chatbubble, chevronBack } from 'ionicons/icons';
+  add, musicalNotesOutline, chatbubble, chevronBack, 
+  create} from 'ionicons/icons';
 import { 
   IonContent, 
   IonHeader,
   IonToolbar, 
+  IonModal,
   IonButtons, 
   IonButton, 
   IonIcon, 
@@ -29,7 +39,7 @@ import {
   IonFab,
   IonFabButton, IonSpinner, IonTitle }  from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ActionSheetController } from '@ionic/angular';
+import { ActionSheetController, AlertController, ToastController } from '@ionic/angular';
 import { UserProfile } from 'src/models/User';
 import { Observable } from 'rxjs';
 import { Challenge } from 'src/models/Challenge';
@@ -55,7 +65,8 @@ interface Post {
   templateUrl: './profile.page.html',
   styleUrls: ['./profile.page.scss'],
   standalone: true,
-  imports: [IonTitle, IonSpinner, 
+  providers: [ModalController],
+  imports: [ NgIf,IonTitle, IonSpinner, 
     IonContent, IonHeader, IonToolbar, IonButtons, IonButton, 
     IonIcon, IonBadge, IonFab, IonFabButton,
     CommonModule, FormsModule
@@ -83,18 +94,21 @@ export class ProfilePage implements OnInit {
     private location: Location,
     private profileService : ProfileService,
     private authservice: Auth,
-    private userService: UserService,
     private creationService: CreationService,
-    private actionSheetController: ActionSheetController
+    private alertController: AlertController,
+    private toastController: ToastController,
+    private actionSheetController: ActionSheetController,
+    private modalCtrl: ModalController
   ) {
     this.userProfile = {} as UserProfile;
     this.userProfile.stats = {} as {
-      posts: number;
-      fans: number;
-      votes: number;
-      stars: number;
+      posts: 0;
+      fans: 0;
+      votes: 0;
+      stars: 0;
     };
-    addIcons({chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble});
+    
+    addIcons({ flag, ban, close, createOutline, settingsOutline, chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble});
   }
 
   ngOnInit() {
@@ -105,6 +119,7 @@ export class ProfilePage implements OnInit {
        this.isOwnProfile = userId === this.currentUserId;
       this.loadUserProfile(userId);
     }else{
+      
       this.loadUserProfile(this.currentUserId || '');
     }
   }
@@ -115,8 +130,8 @@ export class ProfilePage implements OnInit {
     if (!this.currentUserId || !this.userProfile) return;
 
     const action$ = this.userProfile.isFollowing
-      ? this.userService.unfollowProfile(this.currentUserId, this.userProfile.id)
-      : this.userService.followProfile(this.currentUserId, this.userProfile.id);
+      ? this.profileService.unfollowProfile(this.currentUserId, this.userProfile.id)
+      : this.profileService.followProfile(this.currentUserId, this.userProfile.id);
 
     action$.subscribe({
       next: () => {
@@ -124,7 +139,7 @@ export class ProfilePage implements OnInit {
         if (this.userProfile) {
           this.userProfile.isFollowing = !this.userProfile.isFollowing;
           // Mise à jour du compteur
-          this.userProfile.stats.fans += this.userProfile.isFollowing ? 1 : -1;
+          //this.userProfile.stats.fans += this.userProfile.isFollowing ? 1 : -1;
         }
       },
       error: err => console.error('Erreur lors de la mise à jour du suivi', err)
@@ -142,12 +157,13 @@ getFullFileUrl(relativePath: string): string {
  
    loadUserProfile(userId: string) {
     this.isLoading = true;
-    this.profileService.getProfileByUserId(userId, this.currentUserId || undefined)
+    this.profileService.getProfileById(userId)
       .subscribe({
         next: (profile) => {
           this.userProfile = profile;
           this.loadUserContents(userId); // Charger les contenus après le chargement du profil
           this.isLoading = false;
+          this.isOwnProfile = true;
         },
         error: (err) => {
           console.error('Erreur lors du chargement du profil', err);
@@ -186,14 +202,29 @@ getFullFileUrl(relativePath: string): string {
   
 
   // Gestion des challenges
-  createChallenge() {
-    console.log('Navigating to create challenge...');
-    this.router.navigate(['/create-challenge']);
+  async createChallenge() {
+     const modal = await this.modalCtrl.create({
+      component: ChallengeFormComponent,
+      componentProps: {
+        challenge: null // Permet d'éditer un challenge existant ou d'en créer un nouveau
+      },
+      cssClass: 'auto-height',
+      backdropDismiss: false
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss();
+    
+    if (data) {
+      this.loadActiveChallenges(this.currentUserId || ''); // Rafraîchir la liste des challenges
+    }
+   
   }
 
-  openChallenge(challenge: Challenge) {
-    console.log('Opening challenge:', challenge.id);
-    this.router.navigate(['/challenge', challenge.id]);
+   async openChallenge(challenge?: Challenge) {
+    console.log('Navigating to create challenge...');
+    //this.router.navigate(['/create-challenge']);
   }
 
   viewAllChallenges() {
@@ -262,35 +293,144 @@ getFullFileUrl(relativePath: string): string {
     await actionSheet.present();
   }
 
-  async presentMoreOptions() {
-    const actionSheet = await this.actionSheetController.create({
-      header: 'Options',
-      buttons: [
-        {
-          text: 'Signaler',
-          icon: 'flag',
-          role: 'destructive',
-          handler: () => {
-            this.reportUser();
-          }
-        },
-        {
-          text: 'Bloquer',
-          icon: 'ban',
-          role: 'destructive',
-          handler: () => {
-            this.blockUser();
-          }
-        },
-        {
-          text: 'Annuler',
-          icon: 'close',
-          role: 'cancel'
+ async presentMoreOptions() {
+  const isOwnProfile = this.userProfile?.id === this.authservice.getCurrentUser()?.id;
+  
+  const buttons = [];
+  console.log("current_profile_is"+isOwnProfile);
+  if (isOwnProfile) {
+    // Options pour le profil de l'utilisateur connecté
+    buttons.push(
+      {
+        text: 'Modifier le profil',
+        icon: 'create-outline',
+        handler: () => {
+          this.editProfile();
         }
-      ]
-    });
-    await actionSheet.present();
+      },
+      {
+        text: 'Paramètres',
+        icon: 'settings-outline',
+        handler: () => {
+          this.openSettings();
+        }
+      }
+    );
+  } else {
+    // Options pour le profil d'un autre utilisateur
+    buttons.push(
+      {
+        text: 'Signaler',
+        icon: 'flag-outline',
+        role: 'destructive',
+        handler: () => {
+          this.reportUser();
+        }
+      },
+      {
+        text: 'Bloquer',
+        icon: 'ban-outline',
+        role: 'destructive',
+        handler: () => {
+          this.blockUser();
+        }
+      }
+    );
   }
+
+  // Bouton Annuler commun aux deux cas
+  buttons.push({
+    text: 'Annuler',
+    icon: 'close',
+    role: 'cancel'
+  });
+
+  const actionSheet = await this.actionSheetController.create({
+    header: isOwnProfile ? 'Options du profil' : 'Options',
+    buttons: buttons
+  });
+
+  await actionSheet.present();
+}
+
+// Ajoutez ces méthodes si elles n'existent pas déjà
+private editProfile() {
+  this.router.navigate(['/edit-profile']);
+}
+
+private openSettings() {
+  this.router.navigate(['/settings']);
+}
+
+private async reportUser() {
+  const alert = await this.alertController.create({
+    header: 'Signaler un utilisateur',
+    message: 'Pourquoi souhaitez-vous signaler cet utilisateur ?',
+    inputs: [
+      {
+        name: 'reason',
+        type: 'text',
+        placeholder: 'Raison du signalement'
+      }
+    ],
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      },
+      {
+        text: 'Envoyer',
+        handler: (data) => {
+          if (data.reason) {
+            // Envoyer le signalement
+            console.log('Signalement envoyé :', data.reason);
+            this.presentToast('Signalement envoyé avec succès', 'success');
+            return true; // Ajoutez cette ligne pour fermer l'alerte
+          } else {
+            this.presentToast('Veuillez indiquer une raison', 'warning');
+            return false; // Empêche la fermeture de l'alerte
+          }
+        }
+      }
+    ]
+  });
+  await alert.present();
+}
+private async blockUser() {
+  const alert = await this.alertController.create({
+    header: 'Confirmer',
+    message: 'Voulez-vous vraiment bloquer cet utilisateur ?',
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      },
+      {
+        text: 'Bloquer',
+        role: 'destructive',
+        handler: () => {
+          // Implémentez la logique de blocage
+          console.log('Utilisateur bloqué');
+          this.presentToast('Utilisateur bloqué avec succès', 'success');
+          // Revenir en arrière ou rafraîchir la page
+          this.router.navigate(['/tabs/tab-home']);
+        }
+      }
+    ]
+  });
+  await alert.present();
+}
+
+// Ajoutez cette méthode utilitaire pour les notifications
+private async presentToast(message: string, color: 'success' | 'warning' | 'danger' = 'success') {
+  const toast = await this.toastController.create({
+    message: message,
+    duration: 2000,
+    color: color,
+    position: 'bottom'
+  });
+  await toast.present();
+}
 
   copyProfileLink() {
     const link = `https://app.com/profile/${this.userProfile.id}`;
@@ -300,14 +440,6 @@ getFullFileUrl(relativePath: string): string {
 
   shareProfile() {
     console.log('Sharing profile...');
-  }
-
-  reportUser() {
-    console.log('Reporting user...');
-  }
-
-  blockUser() {
-    console.log('Blocking user...');
   }
 
   sendMessage() {

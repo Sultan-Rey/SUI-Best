@@ -1,0 +1,58 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Commentaires</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Liste des commentaires -->
+  <div *ngIf="!isLoading; else loading">
+    <ion-list>
+      <ion-item *ngFor="let comment of comments" lines="full">
+        <ion-avatar slot="start">
+          <img [src]="comment.userAvatar || 'assets/avatar-default.png'" (error)="onImageError($event)">
+        </ion-avatar>
+        
+        <ion-label>
+          <h3>{{ comment.username }}</h3>
+          <p>{{ comment.text }}</p>
+          <div class="comment-actions">
+            <ion-button fill="clear" size="small" (click)="toggleLike(comment)">
+              <ion-icon 
+                [name]="comment.isLiked ? 'heart' : 'heart-outline'" 
+                [color]="comment.isLiked ? 'danger' : 'medium'">
+              </ion-icon>
+              <span *ngIf="comment.likes > 0">{{ comment.likes }}</span>
+            </ion-button>
+          </div>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <!-- Champ de saisie du commentaire -->
+    <ion-footer class="comment-input">
+      <ion-item>
+        <ion-textarea 
+          [(ngModel)]="newComment" 
+          placeholder="Ajouter un commentaire..."
+          rows="1"
+          autoGrow="true">
+        </ion-textarea>
+        <ion-buttons slot="end">
+          <ion-button (click)="addComment()" [disabled]="!newComment.trim() || isPosting">
+            <ion-icon name="send" [color]="newComment.trim() ? 'primary' : 'medium'"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-item>
+    </ion-footer>
+  </div>
+
+  <ng-template #loading>
+    <div class="loading-container">
+      <ion-spinner></ion-spinner>
+    </div>
+  </ng-template>
+</ion-content>

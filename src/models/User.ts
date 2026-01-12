@@ -32,7 +32,7 @@ export interface User {
   status: 'active' | 'blocked' | 'pending';
 
   /* Meta */
-  myFollow: string[]; 
+  
   readonly:boolean;
   myPlan:Plan
   registration_date: string;
@@ -52,6 +52,7 @@ export interface UserProfile {
   contact: string;
   memberSince: string;
   userType: 'fan' | 'artist' | 'creator' | 'admin';
+  myFollows: string[];
   stats: {
     posts: number;
     fans: number;

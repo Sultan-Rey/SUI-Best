@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { environment } from 'src/environments/environment';
 import { HttpClient, HttpEvent, HttpHeaders, HttpParams } from '@angular/common/http';
 import { catchError, Observable, of } from 'rxjs';
 
@@ -7,8 +8,8 @@ import { catchError, Observable, of } from 'rxjs';
 })
 export class ApiJSON {
 
-  private readonly BASE_URL = 'http://localhost:3000';
-  private readonly AUTH_TOKEN = 'demo-client-key-123'; // token utilisé par votre AuthMiddleware
+  private readonly BASE_URL = environment.apiUrl;
+  private readonly AUTH_TOKEN = environment.authToken;
 
   constructor(private http: HttpClient) {}
 

@@ -5,6 +5,7 @@ export interface Challenge {
   creator_id: string;
   duration_days: number;
   vote_rule: 'one_vote_per_user' | 'unlimited_votes' | string; // Vous pouvez étendre avec d'autres règles si nécessaire
+  call_to_action : 'Participer' | 'Voter' | 'Soutenir' | 'Voter l\'artiste' | 'J\'approuve' | 'Soutenir ce talent';
   created_at?: Date; // Optionnel : date de création
   start_date?: Date; // Optionnel : date de début
   end_date?: Date; // Optionnel : date de fin

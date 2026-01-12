@@ -20,7 +20,8 @@ export interface Content {
   id?: string;                // ID unique généré par la base de données
   userId: string;             // ID de l'utilisateur créateur
   challengeId?: string;       // Optionnel : ID du défi associé
-
+  commentIds: string[];      // IDs des commentaires associés à ce contenu
+  likedIds?:string[];
   // Métadonnées du contenu
   title: string;              // Titre du contenu
   description?: string;       // Description optionnelle
@@ -29,6 +30,7 @@ export interface Content {
   allowDownloads: boolean;    // Autoriser le téléchargement
   allowComments: boolean;     // Autoriser les commentaires
   source: ContentSource;      // Source: caméra ou galerie
+  isLikedByUser?: boolean;
 
   // Fichier média
   fileUrl: string;            // URL du fichier sur le serveur

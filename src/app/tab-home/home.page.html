@@ -17,43 +17,81 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="content">
-  <div class="video-container">
-    <img [src]="currentPost.videoThumbnail" [alt]="currentPost.artistName" class="video-thumbnail">
-    <div class="video-overlay"></div>
-  </div>
+<ion-content [fullscreen]="true" [scrollY]="true" class="tiktok-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refreshFeed($event)">
+  <ion-refresher-content></ion-refresher-content>
+</ion-refresher>
+  <div class="posts-container">
+    <div 
+      class="post" 
+      *ngFor="let post of posts | filter:filterPublic; let i = index" 
+      (click)="onPostVisible(i)">
+      
+      <div class="video-container">
+        <img [src]="getMediaUrl(post.thumbnailUrl || post.fileUrl)"  class="video-thumbnail">
+        <div class="video-overlay"></div>
+      </div>
 
-  <!-- Bouton Play -->
-  <div class="play-button-container">
-    <ion-button class="play-button" (click)="playVideo()">
-      <ion-icon name="play" class="play-icon"></ion-icon>
-    </ion-button>
-  </div>
-
-  <!-- Contenu principal -->
-  <div class="main-content">
-    <!-- Informations de l'artiste -->
-    <div class="artist-info">
-      <div class="artist-header">
-        <img [src]="currentPost.artistAvatar" [alt]="currentPost.artistName" class="artist-avatar">
-        <div class="artist-details">
-          <h3 class="artist-name">{{ currentPost.artistName }}</h3>
-          <p class="artist-location">{{ currentPost.location }}</p>
+      <div class="main-content">
+        <div class="artist-info">
+          <div class="artist-header">
+           <img [src]="getPostAvatar(post)" class="artist-avatar" (error)="onImageAvatarError($event)">
+             <div class="artist-details">
+        <div class="profile-header">
+          <h4 class="profile-name">{{ currentUserProfile.username }}</h4>
+          <ion-button 
+  (click)="subscribeTo(post.userId)" 
+  *ngIf="currentUserProfile.id !== post.userId" 
+  fill="clear" 
+  size="small" 
+  class="subscribe-btn"
+  [class.is-following]="isFollowingUser[post.userId]"
+  [disabled]="isFollowingUser[post.userId]">
+  {{ isFollowingUser[post.userId] ? 'Abonné' : "S'abonner" }}
+</ion-button>
+        </div>
+        
+        <div class="artist-name">
+  <span class="post-title">{{ post.title }}</span>
+  <span class="separator">•</span>
+  <span class="post-date">{{ post.createdAt | date:'dd MMM yyyy' }}</span>
+</div>
+        
+        <p class="artist-location">{{ post.description | slice:0:60 }}...</p>
+        
+        <div *ngIf="hasActiveChallenge(post)" class="challenge-title">
+          {{ currentChallenge[post.challengeId || '']?.name }}
         </div>
       </div>
-      <ion-button class="vote-button" expand="block" (click)="voteForArtist()">
-        Voter pour cet artiste
-      </ion-button>
-    </div>
-
-    <!-- Actions latérales -->
-    <div class="side-actions">
-      <button class="action-button" *ngFor="let action of actions" (click)="handleAction(action)">
-        <div class="action-icon">
-          <ion-icon [name]="action.icon" class="action-icon-svg"></ion-icon>
+          </div>
+          
+          <ion-button 
+  *ngIf="hasActiveChallenge(post)"
+  class="vote-button" 
+  (click)="voteForArtist(post)">
+  {{ currentChallenge[post.challengeId || '']?.call_to_action || 'En savoir plus' }}
+</ion-button>
         </div>
-        <span class="action-count" *ngIf="action.count">{{ action.count }}</span>
-      </button>
+
+        <div class="side-actions">
+          <button class="action-button" *ngFor="let action of getActionsForPost(post)" (click)="action.action()">
+            <div class="action-icon"[class.liked]="action.icon === 'heart'">
+              <ion-icon [name]="action.icon"></ion-icon>
+            </div>
+            <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
+
+  
+
+<ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)">
+  <ion-infinite-scroll-content
+    loadingSpinner="bubbles"
+    loadingText="Chargement de la suite...">
+  </ion-infinite-scroll-content>
+</ion-infinite-scroll>
+
 </ion-content>

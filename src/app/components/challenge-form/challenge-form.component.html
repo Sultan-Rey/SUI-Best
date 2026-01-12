@@ -1,0 +1,156 @@
+<!-- challenge-form.component.html -->
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="onCancel()">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Modifier le défi' : 'Nouveau défi' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onSubmit()" [disabled]="challengeForm.invalid || isLoading">
+        <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+        <span *ngIf="!isLoading">{{ isEditMode ? 'Mettre à jour' : 'Créer' }}</span>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form [formGroup]="challengeForm" (ngSubmit)="onSubmit()" class="ion-padding">
+  <!-- Nom du défi -->
+  <ion-item>
+    <ion-label position="floating">Nom du défi <span class="required">*</span></ion-label>
+    <ion-input formControlName="name" type="text" required></ion-input>
+  </ion-item>
+  <ion-note color="danger" *ngIf="challengeForm.get('name')?.touched && challengeForm.get('name')?.errors?.['required']">
+    Le nom est requis
+  </ion-note>
+
+  <!-- Description -->
+  <ion-item>
+    <ion-label position="floating">Description <span class="required">*</span></ion-label>
+    <ion-textarea formControlName="description" rows="4" required></ion-textarea>
+  </ion-item>
+
+  <!-- Durée -->
+  <ion-item>
+    <ion-label position="floating">Durée (jours) <span class="required">*</span></ion-label>
+    <ion-input formControlName="duration_days" type="number" min="1" required></ion-input>
+  </ion-item>
+
+  <!-- Règle de vote -->
+  <ion-item>
+    <ion-label>Règle de vote <span class="required">*</span></ion-label>
+    <ion-select formControlName="vote_rule" interface="action-sheet">
+      <ion-select-option *ngFor="let rule of voteRules" [value]="rule.value">
+        {{ rule.label }}
+      </ion-select-option>
+    </ion-select>
+  </ion-item>
+
+  <!-- Call to action -->
+  <ion-item>
+    <ion-label>Bouton d'action <span class="required">*</span></ion-label>
+    <ion-select formControlName="call_to_action" interface="action-sheet">
+      <ion-select-option *ngFor="let action of callToActionOptions" [value]="action.value">
+        {{ action.label }}
+      </ion-select-option>
+    </ion-select>
+  </ion-item>
+
+  <!-- Récompense -->
+  <ion-item>
+    <ion-label position="floating">Récompense</ion-label>
+    <ion-input formControlName="prize" type="text"></ion-input>
+  </ion-item>
+
+  <!-- Règles du défi -->
+  <ion-item-group>
+    <ion-item>
+      <ion-label>Règles du défi</ion-label>
+      <ion-button fill="clear" size="small" (click)="addRule()">
+        <ion-icon name="add" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-item>
+    
+    <div formArrayName="rules" *ngFor="let rule of rules.controls; let i = index">
+      <ion-item>
+        <ion-input [formControlName]="i" placeholder="Règle du défi"></ion-input>
+        <ion-button fill="clear" color="danger" (click)="removeRule(i)" *ngIf="rules.length > 1">
+          <ion-icon name="trash" slot="icon-only"></ion-icon>
+        </ion-button>
+      </ion-item>
+    </div>
+  </ion-item-group>
+
+  <!-- Date de début -->
+  <ion-item>
+    <ion-label>Date de début</ion-label>
+    <ion-datetime-button datetime="startDate"></ion-datetime-button>
+    <ion-modal [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime 
+          id="startDate" 
+          formControlName="start_date"
+          presentation="date"
+          [showDefaultButtons]="true"
+          doneText="Valider"
+          cancelText="Annuler">
+        </ion-datetime>
+      </ng-template>
+    </ion-modal>
+  </ion-item>
+
+  <!-- Date de fin -->
+  <ion-item>
+    <ion-label>Date de fin</ion-label>
+    <ion-datetime-button datetime="endDate"></ion-datetime-button>
+    <ion-modal [keepContentsMounted]="true">
+      <ng-template>
+        <ion-datetime 
+          id="endDate" 
+          formControlName="end_date"
+          presentation="date"
+          [showDefaultButtons]="true"
+          doneText="Valider"
+          cancelText="Annuler">
+        </ion-datetime>
+      </ng-template>
+    </ion-modal>
+  </ion-item>
+
+  <!-- Image de couverture -->
+  <ion-item>
+    <ion-label>Image de couverture</ion-label>
+    <input 
+      type="file" 
+      accept="image/*" 
+      (change)="onCoverImageChange($event)"
+      style="display: none"
+      #fileInput>
+    <ion-button fill="outline" (click)="fileInput.click()">
+      <ion-icon name="image" slot="start"></ion-icon>
+      Choisir une image
+    </ion-button>
+  </ion-item>
+
+  <!-- Statut actif -->
+  <ion-item>
+    <ion-label>Défi actif</ion-label>
+    <ion-toggle formControlName="is_active"></ion-toggle>
+  </ion-item>
+
+  <!-- Bouton de soumission -->
+  <ion-button 
+    expand="block" 
+    type="submit" 
+    [disabled]="!challengeForm.valid || isLoading"
+    class="ion-margin-top">
+    <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+    <span *ngIf="!isLoading">Créer le défi</span>
+  </ion-button>
+</form>
+
+
+</ion-content>

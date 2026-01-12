@@ -4,7 +4,6 @@ import { Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { ApiJSON} from '../API/LOCAL/api-json';
 import { UserProfile } from '../../models/User';
-import { UserService } from '../USER_SERVICE/user-service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +11,7 @@ import { UserService } from '../USER_SERVICE/user-service';
 export class ProfileService {
   private resource = 'profiles';
 
-  constructor(private api: ApiJSON, private userService: UserService) {}
+  constructor(private api: ApiJSON) {}
 
   /* =====================
      CREATE
@@ -32,32 +31,7 @@ export class ProfileService {
     return this.api.getById<UserProfile>(this.resource, id);
   }
 
-  // Dans profile.service.ts
-getProfileByUserId(userId: string, currentUserId?: string): Observable<UserProfile> {
-  return this.api.getAll<UserProfile>(this.resource, { userId }).pipe(
-    switchMap(profiles => {
-      if (!profiles || profiles.length === 0) {
-        throw new Error('Profile not found');
-      }
-      
-      const profile = profiles[0];
-      
-      // Si on a un currentUserId, on vérifie si cet utilisateur suit déjà le profil
-      if (currentUserId) {
-        return this.userService.isFollowing(currentUserId, userId).pipe(
-          map(isFollowing => {
-            return {
-              ...profile,
-              isFollowing
-            };
-          })
-        );
-      }
-      
-      return of(profile);
-    })
-  );
-}
+
 
   /* =====================
      UPDATE
@@ -72,4 +46,42 @@ getProfileByUserId(userId: string, currentUserId?: string): Observable<UserProfi
   deleteProfile(id: string): Observable<void> {
     return this.api.delete(this.resource, id);
   }
+
+  /* ====================
+     FOLLOW/UNFOLLOW
+     ==================== */
+     followProfile(userId: string, profileIdToFollow: string): Observable<UserProfile> {
+    return this.api.getById<UserProfile>(this.resource, userId).pipe(
+      switchMap(user => {
+        const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
+        if (!myFollows.includes(profileIdToFollow)) {
+          user.myFollows = [...user.myFollows, profileIdToFollow];
+          return this.api.update<UserProfile>(this.resource, userId, user);
+        }
+        return of(user);
+      })
+    );
+  }
+
+
+   unfollowProfile(userId: string, profileIdToUnfollow: string): Observable<UserProfile> {
+    return this.api.getById<UserProfile>(this.resource, userId).pipe(
+      switchMap(user => {
+         const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
+        user.myFollows = myFollows.filter(id => id !== profileIdToUnfollow);
+        return this.api.update<UserProfile>(this.resource, userId, user);
+      })
+    );
+  }
+
+  isFollowing(userId: string, profileId: string): Observable<boolean> {
+  return this.api.getById<UserProfile>(this.resource, userId).pipe(
+    map(user => {
+      // Assurez-vous que myFollows est un tableau
+      const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
+      return myFollows.includes(profileId);
+    })
+  );
+}
+
 }

@@ -164,7 +164,7 @@ this.registrationData.myPlan = {
   status:  'active',
   features: selectedPlan.features
 };
-    this.isLoading = true;
+    
 
     try {
       // 3️⃣ Créer l'utilisateur
@@ -187,6 +187,7 @@ this.registrationData.myPlan = {
       // 4️⃣ Créer le profil utilisateur
       const userProfile: UserProfile = {
         id: userCreated.id.toString(),
+        myFollows: [],
         username: await this.generateUniqueUsername(
     this.registrationData.first_name || 'user',
     this.registrationData.last_name || userCreated.id.toString().substring(0, 8)

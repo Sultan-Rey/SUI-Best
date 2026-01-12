@@ -26,6 +26,9 @@ export class UploadPage implements OnDestroy {
     isPublic: true,
     allowDownloads: true,
     allowComments:true,
+    likedIds: [],
+    commentIds: [],
+    userId: this.authService.getCurrentUser()?.id?.toString() || '',
     source: ContentSource.CAMERA
   };
   challenges: Challenge[] = [];  // Liste des challenges
@@ -180,11 +183,14 @@ removeMedia(event: Event) {
         this.selectedFile,
         {
           title: this.content.title,
+          userId:this.content.userId || '',
           description: this.content.description,
           isPublic: this.content.isPublic ?? true,
           allowDownloads: this.content.allowDownloads ?? true,
           allowComments: this.content.allowComments ?? false,
           challengeId: this.content.challengeId,
+          likedIds:[],
+          commentIds: [],
           source: this.content.source || ContentSource.CAMERA
         }
       ).toPromise();
