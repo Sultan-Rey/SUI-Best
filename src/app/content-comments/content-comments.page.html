@@ -10,6 +10,12 @@
 <ion-content class="ion-padding">
   <!-- Liste des commentaires -->
   <div *ngIf="!isLoading; else loading">
+    <div *ngIf="!comments || comments.length === 0" class="no-comments">
+      <ion-icon name="chatbubble-outline"></ion-icon>
+      <p>Aucun commentaire pour le moment</p>
+      <p class="hint">Soyez le premier à commenter !</p>
+    </div>
+    
     <ion-list>
       <ion-item *ngFor="let comment of comments" lines="full">
         <ion-avatar slot="start">

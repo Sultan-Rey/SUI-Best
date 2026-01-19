@@ -10,6 +10,8 @@ import { addIcons } from 'ionicons';
 import { camera, arrowBack, closeCircle, close, image, images, globe, lockClosed, download } from 'ionicons/icons';
 import { Challenge } from 'src/models/Challenge';
 import { Auth } from 'src/services/AUTH/auth';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-upload',
@@ -19,20 +21,35 @@ import { Auth } from 'src/services/AUTH/auth';
   imports:[NgIf, NgFor, FormsModule,  IonButton, IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonButtons, IonProgressBar, IonList, IonToolbar, IonTitle,  IonListHeader, IonRadio, IonRadioGroup]
 })
 export class UploadPage implements OnDestroy {
+  private _selectedChallengeId: string | null = null;
+
+  // Getter et setter pour selectedChallengeId
+  get selectedChallengeId(): string | null {
+    return this._selectedChallengeId;
+  }
+
+  set selectedChallengeId(value: string | null) {
+    this._selectedChallengeId = value;
+    if (this.content) {
+      this.content.challengeId = value || '';
+    }
+  }
+
   // État du formulaire
   content: Partial<Content> = {
     title: '',
     description: '',
     isPublic: true,
     allowDownloads: true,
-    allowComments:true,
+    allowComments: true,
     likedIds: [],
     commentIds: [],
+    challengeId: '', // Sera mis à jour par le setter
     userId: this.authService.getCurrentUser()?.id?.toString() || '',
     source: ContentSource.CAMERA
   };
   challenges: Challenge[] = [];  // Liste des challenges
-  selectedChallengeId: string | null = null;  // ID du challenge sélectionné
+  
 
   selectedFile: File | null = null;
   previewUrl: string | null = null;
@@ -44,9 +61,11 @@ export class UploadPage implements OnDestroy {
     private cameraService: CameraService,
     private creationService: CreationService,
     private authService: Auth,
+    private profileService: ProfileService,
     private loadingCtrl: LoadingController,
     private actionSheetCtrl: ActionSheetController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private routeur: Router
   ) {this.loadChallenges();
     addIcons({arrowBack,close,images,closeCircle,camera,image,globe,lockClosed,download});}
 
@@ -123,6 +142,7 @@ canSubmit(): boolean {
 
 // Pour fermer le formulaire
 close() {
+  this.routeur.navigate(['/tabs/home']);
   // Implémentez la logique pour fermer le modal ou revenir en arrière
 }
 
@@ -162,48 +182,81 @@ removeMedia(event: Event) {
 }
 
   // Soumettre le formulaire
-  async submit() {
-    if (!this.selectedFile) {
-      this.showError('Veuillez sélectionner un fichier');
-      return;
-    }
-
-    if (!this.content.title?.trim()) {
-      this.showError('Veuillez ajouter un titre');
-      return;
-    }
-
-    const loading = await this.loadingCtrl.create({
-      message: 'Publication en cours...'
-    });
-    await loading.present();
-
-    try {
-      await this.creationService.createContentWithFile(
-        this.selectedFile,
-        {
-          title: this.content.title,
-          userId:this.content.userId || '',
-          description: this.content.description,
-          isPublic: this.content.isPublic ?? true,
-          allowDownloads: this.content.allowDownloads ?? true,
-          allowComments: this.content.allowComments ?? false,
-          challengeId: this.content.challengeId,
-          likedIds:[],
-          commentIds: [],
-          source: this.content.source || ContentSource.CAMERA
-        }
-      ).toPromise();
-
-      await loading.dismiss();
-      this.showSuccess('Contenu publié avec succès!');
-      this.resetForm();
-    } catch (error) {
-      console.error('Erreur lors de la publication:', error);
-      await loading.dismiss();
-      this.showError('Erreur lors de la publication');
-    }
+ async submit() {
+  if (!this.selectedFile) {
+    this.showError('Veuillez sélectionner un fichier');
+    return;
   }
+
+  if (!this.content.title?.trim()) {
+    this.showError('Veuillez ajouter un titre');
+    return;
+  }
+
+  const loading = await this.loadingCtrl.create({
+    message: 'Publication en cours...'
+  });
+  await loading.present();
+
+  try {
+    // Création du contenu
+    const newContent = await this.creationService.createContentWithFile(
+      this.selectedFile,
+      {
+        title: this.content.title,
+        userId: this.content.userId || '',
+        description: this.content.description,
+        isPublic: this.content.isPublic ?? true,
+        allowDownloads: this.content.allowDownloads ?? true,
+        allowComments: this.content.allowComments ?? false,
+        challengeId: this.content.challengeId,
+        likedIds: [],
+        commentIds: [],
+        source: this.content.source || ContentSource.CAMERA
+      }
+    ).toPromise();
+
+    // Mise à jour des statistiques du profil utilisateur
+    if (newContent && this.content.userId) {
+      try {
+        // Récupérer le profil utilisateur
+const userProfile = await this.profileService.getProfileById(this.content.userId).toPromise();
+
+if (userProfile) {
+  // Initialiser les stats si elles n'existent pas
+  const currentStats = userProfile.stats || { 
+    posts: 0, 
+    fans: 0, 
+    votes: 0, 
+    stars: 0 
+  };
+  
+  // Créer l'objet de mise à jour avec les nouvelles stats
+  const updates = {
+    stats: {
+      ...currentStats,
+      posts: (currentStats.posts || 0) + 1
+    }
+  };
+  
+  // Mettre à jour le profil utilisateur avec la nouvelle signature
+  await this.profileService.updateProfile(userProfile.id, updates).toPromise();
+}
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du profil:', error);
+        // Ne pas bloquer le flux en cas d'échec de la mise à jour des stats
+      }
+    }
+
+    await loading.dismiss();
+    this.showSuccess('Contenu publié avec succès!');
+    this.resetForm();
+  } catch (error) {
+    console.error('Erreur lors de la publication:', error);
+    await loading.dismiss();
+    this.showError('Erreur lors de la publication');
+  }
+}
 
   // Navigation entre les étapes
   nextStep() {

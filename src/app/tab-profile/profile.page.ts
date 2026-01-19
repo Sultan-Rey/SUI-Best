@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { NgIf, CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
@@ -41,13 +41,14 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, ToastController } from '@ionic/angular';
 import { UserProfile } from 'src/models/User';
-import { Observable } from 'rxjs';
+import { Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { Challenge } from 'src/models/Challenge';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { Auth } from 'src/services/AUTH/auth';
 import { CreationService } from 'src/services/CREATION/creation-service';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
 import { Content } from 'src/models/Content';
+import { getMediaUrl } from '../utils/media.utils';
 
 
 interface Post {
@@ -85,10 +86,11 @@ export class ProfilePage implements OnInit {
   activeChallengesCount : number = 0;
   userContents: Content[] = [];
   isLoadingContents = false; 
-  isWrite_toRight = false;
+  isRight_toWrite = false;
   successPosts: Post[] = [];
-  
+  private destroy$ = new Subject<void>();
   constructor(
+    private cdr: ChangeDetectorRef, 
     private route: ActivatedRoute,
     private router: Router,
     private location: Location,
@@ -110,67 +112,114 @@ export class ProfilePage implements OnInit {
     
     addIcons({ flag, ban, close, createOutline, settingsOutline, chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble});
   }
-
-  ngOnInit() {
-    const userId = this.route.snapshot.paramMap.get('id');
-    this.currentUserId = this.authservice.getCurrentUser()?.id?.toString() || null;
-    this.isWrite_toRight = this.authservice.getCurrentUser()?.readonly?.valueOf() || false;
-    if (userId) {
-       this.isOwnProfile = userId === this.currentUserId;
+ngOnInit() {
+  // S'abonner aux changements de paramètres de route
+  this.route.paramMap.pipe(
+    takeUntil(this.destroy$)
+  ).subscribe(params => {
+    const userId = params.get('id');
+    const isCurrentUserProfile = this.route.snapshot.data['isCurrentUser'] === true;
+    const currentUser = this.authservice.getCurrentUser();
+    this.currentUserId = currentUser?.id?.toString() || null;
+    this.isRight_toWrite = !currentUser?.readonly;
+   
+    if (isCurrentUserProfile && this.currentUserId) {
+      // Cas de la route /my-profile
+      this.isOwnProfile = true;
+      this.loadUserProfile(this.currentUserId);
+    } else if (userId) {
+      // Cas de la route /profile/:id
+      this.isOwnProfile = userId === this.currentUserId;
       this.loadUserProfile(userId);
-    }else{
-      
-      this.loadUserProfile(this.currentUserId || '');
+    } else if (this.currentUserId) {
+      // Fallback si pas d'ID mais utilisateur connecté
+      this.isOwnProfile = true;
+      this.loadUserProfile(this.currentUserId);
+    } else {
+      // Rediriger vers la page de connexion si pas connecté
+      this.router.navigate(['/login']);
     }
-  }
+  });
 
- 
+  // S'abonner aux changements d'authentification
+  this.authservice.currentUser$.pipe(
+    takeUntil(this.destroy$)
+  ).subscribe(user => {
+    const currentUserId = user?.id?.toString() || null;
+    if (this.userProfile) {
+      const isCurrentUserProfile = this.route.snapshot.data['isCurrentUser'] === true;
+      this.isOwnProfile = isCurrentUserProfile || this.userProfile.id === currentUserId;
+    }
+    this.currentUserId = currentUserId;
+    this.isRight_toWrite = user?.readonly || false;
+  });
+}
 
-  toggleFollow() {
-    if (!this.currentUserId || !this.userProfile) return;
+async toggleFollow() {
+  if (!this.currentUserId || !this.userProfile) return;
 
-    const action$ = this.userProfile.isFollowing
-      ? this.profileService.unfollowProfile(this.currentUserId, this.userProfile.id)
-      : this.profileService.followProfile(this.currentUserId, this.userProfile.id);
+  try {
+    let result;
+    if (this.userProfile.isFollowing) {
+      result = await this.profileService.unfollowProfile(this.currentUserId, this.userProfile.id);
+    } else {
+      result = await this.profileService.followProfile(this.currentUserId, this.userProfile.id);
+    }
 
-    action$.subscribe({
-      next: () => {
-        // Mise à jour locale de l'état de suivi
-        if (this.userProfile) {
-          this.userProfile.isFollowing = !this.userProfile.isFollowing;
-          // Mise à jour du compteur
-          //this.userProfile.stats.fans += this.userProfile.isFollowing ? 1 : -1;
-        }
-      },
-      error: err => console.error('Erreur lors de la mise à jour du suivi', err)
+    // Mise à jour locale des données
+    if (result) {
+      this.userProfile.isFollowing = !this.userProfile.isFollowing;
+      if (result.profile) {
+        // Mettre à jour le compteur de fans avec la valeur du serveur
+        this.userProfile.stats = this.userProfile.stats || { fans: 0, following: 0 };
+        this.userProfile.stats.fans = result.profile.stats?.fans || 0;
+      }
+    }
+  } catch (err) {
+    console.error('Erreur lors de la mise à jour du suivi', err);
+    const toast = await this.toastController.create({
+      message: 'Erreur lors de la mise à jour du suivi',
+      duration: 3000,
+      position: 'bottom',
+      color: 'danger'
     });
+    await toast.present();
   }
+}
 
-  // Dans votre composant (profile.page.ts)
-getFullFileUrl(relativePath: string): string {
-  // Remplacez par l'URL de votre API
-  const apiUrl = 'http://localhost:3000'; 
-  // Supprime le slash initial s'il existe pour éviter les doubles slashes
-  const cleanPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-  return `${apiUrl}/${cleanPath}`;
+// Add this method to your HomePage class
+getMediaUrl(relativePath: string): string {
+  return getMediaUrl(relativePath);
 }
  
-   loadUserProfile(userId: string) {
-    this.isLoading = true;
-    this.profileService.getProfileById(userId)
-      .subscribe({
-        next: (profile) => {
-          this.userProfile = profile;
-          this.loadUserContents(userId); // Charger les contenus après le chargement du profil
-          this.isLoading = false;
-          this.isOwnProfile = true;
-        },
-        error: (err) => {
-          console.error('Erreur lors du chargement du profil', err);
-          this.isLoading = false;
-        }
-      });
+   async loadUserProfile(userId: string) {
+  if (!userId) {
+    this.router.navigate(['/login']);
+    return;
   }
+
+  this.isLoading = true;
+  try {
+    const profile = await this.profileService.getProfileById(userId).toPromise();
+    if (!profile) {
+      throw new Error('Profil non trouvé');
+    }
+    
+    this.userProfile = profile;
+    this.isOwnProfile = this.currentUserId === userId;
+    this.cdr.detectChanges();
+    
+    // Charger les données associées
+    this.loadUserContents(userId);
+    this.loadActiveChallenges(userId);
+    
+  } catch (error) {
+    console.error('Erreur lors du chargement du profil:', error);
+    this.router.navigate(['/tabs/home']);
+  } finally {
+    this.isLoading = false;
+  }
+}
 
   loadUserContents(userId: string) {
     this.isLoadingContents = true;
@@ -232,15 +281,22 @@ getFullFileUrl(relativePath: string): string {
     this.router.navigate(['/challenges', this.userProfile.id]);
   }
 
-  getDaysRemaining(endDate?: Date): number {
-    if (!endDate) return 0;
-    const now = new Date();
-    const diff = endDate.getTime() - now.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  getDaysRemaining(challenge: Challenge): number {
+  if (!challenge.end_date) return 0;
+  
+  const endDate = new Date(challenge.end_date);
+  if (isNaN(endDate.getTime())) {
+    console.error('Date de fin invalide:', challenge.end_date);
+    return 0;
   }
+  
+  const now = new Date();
+  const diffTime = endDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+}
 
   getChallengeStatus(challenge: Challenge): 'active' | 'ending-soon' | 'ended' {
-    const daysRemaining = this.getDaysRemaining(challenge.end_date);
+    const daysRemaining = this.getDaysRemaining(challenge);
     if (daysRemaining <= 0) return 'ended';
     if (daysRemaining <= 3) return 'ending-soon';
     return 'active';
@@ -297,9 +353,20 @@ getFullFileUrl(relativePath: string): string {
   const isOwnProfile = this.userProfile?.id === this.authservice.getCurrentUser()?.id;
   
   const buttons = [];
-  console.log("current_profile_is"+isOwnProfile);
+ 
   if (isOwnProfile) {
     // Options pour le profil de l'utilisateur connecté
+    if(this.activeChallengesCount > 0 && this.userProfile?.userType === 'creator') {
+      buttons.push(
+        {
+          text: 'Nouveau Défi',
+          icon: 'trophy-outline',
+          handler: () => {
+            this.createChallenge();
+          }
+        }
+      );
+    }
     buttons.push(
       {
         text: 'Modifier le profil',
@@ -316,6 +383,7 @@ getFullFileUrl(relativePath: string): string {
         }
       }
     );
+    
   } else {
     // Options pour le profil d'un autre utilisateur
     buttons.push(
@@ -453,6 +521,30 @@ openContent(content: Content) {
   // Ou ouvrir un modal avec le contenu
   // this.presentContentModal(content);
 }
+
+
+onImageAvatarError(event: any) {
+    // On récupère l'élément HTML <img> qui a déclenché l'erreur
+    const imgElement = event.target as HTMLImageElement;
+   imgElement.onerror = null;
+    // On remplace la source par l'image locale
+    imgElement.src = 'assets/avatar-default.png';
+    // Optionnel : ajouter une classe pour styliser différemment l'avatar par défaut si besoin
+    imgElement.classList.add('is-default');
+  }
+
+
+  onImageContentError(event: any) {
+    // On récupère l'élément HTML <img> qui a déclenché l'erreur
+    const imgElement = event.target as HTMLImageElement;
+   imgElement.onerror = null;
+    // On remplace la source par l'image locale
+    imgElement.src = 'assets/splash.png';
+    // Optionnel : ajouter une classe pour styliser différemment l'avatar par défaut si besoin
+    imgElement.classList.add('is-default');
+  }
+  
+  
 
 goBack() {
   if (this.location.back) {

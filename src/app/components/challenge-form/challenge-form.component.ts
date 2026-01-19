@@ -1,79 +1,266 @@
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
+import { 
+  Component, 
+  EventEmitter, 
+  Input, 
+  Output, 
+  OnInit, 
+  ViewChild, 
+  ElementRef,
+  OnDestroy 
+} from '@angular/core';
+import { 
+  FormBuilder, 
+  FormGroup, 
+  Validators, 
+  FormArray,
+  FormControl 
+} from '@angular/forms';
+import { 
+  addIcons 
+} from 'ionicons';
+import { 
+  calendarOutline, 
+  timeOutline, 
+  closeCircle, 
+  checkmarkCircle, 
+  addCircle, 
+  trash, 
+  camera, 
+  image, 
+  pencil,
+  listOutline,
+  rocket,
+  optionsOutline,
+  flash,
+  arrowBack,
+  stopCircleOutline,
+  playCircleOutline,
+  giftOutline,
+  infinite,
+  thumbsUpOutline,
+  person,
+  informationCircleOutline
+} from 'ionicons/icons';
 import { ModalController } from '@ionic/angular';
-import { Challenge, VoteRule } from '../../../models/Challenge';
+import { ToastController } from '@ionic/angular';
+import { Challenge } from '../../../models/Challenge';
 import { CreationService } from '../../../services/CREATION/creation-service';
-import { IonIcon, IonSelect, IonSelectOption, IonButtons, IonHeader, IonToolbar, IonButton, IonTitle, IonSpinner, IonContent, IonItem, IonLabel, IonInput, IonNote, IonTextarea, IonItemGroup, IonDatetimeButton, IonModal, IonDatetime, IonToggle } from "@ionic/angular/standalone";
+import { 
+  IonIcon, 
+  IonSelect, 
+  IonSelectOption, 
+  IonButtons, 
+  IonHeader, 
+  IonToolbar, 
+  IonButton, 
+  IonTitle, 
+  IonSpinner, 
+  IonContent, 
+  IonInput, 
+  IonTextarea, 
+  IonDatetimeButton, 
+  IonDatetime, 
+  IonToggle,
+  IonModal as ModalIonModal, 
+  IonFabButton 
+} from "@ionic/angular/standalone";
 import { ReactiveFormsModule } from '@angular/forms';
-import { NgIf, NgFor } from '@angular/common';
+import { NgIf, NgFor, DatePipe } from '@angular/common';
+import { firstValueFrom, Subscription } from 'rxjs';
+
 @Component({
   selector: 'app-challenge-form',
   templateUrl: './challenge-form.component.html',
   styleUrls: ['./challenge-form.component.scss'],
   standalone: true,
-  imports:[ReactiveFormsModule, NgIf, NgFor, IonIcon, IonItem, IonLabel, IonSelect, IonSelectOption, IonToggle, IonDatetime, IonModal, IonInput, IonTextarea, IonNote, IonDatetimeButton, IonButtons, IonHeader, IonToolbar, IonButton, IonTitle, IonSpinner, IonItemGroup, IonContent]
+  imports: [
+    IonFabButton, 
+    ReactiveFormsModule, 
+    NgIf, 
+    NgFor, 
+    IonContent,
+    IonIcon, 
+    IonSelect, 
+    IonSelectOption, 
+    IonToggle, 
+    IonDatetime, 
+    ModalIonModal,
+    IonInput, 
+    IonTextarea, 
+    IonDatetimeButton, 
+    IonButtons, 
+    IonHeader, 
+    IonToolbar, 
+    IonButton, 
+    IonTitle, 
+    IonSpinner,
+    DatePipe
+  ]
 })
-export class ChallengeFormComponent implements OnInit {
-  @Input() challenge: Challenge | null = null;
-  @Output() formSubmitted = new EventEmitter<Challenge>();
+export class ChallengeFormComponent implements OnInit, OnDestroy {
+  @Input() challenge?: Challenge;
+  @Output() challengeSaved = new EventEmitter<Challenge>();
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   
-  challengeForm!: FormGroup;
-  isEditMode = false;
   isLoading = false;
+  challengeForm: FormGroup;
+  coverImagePreview: string | ArrayBuffer | null = null;
+  coverImageFile: File | null = null;
+  isEditMode = false;
+  today = new Date().toISOString();
+  computedEndDate: Date | null = null;
   
-  voteRules = [
-    { value: 'one_vote_per_user', label: 'Un vote par utilisateur' },
-    { value: 'unlimited_votes', label: 'Votes illimités' }
+  // Options pour le call to action
+  callToActionOptions = [
+    'Participer',
+    'Voter',
+    'Soutenir',
+    'Voter l\'artiste',
+    'J\'approuve',
+    'Soutenir ce talent'
   ];
 
-  callToActionOptions = [
-    { value: 'Participer', label: 'Participer' },
-    { value: 'Voter', label: 'Voter' },
-    { value: 'Soutenir', label: 'Soutenir' },
-    { value: 'Voter l\'artiste', label: 'Voter l\'artiste' },
-    { value: 'J\'approuve', label: 'J\'approuve' },
-    { value: 'Soutenir ce talent', label: 'Soutenir ce talent' }
-  ];
+  private subscriptions: Subscription = new Subscription();
 
   constructor(
     private fb: FormBuilder,
     private creationService: CreationService,
-    private modalCtrl: ModalController
+    private modalCtrl: ModalController,
+    private toastCtrl: ToastController
   ) {
-    this.initForm();
+    this.challengeForm = this.createForm();
   }
 
   ngOnInit() {
+    addIcons({ 
+      calendarOutline, 
+      timeOutline, 
+      closeCircle, 
+      checkmarkCircle, 
+      addCircle, 
+      trash, 
+      camera, 
+      image, 
+      pencil,
+      listOutline,
+      rocket,
+      optionsOutline,
+      flash,
+      arrowBack,
+      stopCircleOutline,
+      playCircleOutline,
+      giftOutline,
+      infinite,
+      thumbsUpOutline,
+      person,
+      informationCircleOutline
+    });
+
     if (this.challenge) {
       this.isEditMode = true;
       this.patchFormValues();
     }
+    
+    // Calculer la date de fin quand start_date ou duration_days change
+    this.subscriptions.add(
+      this.challengeForm.get('start_date')?.valueChanges.subscribe(() => {
+        this.calculateEndDate();
+      })
+    );
+    
+    this.subscriptions.add(
+      this.challengeForm.get('duration_days')?.valueChanges.subscribe(() => {
+        this.calculateEndDate();
+      })
+    );
+
+    // Calculer la date de fin initiale
+    this.calculateEndDate();
   }
 
-  private initForm() {
-    this.challengeForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required, Validators.minLength(10)]],
-      duration_days: [7, [Validators.required, Validators.min(1)]],
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+
+  /**
+   * Crée le formulaire - SANS end_date comme champ requis
+   */
+  createForm(): FormGroup {
+    return this.fb.group({
+      // Informations de base
+      name: ['', [Validators.required, Validators.maxLength(100)]],
+      description: ['', [Validators.required, Validators.maxLength(1000)]],
+      
+      // Configuration
+      duration_days: [7, [Validators.required, Validators.min(1), Validators.max(365)]],
       vote_rule: ['one_vote_per_user', Validators.required],
       call_to_action: ['Participer', Validators.required],
+      
+      // Date de début uniquement (end_date sera calculée)
+      start_date: [this.today, Validators.required],
+      
+      // Récompense
       prize: [''],
-      rules: this.fb.array(['']),
-      start_date: [new Date().toISOString()],
-      end_date: [this.getDefaultEndDate()],
-      cover_image_url: [''],
+      
+      // Règles
+      rules: this.fb.array([this.fb.control('')]),
+      
+      // Statut
       is_active: [true]
     });
   }
 
-  private patchFormValues() {
+  /**
+   * Calcule automatiquement la date de fin
+   */
+  calculateEndDate() {
+    const startDate = this.challengeForm.get('start_date')?.value;
+    const durationDays = this.challengeForm.get('duration_days')?.value;
+    
+    if (startDate && durationDays && durationDays > 0) {
+      const start = new Date(startDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + parseInt(durationDays));
+      this.computedEndDate = end;
+    } else {
+      this.computedEndDate = null;
+    }
+  }
+
+  /**
+   * Getter pour les règles (FormArray)
+   */
+  get rules(): FormArray {
+    return this.challengeForm.get('rules') as FormArray;
+  }
+
+  /**
+   * Ajoute une nouvelle règle vide
+   */
+  addRule() {
+    this.rules.push(this.fb.control(''));
+  }
+
+  /**
+   * Supprime une règle
+   */
+  removeRule(index: number) {
+    if (this.rules.length > 1) {
+      this.rules.removeAt(index);
+    }
+  }
+
+  /**
+   * Remplit le formulaire avec les valeurs du challenge existant
+   */
+  patchFormValues() {
     if (!this.challenge) return;
 
-    // Réinitialiser le tableau des règles
+    // Réinitialiser les règles
     while (this.rules.length) {
       this.rules.removeAt(0);
     }
-    
+
     // Ajouter les règles existantes
     if (this.challenge.rules && this.challenge.rules.length > 0) {
       this.challenge.rules.forEach(rule => {
@@ -91,95 +278,262 @@ export class ChallengeFormComponent implements OnInit {
       vote_rule: this.challenge.vote_rule,
       call_to_action: this.challenge.call_to_action,
       prize: this.challenge.prize || '',
-      start_date: this.challenge.start_date ? 
-        new Date(this.challenge.start_date).toISOString() : 
-        new Date().toISOString(),
-      end_date: this.challenge.end_date ? 
-        new Date(this.challenge.end_date).toISOString() : 
-        this.getDefaultEndDate(),
-      cover_image_url: this.challenge.cover_image_url || '',
+      start_date: this.challenge.start_date 
+        ? new Date(this.challenge.start_date).toISOString() 
+        : this.today,
       is_active: this.challenge.is_active !== false
     });
-  }
 
-  get rules() {
-    return this.challengeForm.get('rules') as FormArray;
-  }
-
-  addRule() {
-    this.rules.push(this.fb.control(''));
-  }
-
-  removeRule(index: number) {
-    if (this.rules.length > 1) {
-      this.rules.removeAt(index);
+    // Mettre à jour l'aperçu de l'image si elle existe
+    if (this.challenge.cover_image_url) {
+      this.coverImagePreview = this.challenge.cover_image_url;
     }
   }
 
-  private getDefaultEndDate(): string {
-    const date = new Date();
-    date.setDate(date.getDate() + 7); // 7 jours par défaut
-    return date.toISOString();
-  }
-
+  /**
+   * Gère le changement de l'image de couverture
+   */
   onCoverImageChange(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
-      // Implémentez ici la logique de téléchargement
-      // this.uploadService.upload(file).subscribe(url => {
-      //   this.challengeForm.patchValue({ cover_image_url: url });
-      // });
-    }
-  }
-
-  async onSubmit() {
-    if (this.challengeForm.invalid || this.isLoading) {
-      return;
-    }
-
-    this.isLoading = true;
-    const formValue = this.prepareFormData();
-
-    try {
-      let result: Challenge;
       
-      if (this.isEditMode && this.challenge) {
-        result = await this.creationService.updateChallenge(this.challenge.id, formValue).toPromise() as Challenge;
-      } else {
-        result = await this.creationService.createChallenge(formValue).toPromise() as Challenge;
+      // Vérifier le type de fichier
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        this.showError('Veuillez sélectionner une image valide (JPEG, PNG, GIF, WebP)');
+        return;
       }
-
-      this.modalCtrl.dismiss({ 
-        success: true, 
-        challenge: result,
-        isEdit: this.isEditMode
-      });
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde du défi', error);
-      // Afficher une alerte d'erreur
-    } finally {
-      this.isLoading = false;
+      
+      // Vérifier la taille du fichier (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        this.showError('L\'image ne doit pas dépasser 5MB');
+        return;
+      }
+      
+      this.coverImageFile = file;
+      
+      // Aperçu de l'image
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.coverImagePreview = reader.result;
+      };
+      reader.readAsDataURL(file);
     }
   }
 
-  private prepareFormData() {
-    const formValue = {
-      ...this.challengeForm.value,
-      rules: this.challengeForm.value.rules.filter((r: string) => r.trim() !== ''),
-      start_date: new Date(this.challengeForm.value.start_date),
-      end_date: new Date(this.challengeForm.value.end_date)
-    };
+  /**
+   * Supprime l'image de couverture
+   */
+  removeCoverImage() {
+    this.coverImageFile = null;
+    this.coverImagePreview = null;
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+  }
 
-    // Si c'est une édition, on garde l'ID existant
+  /**
+   * Soumet le formulaire
+   */
+ async onSubmit() {
+  if (this.challengeForm.invalid) {
+    this.markFormGroupTouched(this.challengeForm);
+    await this.showError('Veuillez corriger les erreurs dans le formulaire');
+    return;
+  }
+
+  try {
+    this.isLoading = true;
+    const formData = this.prepareFormData();
+    
+    let result: Challenge;
+    
     if (this.isEditMode && this.challenge) {
-      return { ...formValue, id: this.challenge.id };
+      // Mise à jour du défi existant
+      if (this.coverImageFile) {
+        result = await firstValueFrom(
+          this.creationService.createChallengeWithCoverImage(
+            this.coverImageFile,
+            formData as Omit<Challenge, 'id' | 'created_at' | 'is_active' | 'cover_image_url'>,
+            (progress) => {
+              console.log(`Progression de l'upload: ${progress}%`);
+            }
+          )
+        );
+      } else {
+        const updateData = { 
+          ...formData,
+          id: this.challenge.id 
+        };
+        result = await this.updateChallenge(updateData);
+      }
+    } else {
+      // Création d'un nouveau défi
+      if (this.coverImageFile) {
+        result = await firstValueFrom(
+          this.creationService.createChallengeWithCoverImage(
+            this.coverImageFile,
+            formData as Omit<Challenge, 'id' | 'created_at' | 'is_active' | 'cover_image_url'>,
+            (progress) => {
+              console.log(`Progression de l'upload: ${progress}%`);
+            }
+          )
+        );
+      } else {
+        result = await firstValueFrom(
+          this.creationService.createChallenge(
+            formData as Omit<Challenge, 'id' | 'created_at' | 'is_active'>
+          )
+        );
+      }
     }
 
-    return formValue;
+    this.challengeSaved.emit(result);
+    
+    await this.modalCtrl.dismiss({ 
+      success: true, 
+      challenge: result,
+      isEdit: this.isEditMode
+    });
+
+    await this.showSuccess(
+      this.isEditMode 
+        ? 'Défi mis à jour avec succès !' 
+        : 'Défi créé avec succès !'
+    );
+
+  } catch (error: any) {
+    console.error('Erreur lors de la sauvegarde du défi', error);
+    
+    let errorMessage = 'Erreur lors de la sauvegarde du défi';
+    if (error.message?.includes('Échec de l\'upload')) {
+      errorMessage = 'Échec de l\'upload de l\'image. Veuillez réessayer.';
+    }
+    
+    await this.showError(errorMessage);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+  /**
+   * Met à jour un challenge existant
+   */
+  private async updateChallenge(challengeData: Partial<Challenge>): Promise<Challenge> {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (this.challenge) {
+          const updatedChallenge: Challenge = {
+            ...this.challenge,
+            ...challengeData
+          };
+          resolve(updatedChallenge);
+        } else {
+          reject(new Error('Challenge non défini'));
+        }
+      }, 500);
+    });
   }
 
+  /**
+   * Prépare les données du formulaire pour l'API
+   */
+  prepareFormData(): Partial<Challenge> {
+  const formValue = this.challengeForm.value;
+  
+  // Filtrer les règles vides
+  const filteredRules = formValue.rules
+    .filter((rule: string) => rule && rule.trim() !== '')
+    .map((rule: string) => rule.trim());
+  
+  // Calculer la date de fin automatiquement
+  let endDate: Date | undefined;
+  if (formValue.start_date && formValue.duration_days) {
+    const startDate = new Date(formValue.start_date);
+    endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + formValue.duration_days);
+  }
+
+  // Créer l'objet de données avec tous les champs
+  const formData: any = {
+    name: formValue.name?.trim(),
+    description: formValue.description?.trim(),
+    duration_days: formValue.duration_days,
+    vote_rule: formValue.vote_rule,
+    call_to_action: formValue.call_to_action,
+    start_date: formValue.start_date ? new Date(formValue.start_date) : undefined,
+    end_date: endDate,
+    is_active: formValue.is_active
+  };
+
+  // Ajouter les champs optionnels s'ils ont une valeur
+  if (formValue.prize?.trim()) {
+    formData.prize = formValue.prize.trim();
+  }
+
+  if (filteredRules.length > 0) {
+    formData.rules = filteredRules;
+  }
+
+  return formData;
+}
+
+  /**
+   * Annule et ferme le modal
+   */
   onCancel() {
-    this.modalCtrl.dismiss();
+    this.modalCtrl.dismiss({ 
+      cancelled: true 
+    });
+  }
+
+  /**
+   * Marque tous les champs comme "touched" pour afficher les erreurs
+   */
+  private markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
+      
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      } else if (control instanceof FormArray) {
+        control.controls.forEach(arrayControl => {
+          arrayControl.markAsTouched();
+        });
+      }
+    });
+  }
+
+  /**
+   * Affiche un message d'erreur
+   */
+  private async showError(message: string) {
+    const toast = await this.toastCtrl.create({
+      message: message,
+      duration: 3000,
+      color: 'danger',
+      position: 'top',
+      buttons: [
+        {
+          icon: 'close',
+          role: 'cancel'
+        }
+      ]
+    });
+    await toast.present();
+  }
+
+  /**
+   * Affiche un message de succès
+   */
+  private async showSuccess(message: string) {
+    const toast = await this.toastCtrl.create({
+      message: message,
+      duration: 2000,
+      color: 'success',
+      position: 'top'
+    });
+    await toast.present();
   }
 }

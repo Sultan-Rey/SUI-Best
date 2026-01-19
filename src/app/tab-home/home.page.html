@@ -19,63 +19,73 @@
 
 <ion-content [fullscreen]="true" [scrollY]="true" class="tiktok-content">
   <ion-refresher slot="fixed" (ionRefresh)="refreshFeed($event)">
-  <ion-refresher-content></ion-refresher-content>
-</ion-refresher>
-  <div class="posts-container">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+   <!-- Vue Découverte pour Cold Start -->
+  <app-discovery-view [currentUserProfile]="currentUserProfile" *ngIf="currentUserProfile.myFollows.length <=1"></app-discovery-view>
+
+
+  <!-- Vue Posts normale (utilisateurs avec abonnements) -->
+  <div class="posts-container" *ngIf="currentUserProfile.myFollows.length >=2">
     <div 
       class="post" 
-      *ngFor="let post of posts | filter:filterPublic; let i = index" 
-      (click)="onPostVisible(i)">
+      *ngFor="let post of posts | filter: filterPublic; trackBy: trackByPostId" 
+    >
       
       <div class="video-container">
-        <img [src]="getMediaUrl(post.thumbnailUrl || post.fileUrl)"  class="video-thumbnail">
+        <img [src]="getMediaUrl(post.thumbnailUrl || post.fileUrl)" (error)="onImageContentError($event)" class="video-thumbnail">
         <div class="video-overlay"></div>
       </div>
 
       <div class="main-content">
         <div class="artist-info">
           <div class="artist-header">
-           <img [src]="getPostAvatar(post)" class="artist-avatar" (error)="onImageAvatarError($event)">
-             <div class="artist-details">
-        <div class="profile-header">
-          <h4 class="profile-name">{{ currentUserProfile.username }}</h4>
-          <ion-button 
-  (click)="subscribeTo(post.userId)" 
-  *ngIf="currentUserProfile.id !== post.userId" 
-  fill="clear" 
-  size="small" 
-  class="subscribe-btn"
-  [class.is-following]="isFollowingUser[post.userId]"
-  [disabled]="isFollowingUser[post.userId]">
-  {{ isFollowingUser[post.userId] ? 'Abonné' : "S'abonner" }}
-</ion-button>
-        </div>
-        
-        <div class="artist-name">
-  <span class="post-title">{{ post.title }}</span>
-  <span class="separator">•</span>
-  <span class="post-date">{{ post.createdAt | date:'dd MMM yyyy' }}</span>
-</div>
-        
-        <p class="artist-location">{{ post.description | slice:0:60 }}...</p>
-        
-        <div *ngIf="hasActiveChallenge(post)" class="challenge-title">
-          {{ currentChallenge[post.challengeId || '']?.name }}
-        </div>
-      </div>
+            <img [src]="userAvatars[post.userId] || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
+            <div class="artist-details">
+              <div class="profile-header">
+                <h4 class="profile-name">{{ post.username || 'Utilisateur' }}</h4>
+                <ion-button 
+                  (click)="subscribeTo(post.userId)" 
+                  *ngIf="currentUserProfile.id !== post.userId && !isFollowingUser[post.userId]" 
+                  fill="clear" 
+                  size="small" 
+                  class="subscribe-btn">
+                  S'abonner
+                </ion-button>
+              </div>
+              
+              <div class="artist-name">
+                <span class="post-title">{{ post.title }}</span>
+                <span class="separator">•</span>
+                <span class="post-date">{{ post.createdAt | date:'dd MMM yyyy' }}</span>
+              </div>
+              
+              <p class="artist-location">{{ post.description | slice:0:60 }}...</p>
+              
+              <div *ngIf="post.challengeId" class="challenge-title" [class.loading]="currentChallenge[post.challengeId] === undefined">
+                <span *ngIf="hasActiveChallenge(post)">🎯 {{ currentChallenge[post.challengeId]?.name }}</span>
+                <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement du défi...</span>
+              </div>
+            </div>
           </div>
           
           <ion-button 
-  *ngIf="hasActiveChallenge(post)"
-  class="vote-button" 
-  (click)="voteForArtist(post)">
-  {{ currentChallenge[post.challengeId || '']?.call_to_action || 'En savoir plus' }}
-</ion-button>
+            *ngIf="post.challengeId"
+            class="vote-button" 
+            [class.loading]="currentChallenge[post.challengeId] === undefined"
+            [disabled]="!hasActiveChallenge(post)"
+            (click)="hasActiveChallenge(post) && voteForArtist(post)">
+            <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement...</span>
+            <span *ngIf="currentChallenge[post.challengeId] !== undefined">
+              {{ hasActiveChallenge(post) ? (currentChallenge[post.challengeId]?.call_to_action || 'Participer') : 'Défi terminé' }}
+            </span>
+          </ion-button>
         </div>
 
         <div class="side-actions">
           <button class="action-button" *ngFor="let action of getActionsForPost(post)" (click)="action.action()">
-            <div class="action-icon"[class.liked]="action.icon === 'heart'">
+            <div class="action-icon" [class.liked]="action.icon === 'heart'">
               <ion-icon [name]="action.icon"></ion-icon>
             </div>
             <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
@@ -85,13 +95,11 @@
     </div>
   </div>
 
-  
-
-<ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)">
-  <ion-infinite-scroll-content
-    loadingSpinner="bubbles"
-    loadingText="Chargement de la suite...">
-  </ion-infinite-scroll-content>
-</ion-infinite-scroll>
+  <ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)">
+    <ion-infinite-scroll-content
+      loadingSpinner="bubbles"
+      loadingText="Chargement de la suite...">
+    </ion-infinite-scroll-content>
+  </ion-infinite-scroll>
 
 </ion-content>

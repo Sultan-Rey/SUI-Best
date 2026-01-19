@@ -23,10 +23,10 @@
     <div class="profile-header">
       <div class="avatar-container">
         <div class="avatar-wrapper">
-          <img [src]="userProfile.avatar" [alt]="userProfile.displayName" class="avatar">
+          <img [src]="getMediaUrl(userProfile.avatar)" (error)="onImageAvatarError($event)" [alt]="userProfile.displayName" class="avatar">
           <div class="avatar-border"></div>
         </div>
-        <ion-button *ngIf="isWrite_toRight"
+        <ion-button *ngIf="isRight_toWrite"
           color="light"
           shape="round"
           class="add-story-btn"
@@ -141,7 +141,7 @@
         <div class="challenge-card" *ngFor="let challenge of activeChallenges$ | async" (click)="openChallenge(challenge)">
           <!-- Image de couverture -->
           <div class="challenge-cover">
-            <img [src]="challenge.cover_image_url" [alt]="challenge.name">
+            <img [src]="getMediaUrl(challenge.cover_image_url || '')" (error)="onImageContentError($event)" [alt]="challenge.name">
             <div class="challenge-overlay">
               <ion-badge 
                 [color]="getStatusBadgeColor(getChallengeStatus(challenge))" 
@@ -173,7 +173,7 @@
             <div class="challenge-footer">
               <div class="time-remaining">
                 <ion-icon name="time-outline" class="time-icon"></ion-icon>
-                <span class="time-text">{{ getDaysRemaining(challenge.end_date) }} jours restants</span>
+                <span class="time-text">{{ getDaysRemaining(challenge) }} jours restants</span>
               </div>
               <div class="prize-badge" *ngIf="challenge.prize">
                 <ion-icon name="trophy-outline"></ion-icon>
@@ -233,7 +233,7 @@
     <div *ngFor="let content of userContents" 
          class="content-item"
          (click)="openContent(content)">
-      <img [src]="getFullFileUrl(content.fileUrl)"  [alt]="content.title" *ngIf="content.fileUrl">
+      <img [src]="getMediaUrl(content.fileUrl)" (error)="onImageContentError($event)"  [alt]="content.title" *ngIf="content.fileUrl">
       <div class="content-overlay" *ngIf="content.likeCount || content.commentCount">
         <span *ngIf="content.likeCount">
           <ion-icon name="heart"></ion-icon> {{ content.likeCount }}
@@ -283,7 +283,7 @@
     vertical="bottom" 
     horizontal="end" 
     slot="fixed"
-    *ngIf="userProfile.userType === 'creator' && isOwnProfile && isWrite_toRight">
+    *ngIf="userProfile.userType === 'creator' && isOwnProfile && isRight_toWrite">
     <ion-fab-button color="warning" (click)="createChallenge()">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>

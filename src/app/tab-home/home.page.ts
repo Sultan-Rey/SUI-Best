@@ -1,5 +1,5 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { NgFor, NgIf, SlicePipe, DatePipe } from '@angular/common';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { NgFor, NgIf,  SlicePipe, DatePipe } from '@angular/common';
 import { FilterPipe } from '../utils/pipes/filter-pipe';
 import { ToastController } from '@ionic/angular';
 import { 
@@ -8,18 +8,23 @@ import {
   IonIcon, 
   IonButton, 
   IonContent,
-  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent } from '@ionic/angular/standalone';
+  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   search, 
   notificationsOutline, 
   play, 
   giftOutline, 
+  heart,
+  people,
+  trophy,
+  star,
+  chatbubble,
   heartOutline,
   bookmarkOutline,
   chatbubbleEllipsesOutline, 
   starOutline, 
-  shareOutline, chevronUp, chevronDown, trophyOutline } from 'ionicons/icons';
+  shareOutline, chevronUp, chevronDown, trophyOutline, peopleOutline, timeOutline, playCircle, add } from 'ionicons/icons';
 import { Content } from 'src/models/Content';
 import { CreationService } from 'src/services/CREATION/creation-service';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
@@ -28,6 +33,9 @@ import { Challenge } from 'src/models/Challenge';
 import { Auth } from 'src/services/AUTH/auth';
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
+import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service';
+import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize } from 'rxjs';
+import { DiscoveryViewComponent } from "../components/discovery-view/discovery-view.component";
 
 
 @Component({
@@ -35,26 +43,43 @@ import { Router } from '@angular/router';
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [DatePipe,IonRefresherContent, IonRefresher, FilterPipe, IonInfiniteScrollContent, IonInfiniteScroll, NgFor, NgIf, SlicePipe, IonHeader, IonToolbar, IonIcon, IonButton, IonContent]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DiscoveryViewComponent, DatePipe, IonRefresherContent, IonRefresher, FilterPipe, IonInfiniteScrollContent,
+    IonInfiniteScroll, NgFor, NgIf, SlicePipe, IonHeader, IonToolbar, IonIcon, IonButton, IonContent, DiscoveryViewComponent]
 })
 
 export class HomePage implements OnInit {
   @ViewChild(IonContent) content!: IonContent;
-  
+  private destroy$ = new Subject<void>();
+  needsRefresh = false;
   posts: Content[] = [];
+ 
   currentIndex = 0;
   currentPage = 1;
   isLoading = false;
+  private readonly PAGE_SIZE = 5;
   currentUserProfile: UserProfile = {} as UserProfile;
+  private loadingProfiles = new Set<string>();
+  userAvatars: { [userId: string]: string } = {};
+  trackByPostId(index: number, post: Content): string {
+    return post.id || index.toString();
+  }
+
   get currentPost(): any {
     if (this.posts.length > 0) {
       return this.posts[this.currentIndex];
     }
-    return this.posts = [];
+    return [];
   }
 
   
-  constructor(private toastController:ToastController, private router: Router, private creationService: CreationService, private ProfileService: ProfileService, private authService: Auth)
+  constructor(private cdr: ChangeDetectorRef, 
+    private toastController:ToastController, 
+    private router: Router, 
+    private creationService: CreationService, 
+    private commentService: CommentService,
+    private ProfileService: ProfileService, 
+    private authService: Auth)
  {
   this.currentUserProfile.stats = {} as {
       posts: 0;
@@ -62,8 +87,18 @@ export class HomePage implements OnInit {
       votes: 0;
       stars: 0;
     };
-    
-    addIcons({search,notificationsOutline,heartOutline, bookmarkOutline, trophyOutline,play,chevronUp,chevronDown,'giftOutline':giftOutline,'chatbubbleEllipsesOutline':chatbubbleEllipsesOutline,'starOutline':starOutline,'shareOutline':shareOutline});
+    this.currentUserProfile.myFollows = [];
+    addIcons({search,notificationsOutline,peopleOutline,timeOutline,playCircle,heart,people,add,trophy,star,chatbubble,heartOutline,bookmarkOutline,trophyOutline,play,chevronUp,chevronDown,'giftOutline':giftOutline,'chatbubbleEllipsesOutline':chatbubbleEllipsesOutline,'starOutline':starOutline,'shareOutline':shareOutline});
+     this.commentService.commentAdded$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(({contentId, increment}) => {
+      const post = this.posts.find(p => p.id === contentId);
+      if (post) {
+        post.commentCount = (post.commentCount || 0) + increment;
+        this.posts = [...this.posts]; // Forcer la détection de changement
+      }
+    });
+  
   }
 
   
@@ -90,25 +125,137 @@ filterPublic = (post: Content): boolean => {
   // Si le créateur du contenu est dans les abonnements de l'utilisateur connecté, on l'affiche
   return follows.includes(post.userId);
 }
-  async ngOnInit() {
-    const userId = await this.authService.getCurrentUser();
-  if (userId) {
-    this.ProfileService.getProfileById(userId.id as string || '').subscribe(profile => {
-      this.currentUserProfile = profile;
-    });
-  }
-    this.loadFeed();
-    // S'abonner aux nouveaux contenus
-  this.creationService.newContent$.subscribe(newContent => {
-    if (newContent) {
-      // Vérifier si le contenu n'existe pas déjà
+  ngOnInit() {
+  this.setupAuthSubscription();
+  this.setupNewContentSubscription();
+   
+}
+
+private setupAuthSubscription(): void {
+  this.authService.currentUser$.pipe(
+    takeUntil(this.destroy$),
+    tap(user => {
+      if (!user) {
+        this.posts = [];
+        this.currentUserProfile = {} as UserProfile;
+        this.cdr.markForCheck();
+      }
+    }),
+    filter(user => !!user),
+    switchMap(user => 
+      this.ProfileService.getProfileById(user.id.toString()).pipe(
+        tap(profile => {
+          this.currentUserProfile = profile;
+          this.cdr.markForCheck();
+        })
+      )
+    ),
+    switchMap(() => this.loadInitialFeed())
+  ).subscribe();
+}
+
+private setupNewContentSubscription(): void {
+  this.creationService.newContent$.pipe(
+    takeUntil(this.destroy$)
+  ).subscribe(newContent => {
+    if (newContent && this.currentUserProfile?.id) {
       const exists = this.posts.some(p => p.id === newContent.id);
       if (!exists) {
-        this.posts.unshift(newContent); // Ajouter au début de la liste
+        this.posts = [newContent, ...this.posts];
+        this.loadAvatarForPost(newContent);
+        this.cdr.markForCheck();
       }
     }
   });
+}
+
+private loadInitialFeed(): Observable<void> {
+  this.isLoading = true;
+  this.currentPage = 1;
+  
+  return this.creationService.getFeedContents(this.currentPage, this.PAGE_SIZE).pipe(
+    switchMap(async (newPosts) => {
+      await this.processNewPosts(newPosts);
+      this.currentPage++;
+      this.isLoading = false;
+      this.cdr.markForCheck();
+      return undefined;
+    }),
+    catchError(err => {
+      console.error('Erreur lors du chargement initial:', err);
+      this.isLoading = false;
+      this.cdr.markForCheck();
+      return of(undefined);
+    })
+  );
+}
+
+private async processNewPosts(newPosts: Content[]): Promise<void> {
+  // Créer une copie des posts avec les propriétés supplémentaires
+  const postsWithUser = await Promise.all(newPosts.map(async post => {
+    let username = 'Utilisateur';
+    
+    // Récupérer le nom d'utilisateur depuis le profil
+    if (post.userId) {
+      try {
+        const userProfile = await this.ProfileService.getProfileById(post.userId).toPromise();
+        if (userProfile?.username) {
+          username = userProfile.username;
+        }
+      } catch (error) {
+        console.warn(`Impossible de charger le profil pour l'utilisateur ${post.userId}:`, error);
+      }
+    }
+
+    // Charger les informations du challenge si nécessaire
+    if (post.challengeId && this.currentChallenge[post.challengeId] === undefined) {
+      this.getCurrentChallenge(post);
+    }
+
+    return {
+      ...post,
+      username: username,
+      isLikedByUser: this.currentUserProfile?.id 
+        ? post.likedIds?.includes(this.currentUserProfile.id) || false
+        : false
+    } as Content & { username: string, isLikedByUser: boolean };
+  }));
+
+  // Mettre à jour la liste des posts
+  if (this.currentPage === 1) {
+    this.posts = postsWithUser;
+  } else {
+    this.posts = [...this.posts, ...postsWithUser];
   }
+
+  // Charger les avatars pour les nouveaux posts
+  postsWithUser.forEach(post => this.loadAvatarForPost(post));
+  
+  // Forcer la mise à jour de la vue
+  this.cdr.markForCheck();
+}
+
+private loadAvatarForPost(post: Content): void {
+  if (post.userId && !this.userAvatars[post.userId] && !this.loadingProfiles.has(post.userId)) {
+    this.loadingProfiles.add(post.userId);
+    
+    this.ProfileService.getProfileById(post.userId).pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.loadingProfiles.delete(post.userId))
+    ).subscribe({
+      next: (profile) => {
+        if (profile?.avatar) {
+          this.userAvatars[post.userId] = profile.avatar;
+          this.cdr.markForCheck();
+        }
+      },
+      error: () => {
+        this.userAvatars[post.userId] = 'assets/avatar-default.png';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+}
 
 
   
@@ -118,61 +265,39 @@ filterPublic = (post: Content): boolean => {
   /**
    * Charge les contenus depuis le service
    */
-loadFeed(event?: any) {
+async loadFeed(event?: any) {
   if (this.isLoading) return;
   this.isLoading = true;
-
-  this.creationService.getFeedContents(this.currentPage, 10).subscribe({
-    next: (newPosts) => {
-      // Marquer les posts aimés par l'utilisateur actuel
-      const updatedPosts = newPosts.map(post => ({
-        ...post,
-        // Vérifier si l'utilisateur actuel a aimé ce post
-        isLikedByUser: this.currentUserProfile?.id 
-          ? post.likedIds?.includes(this.currentUserProfile.id) || false
-          : false
-      }));
-
-      // Si c'est le premier chargement (page 1), on remplace les posts existants
-      if (this.currentPage === 1) {
-        this.posts = updatedPosts;
-      } else {
-        // Sinon on ajoute à la suite (pour l'Infinite Scroll)
-        this.posts = [...this.posts, ...updatedPosts];
+  
+  try {
+    const newPosts = await this.creationService.getFeedContents(this.currentPage, this.PAGE_SIZE).toPromise();
+    if (!newPosts) return;
+    
+    await this.processNewPosts(newPosts);
+    
+    if (event) {
+      event.target.complete();
+      if (newPosts.length < this.PAGE_SIZE) {
+        event.target.disabled = true;
       }
-      
-      // Charge les challenges pour les nouveaux posts
-      updatedPosts.forEach((post: Content) => this.getCurrentChallenge(post));
-      
-      this.currentPage++;
-      this.isLoading = false;
-      
-      // Si c'est un appel via l'Infinite Scroll
-      if (event) {
-        event.target.complete();
-        // Désactiver le scroll infini s'il n'y a plus de contenu
-        if (newPosts.length < 10) {
-          event.target.disabled = true;
-        }
-      }
-    },
-    error: (err) => {
-      console.error('Erreur de chargement du feed', err);
-      this.isLoading = false;
-      if (event) event.target.complete();
     }
-  });
+    
+    this.currentPage++;
+  } catch (err) {
+    console.error('Erreur lors du chargement du feed:', err);
+    if (event) event.target.complete();
+  } finally {
+    this.isLoading = false;
+    this.cdr.markForCheck();
+  }
 }
 
 // Pour forcer un rechargement complet
 refreshFeed(event: any) {
   this.currentPage = 1;
+  this.userAvatars = {}; // Réinitialiser le cache des avatars
   this.loadFeed(event);
 }
- 
-
- userAvatars: { [userId: string]: string } = {};
-private loadingProfiles = new Set<string>();
 
 getPostAvatar(post: Content): string {
   const userId = post.userId;
@@ -210,27 +335,40 @@ getPostAvatar(post: Content): string {
 // Ajoutez cette propriété à votre classe
 currentChallenge: { [postId: string]: Challenge | null } = {};
 
-// Modifiez la méthode getCurrentChallenge
-getCurrentChallenge(post: Content): void {
-  if (!post.challengeId) return;
+// Récupère les informations d'un challenge spécifique
+private getCurrentChallenge(post: Content): void {
+  if (!post.challengeId || this.currentChallenge[post.challengeId] !== undefined) return;
 
-  this.creationService.getChallengeById(post.challengeId).subscribe({
+  // Marquer le chargement en cours
+  this.currentChallenge[post.challengeId] = null;
+
+  this.creationService.getChallengeById(post.challengeId).pipe(
+    takeUntil(this.destroy$)
+  ).subscribe({
     next: (challenge) => {
-      if (challenge?.is_active) {
-        this.currentChallenge[post.challengeId || ''] = challenge;
-      } else {
-        this.currentChallenge[post.challengeId || ''] = null;
-      }
+      this.currentChallenge[post.challengeId || ''] = challenge?.is_active ? challenge : null;
+      this.cdr.markForCheck(); // Forcer la mise à jour de la vue
     },
     error: (error) => {
       console.error('Erreur lors du chargement du challenge:', error);
       this.currentChallenge[post.challengeId || ''] = null;
+      this.cdr.markForCheck(); // Forcer la mise à jour de la vue en cas d'erreur
     }
   });
 }
 
+
+
 hasActiveChallenge(post: Content): boolean {
-  const challenge = this.currentChallenge[post.challengeId || ''];
+  if (!post.challengeId) return false;
+  
+  const challenge = this.currentChallenge[post.challengeId];
+  // Si le challenge n'est pas encore chargé, on le charge
+  if (challenge === undefined) {
+    this.getCurrentChallenge(post);
+    return false;
+  }
+  
   return !!challenge && challenge.is_active === true;
 }
 
@@ -245,6 +383,16 @@ onImageAvatarError(event: any) {
    imgElement.onerror = null;
     // On remplace la source par l'image locale
     imgElement.src = 'assets/avatar-default.png';
+    // Optionnel : ajouter une classe pour styliser différemment l'avatar par défaut si besoin
+    imgElement.classList.add('is-default');
+  }
+
+   onImageContentError(event: any) {
+    // On récupère l'élément HTML <img> qui a déclenché l'erreur
+    const imgElement = event.target as HTMLImageElement;
+   imgElement.onerror = null;
+    // On remplace la source par l'image locale
+    imgElement.src = 'assets/splash.png';
     // Optionnel : ajouter une classe pour styliser différemment l'avatar par défaut si besoin
     imgElement.classList.add('is-default');
   }
@@ -414,44 +562,62 @@ private async copyToClipboard(text: string): Promise<void> {
 
   voteForArtist(post: Content) { console.log('Vote pour user:', post.userId); }
 
-  // Dans home.page.ts
+
 isFollowingUser: { [key: string]: boolean } = {};
 
-subscribeTo(profileId: string) {
+async subscribeTo(profileId: string) {
   if (!this.currentUserProfile?.id) return;
 
-  // Optimistic UI update
   const wasFollowing = this.isFollowingUser[profileId];
+  // Mise à jour optimiste de l'UI
   this.isFollowingUser[profileId] = !wasFollowing;
+  this.cdr.detectChanges();
 
-  const subscription = wasFollowing
-    ? this.ProfileService.unfollowProfile(this.currentUserProfile.id, profileId)
-    : this.ProfileService.followProfile(this.currentUserProfile.id, profileId);
-
-  subscription.subscribe({
-    next: () => {
-      // Mise à jour du compteur de followers côté client si nécessaire
-      if (this.currentUserProfile.stats) {
-        if (wasFollowing) {
-          this.currentUserProfile.stats.fans = Math.max(0, (this.currentUserProfile.stats.fans || 1) - 1);
-        } else {
-          this.currentUserProfile.stats.fans = (this.currentUserProfile.stats.fans || 0) + 1;
-        }
-      }
-    },
-    error: (error) => {
-      console.error('Erreur lors de la mise à jour de l\'abonnement:', error);
-      // Annuler le changement en cas d'erreur
-      this.isFollowingUser[profileId] = wasFollowing;
-      
-      // Afficher un message d'erreur à l'utilisateur
-      // Vous pouvez utiliser un service de notification ou une alerte
-      // Par exemple: this.toastService.show('Erreur lors de la mise à jour de l\'abonnement');
+  try {
+    if (wasFollowing) {
+      await this.ProfileService.unfollowProfile(this.currentUserProfile.id, profileId);
+      console.log('Unfollow réussi');
+    } else {
+      await this.ProfileService.followProfile(this.currentUserProfile.id, profileId);
+      console.log('Follow réussi');
     }
-  });
+
+    // Mettre à jour le compteur de followers
+    if (this.currentUserProfile.stats) {
+      this.currentUserProfile.stats.fans = wasFollowing 
+        ? Math.max(0, (this.currentUserProfile.stats.fans || 1) - 1)
+        : (this.currentUserProfile.stats.fans || 0) + 1;
+    }
+
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du suivi:', error);
+    // Annuler le changement en cas d'erreur
+    this.isFollowingUser[profileId] = wasFollowing;
+    this.cdr.detectChanges();
+
+    // Afficher un message d'erreur
+    const toast = await this.toastController.create({
+      message: 'Erreur lors de la mise à jour du suivi',
+      duration: 3000,
+      position: 'bottom',
+      color: 'danger'
+    });
+    await toast.present();
+  }
 }
+
+
+  
+
  
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
-
+  /**
+   * Charge le challenge actif avec le plus grand nombre de participants
+   */
+  
 }

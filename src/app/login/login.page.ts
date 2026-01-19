@@ -16,20 +16,19 @@ import {
   settingsOutline,
   eyeOutline,
   eyeOffOutline,
-  shieldCheckmark
-} from 'ionicons/icons';
+  shieldCheckmark, trophyOutline, sparkles, personCircleOutline, keyOutline, helpCircleOutline, star, arrowForward } from 'ionicons/icons';
 import { 
   IonIcon, 
   IonButton, 
   IonInput,
  
-  IonContent, IonLoading } from '@ionic/angular/standalone';
+  IonContent, IonLoading, IonImg } from '@ionic/angular/standalone';
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
   standalone: true,
-  imports: [IonLoading, 
+  imports: [ IonLoading, 
     CommonModule,
     FormsModule,
     IonContent,
@@ -48,7 +47,7 @@ export class LoginPage implements OnInit {
     private router: Router,
     private loadingController: LoadingController,
   ) {
-    addIcons({mailOutline,lockClosedOutline,logoGoogle,logoFacebook,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,'shieldCheckmark':shieldCheckmark,createOutline,settingsOutline});
+    addIcons({mailOutline,lockClosedOutline,arrowForward,logoGoogle,logoFacebook,trophyOutline,sparkles,personCircleOutline,keyOutline,helpCircleOutline,star,shieldCheckmark,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,createOutline,settingsOutline});
   }
 
   ngOnInit() { }

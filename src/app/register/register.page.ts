@@ -1,14 +1,13 @@
 import { Auth } from '../../services/AUTH/auth';
-import { UserProfile } from '../../models/User';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { Component, OnInit, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController, LoadingController, ActionSheetController,  } from '@ionic/angular';
 import { Dialog } from '@capacitor/dialog';
-import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';  
 import * as bcrypt from 'bcryptjs';
+import { Html5Qrcode } from 'html5-qrcode';
+import { Platform } from '@ionic/angular';
 import { 
   arrowBack,
   cloudUpload,
@@ -33,6 +32,7 @@ import {
   calendar,
   mailOutline,
   lockClosedOutline,
+  qrCodeOutline,
   heart,
   create
 } from 'ionicons/icons';
@@ -48,7 +48,7 @@ import {
   IonInput,
   IonTitle,
   IonButtons,
-  IonContent, IonLoading } from '@ionic/angular/standalone';
+  IonContent, IonLoading, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/angular/standalone';
 import { User } from 'src/models/User';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
@@ -59,7 +59,7 @@ import { Plan } from 'src/models/Plan';
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-   imports: [IonLoading, NgIf,NgFor,DatePipe, FormsModule,IonHeader, IonDatetime, IonModal, IonToolbar, IonIcon, IonButton, IonInput, IonTitle, IonButtons, IonContent, IonItem, IonLabel]
+   imports: [IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonCol, IonRow, IonGrid, IonLoading, NgIf,NgFor,DatePipe, FormsModule,IonHeader, IonDatetime, IonModal, IonToolbar, IonIcon, IonButton, IonInput, IonTitle, IonButtons, IonContent, IonItem, IonLabel]
 })
 export class RegisterPage implements OnInit {
   isLoading = false;
@@ -69,7 +69,10 @@ isDatePickerOpen = false;
 maxDate = new Date().toISOString();
   showPassword: boolean = false;
   showConfirmPassword: boolean = false;
-  
+  html5QrCode: Html5Qrcode | null = null;
+   isScanning = false;
+  isCameraAvailable = true;
+  manualQRInput = '';
   registrationData: User = {
   id: 0, // Will be set by the server
   first_name: '',
@@ -136,8 +139,7 @@ maxDate = new Date().toISOString();
 
   constructor(
     private router: Router,
-    private userService: UserService,
-    private profileService: ProfileService,
+    private platform: Platform,
     private auth: Auth,
   ) {
     addIcons({
@@ -161,6 +163,7 @@ maxDate = new Date().toISOString();
     'female': female,
     'mail-outline': mailOutline,
     'lock-closed-outline': lockClosedOutline,
+    'qr-code-outline': qrCodeOutline,
     'transgender': transgender,
     'chevron-back': chevronBack,
     'arrow-forward': arrowForward,
@@ -170,7 +173,9 @@ maxDate = new Date().toISOString();
   }
 
   ngOnInit() {}
-
+  ngOnDestroy() {
+    this.stopScan();
+  }
   // Navigation entre les étapes
   nextStep() {
     if (this.currentStep === 1 && this.validateStep1()) {
@@ -283,42 +288,89 @@ confirmDateSelection() {
 
   // Gestion proof
 
+ async startScan() {
+    // Vérifier si on est sur un appareil mobile ou desktop
+    const isMobile = this.platform.is('mobile') || 
+                    this.platform.is('ios') || 
+                    this.platform.is('android');
 
-// Dans la classe RegisterPage
-async scanQRCode() {
-  try {
-    // Demander la permission de la caméra
-    const status = await BarcodeScanner.checkPermission({ force: true });
-    
-    if (status.granted) {
-      // Masquer le contenu de l'application
-      document.querySelector('body')?.classList.add('scanner-active');
+    try {
+      if (this.isScanning) return;
       
-      // Démarrer le scan
-      const result = await BarcodeScanner.startScan();
-      
-      if (result.hasContent) {
-        // Stocker le contenu du QR code
-        this.registrationData.QR_proof = result.content;
-        this.studentProofName = 'QR Code scanné ✓';
+      // Vérifier la disponibilité de la caméra
+      const devices = await Html5Qrcode.getCameras();
+      if (!devices || devices.length === 0) {
+        this.isCameraAvailable = false;
+        this.showManualInput();
+        return;
       }
-    } else {
-      await this.showAlert('Permission refusée', 'L\'accès à la caméra est nécessaire pour scanner un QR code');
-    }
-  } catch (error) {
-    console.error('Erreur lors du scan:', error);
-    await this.showAlert('Erreur', 'Impossible de lancer le scan du QR code');
-  } finally {
-    // Réafficher le contenu de l'application
-    document.querySelector('body')?.classList.remove('scanner-active');
-  }
-}
 
-// Méthode pour arrêter le scan
-stopScan() {
-  BarcodeScanner.showBackground();
-  BarcodeScanner.stopScan();
-  document.querySelector('body')?.classList.remove('scanner-active');
+      this.isScanning = true;
+      this.isCameraAvailable = true;
+      document.querySelector('ion-app')?.classList.add('scanner-active');
+      
+      this.html5QrCode = new Html5Qrcode('qr-reader');
+      
+      // Configuration pour mobile ou desktop
+      const config = isMobile 
+        ? { facingMode: "environment" }  // Caméra arrière sur mobile
+        : { facingMode: "user" };        // Caméra avant sur desktop
+
+      await this.html5QrCode.start(
+        config,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => this.handleScanSuccess(decodedText),
+        () => {} // Gestion des erreurs de décodage
+      ).catch(async (err) => {
+        console.error("Erreur du scanner:", err);
+        this.isCameraAvailable = false;
+        await this.stopScan();
+        this.showManualInput();
+      });
+
+    } catch (error) {
+      console.error('Erreur lors du démarrage du scan:', error);
+      this.isCameraAvailable = false;
+      await this.stopScan();
+      this.showManualInput();
+    }
+  }
+
+  private handleScanSuccess(decodedText: string) {
+    this.registrationData.QR_proof = decodedText;
+    this.studentProofName = 'QR Code scanné ✓';
+    this.stopScan();
+  }
+
+   showManualInput() {
+    const input = prompt('Le scan automatique a échoué. Veuillez entrer le code QR manuellement :');
+    if (input) {
+      this.registrationData.QR_proof = input;
+      this.studentProofName = 'Code saisi manuellement';
+    }
+  }
+
+  async stopScan() {
+    try {
+      if (this.html5QrCode && this.html5QrCode.isScanning) {
+        await this.html5QrCode.stop();
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'arrêt du scan:', error);
+    } finally {
+      this.html5QrCode = null;
+      this.isScanning = false;
+      document.querySelector('ion-app')?.classList.remove('scanner-active');
+    }
+  }
+
+  clearQRCode() {
+  this.registrationData.QR_proof = '';
+  this.studentProofName = '';
+  this.stopScan();
 }
 
   needsProof(): boolean {
@@ -382,7 +434,7 @@ async PrepareRegister() {
     delete (userData as any).id;
     delete userData.password;
     
-    console.log('Redirection vers la page d\'abonnement avec les données :', userData);
+    this.currentStep = 1;
 
     // 6️⃣ Rediriger vers la page d'abonnement avec les données
     await this.router.navigate(['/subscription'], {

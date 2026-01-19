@@ -1,47 +1,64 @@
 <ion-content class="login-content">
   <ion-loading 
-  [isOpen]="isLoading" 
-  message="Connexion..."
-  spinner="circles">
-</ion-loading>
+    [isOpen]="isLoading" 
+    message="Connexion..."
+    spinner="circles">
+  </ion-loading>
+  
   <div class="login-container">
     
+    <!-- En-tête minimaliste -->
     <div class="header-section">
       <div class="logo-wrapper">
-        <img src="assets/logo/logo.png"  alt="Logo Talent" class="app-logo">
+        <div class="logo-symbol"><img src="../../assets/logo/logo.png"/></div>
+        <h1 class="app-name">On est tous <span>Gagnant</span></h1>
       </div>
-      <h1 class="welcome-text">Révélez votre talent</h1>
-      <p class="subtitle">La scène n'attend que vous.</p>
+      
+      <h2 class="welcome-text">Connexion</h2>
+      <p class="subtitle">Accédez à votre espace talent</p>
     </div>
 
+    <!-- Formulaire minimaliste -->
     <div class="form-section">
       <div class="input-group">
-        <ion-icon name="mail-outline" class="input-icon"></ion-icon>
+        <div class="input-label">
+          <ion-icon name="mail-outline"></ion-icon>
+          <span>Email</span>
+        </div>
         <ion-input
           [(ngModel)]="email"
           type="email"
-          placeholder="Email"
+          placeholder="votre@email.com"
           class="custom-input">
         </ion-input>
       </div>
 
       <div class="input-group">
-        <ion-icon name="lock-closed-outline" class="input-icon"></ion-icon>
-        <ion-input
-          [(ngModel)]="password"
-          [type]="showPassword ? 'text' : 'password'"
-          placeholder="Mot de passe"
-          class="custom-input">
-        </ion-input>
-        <ion-icon 
-          [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"
-          (click)="togglePasswordVisibility()"
-          class="toggle-password">
-        </ion-icon>
+        <div class="input-label">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <span>Mot de passe</span>
+        </div>
+        <div class="password-input-wrapper">
+          <ion-input
+            [(ngModel)]="password"
+            [type]="showPassword ? 'text' : 'password'"
+            placeholder="••••••••"
+            class="custom-input">
+          </ion-input>
+          <button 
+            (click)="togglePasswordVisibility()"
+            class="toggle-password-btn">
+            <ion-icon 
+              [name]="showPassword ? 'eye-off-outline' : 'eye-outline'">
+            </ion-icon>
+          </button>
+        </div>
       </div>
 
       <div class="forgot-password">
-        <a (click)="navigateToForgotPassword()">Mot de passe oublié ?</a>
+        <a (click)="navigateToForgotPassword()" class="forgot-link">
+          Mot de passe oublié ?
+        </a>
       </div>
 
       <ion-button 
@@ -49,10 +66,13 @@
         (click)="loginWithEmail()"
         class="login-button">
         Se connecter
+        <ion-icon name="arrow-forward" slot="end"></ion-icon>
       </ion-button>
 
       <div class="divider">
-        <span>OU</span>
+        <span class="divider-line"></span>
+        <span class="divider-text">ou continuer avec</span>
+        <span class="divider-line"></span>
       </div>
 
       <div class="social-login">
@@ -64,9 +84,17 @@
         </button>
       </div>
 
-      <div class="register-link">
-        <p>Pas encore de compte ? <a (click)="navigateToRegister()">S'inscrire</a></p>
+      <div class="register-section">
+        <p class="register-text">Nouveau sur BEST SUI ?</p>
+        <button (click)="navigateToRegister()" class="register-btn">
+          Créer un compte
+        </button>
       </div>
+    </div>
+
+    <!-- Footer minimal -->
+    <div class="footer">
+      <p>© 2024 TalentShow. <a>Mentions légales</a></p>
     </div>
   </div>
 </ion-content>

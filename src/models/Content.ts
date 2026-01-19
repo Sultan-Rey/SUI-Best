@@ -25,6 +25,7 @@ export interface Content {
   // Métadonnées du contenu
   title: string;              // Titre du contenu
   description?: string;       // Description optionnelle
+  username?:string;            // Nom d'utilisateur du post
   tags?: string[];            // Mots-clés pour la recherche
   isPublic: boolean;          // Visibilité publique/privée
   allowDownloads: boolean;    // Autoriser le téléchargement
@@ -52,4 +53,11 @@ export interface Content {
   likeCount: number;          // Nombre de likes
   commentCount: number;       // Nombre de commentaires
   downloadCount: number;      // Nombre de téléchargements
+}
+
+
+interface PostWithUser extends Content {
+  username: string;
+  isLikedByUser: boolean;
+  avatarUrl?: string;
 }

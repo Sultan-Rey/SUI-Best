@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, catchError, EMPTY, map, Observable, of, switchMap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, EMPTY, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { Content, ContentSource, ContentStatus } from '../../models/Content';
 import { Challenge } from '../../models/Challenge';
@@ -151,22 +151,43 @@ getFeedContents(page: number = 1, limit: number = 10): Observable<Content[]> {
   /**
    * Ajoute un like à un contenu
    */
-  likeContent(contentId: string, userId: string): Observable<Content> {
-    // Récupérer d'abord le contenu actuel
-    return this.api.getById<Content>(this.contentResource, contentId).pipe(
-      switchMap(content => {
-        const updatedLikes = [...(content.likedIds || []), userId];
-        return this.api.patch<Content>(this.contentResource, contentId, {
-          likedIds: updatedLikes,
-          likeCount: updatedLikes.length
-        });
-      }),
-      catchError(error => {
-        console.error('Erreur lors de l\'ajout du like:', error);
-        return throwError(() => error);
-      })
-    );
-  }
+ likeContent(contentId: string, userId: string): Observable<Content> {
+  console.log('likeContent appelé avec:', { contentId, userId });
+  
+  return this.api.getById<Content>(this.contentResource, contentId).pipe(
+    tap(content => console.log('Contenu récupéré:', content)),
+    switchMap(content => {
+      const currentLikes = [...(content.likedIds || [])];
+      console.log('Likes actuels:', currentLikes);
+      
+      const userHasLiked = currentLikes.includes(userId);
+      console.log('L\'utilisateur a déjà aimé?', userHasLiked);
+      
+      const updatedLikes = userHasLiked
+        ? currentLikes.filter(id => id !== userId)
+        : [...currentLikes, userId];
+      
+      console.log('Nouveaux likes:', updatedLikes);
+      
+      return this.api.patch<Content>(this.contentResource, contentId, {
+        likedIds: updatedLikes,
+        likeCount: updatedLikes.length
+      }).pipe(
+        tap(updatedContent => console.log('Contenu mis à jour avec succès:', updatedContent))
+      );
+    }),
+    catchError(error => {
+      console.error('Erreur complète:', {
+        error,
+        message: error.message,
+        status: error.status,
+        url: error.url,
+        headers: error.headers
+      });
+      return throwError(() => new Error('Impossible de mettre à jour le like. Veuillez réessayer.'));
+    })
+  );
+}
 
   /**
    * Retire un like d'un contenu
@@ -212,6 +233,54 @@ getFeedContents(page: number = 1, limit: number = 10): Observable<Content[]> {
     return this.api.create<Challenge>(this.challengeResource, challenge);
   }
 
+createChallengeWithCoverImage(
+  coverImage: File,
+  challengeData: Omit<Challenge, 'id' | 'created_at' | 'is_active' | 'cover_image_url'>,
+  progressCallback?: (progress: number) => void
+): Observable<Challenge> {
+  return new Observable(observer => {
+    this.api.upload<{ file: { path: string } }>(
+      this.uploadResource,
+      coverImage,  // Envoyer directement le fichier
+      'file',      // Nom du champ pour le fichier
+      !!progressCallback
+    ).subscribe({
+      next: (event: any) => {
+        if (event.type === 1 && event.loaded && event.total && progressCallback) {
+          const progress = Math.round((100 * event.loaded) / event.total);
+          progressCallback(progress);
+        } else if (event.type === 4) {
+          // Gestion de la réponse
+          let coverImageUrl: string;
+          
+          if (typeof event.body === 'string') {
+            coverImageUrl = event.body;
+          } else if (event.body?.file?.path) {
+            coverImageUrl = event.body.file.path;
+          } else if (event.body?.path) {
+            coverImageUrl = event.body.path;
+          } else {
+            observer.error(new Error('Format de réponse inattendu'));
+            return;
+          }
+
+          // Créer le challenge avec l'URL de l'image
+          const challengeWithImage = {
+            ...challengeData,
+            cover_image_url: coverImageUrl
+          };
+
+          this.api.create<Challenge>(this.challengeResource, challengeWithImage)
+            .subscribe({
+              next: (challenge) => observer.next(challenge),
+              error: (err) => observer.error(err)
+            });
+        }
+      },
+      error: (err) => observer.error(err)
+    });
+  });
+}
   /**
  * Récupère la liste des défis actifs
  * @returns Observable<Challenge[]> Liste des défis actifs
@@ -257,6 +326,34 @@ updateChallenge(id: string, updates: Partial<Challenge>): Observable<Challenge> 
       _sort: 'created_at',
       _order: 'desc'
     });
+  }
+
+  /**
+   * Récupère le challenge actif avec le plus grand nombre de participants
+   * @returns Observable<Challenge | null> Le challenge actif le plus populaire ou null si aucun challenge actif
+   */
+  getMostPopularActiveChallenge(): Observable<Challenge | null> {
+    return this.getActiveChallenges().pipe(
+      map(challenges => {
+        if (!challenges || challenges.length === 0) {
+          return null;
+        }
+        
+        // Trier les challenges par participants_count décroissant
+        const sortedChallenges = [...challenges].sort((a, b) => {
+          const aCount = a.participants_count || 0;
+          const bCount = b.participants_count || 0;
+          return bCount - aCount;
+        });
+
+        // Retourner le premier élément (celui avec le plus de participants)
+        return sortedChallenges[0];
+      }),
+      catchError(error => {
+        console.error('Erreur lors de la récupération du challenge le plus populaire:', error);
+        return of(null);
+      })
+    );
   }
 
 }

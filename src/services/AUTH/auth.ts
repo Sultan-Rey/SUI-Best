@@ -21,7 +21,7 @@ export class Auth {
   private loginAttempts = new Map<string, { attempts: number; lastAttempt: number }>();
   private currentUserSubject =
     new BehaviorSubject<AuthUser | null>(this.loadUserFromStorage());
-
+  
   /** Observable public */
   currentUser$: Observable<AuthUser | null> =
     this.currentUserSubject.asObservable();
@@ -127,6 +127,7 @@ export class Auth {
   logout(): void {
     localStorage.removeItem(this.STORAGE_KEY);
     this.currentUserSubject.next(null);
+    window.dispatchEvent(new Event('storage')); // Déclencher un événement de stockage
   }
 
   /* ======================

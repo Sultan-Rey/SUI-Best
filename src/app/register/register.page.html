@@ -123,17 +123,58 @@
       </div>
     </div>
 
-    <div class="upload-section" *ngIf="needsProof()">
-  <p class="upload-hint">Scannez votre QR code étudiant</p>
-  <div class="file-drop" (click)="scanQRCode()">
-    <ion-icon name="qr-code-outline"></ion-icon>
-    <span>{{ studentProofName || 'Scanner le QR code' }}</span>
-  </div>
-  <div *ngIf="registrationData.QR_proof" class="scan-success">
-    <ion-icon name="checkmark-circle" color="success"></ion-icon>
-    <span>QR code scanné avec succès</span>
-  </div>
+<!-- Scanner Container -->
+<div id="qr-reader" *ngIf="isScanning && isCameraAvailable && needsProof()"></div>
+
+<!-- Boutons de contrôle -->
+<ion-grid *ngIf="!isScanning && needsProof()" class="ion-margin-vertical">
+  <ion-row class="ion-justify-content-center">
+    <ion-col size="12" class="ion-text-center">
+      <ion-button 
+        expand="block" 
+        (click)="startScan()" 
+        color="primary"
+        *ngIf="isCameraAvailable">
+        <ion-icon slot="start" name="qr-code-outline"></ion-icon>
+        Scanner un QR Code
+      </ion-button>
+      
+      <ion-button 
+        expand="block" 
+        (click)="showManualInput()" 
+        color="medium"
+        fill="outline"
+        class="ion-margin-top">
+        <ion-icon slot="start" name="pencil-outline"></ion-icon>
+        Saisir manuellement
+      </ion-button>
+    </ion-col>
+  </ion-row>
+</ion-grid>
+
+<!-- Message d'erreur caméra -->
+<div *ngIf="!isCameraAvailable && !isScanning && needsProof()" class="ion-padding ion-text-center">
+  <ion-icon name="camera-off" size="large" color="medium"></ion-icon>
+  <p>La caméra n'est pas disponible sur cet appareil.</p>
 </div>
+
+<!-- Affichage du code scanné -->
+<ion-card *ngIf="registrationData.QR_proof" class="ion-margin">
+  <ion-card-header>
+    <ion-card-title>Code scanné</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <p class="ion-text-wrap">{{ registrationData.QR_proof }}</p>
+    <ion-button 
+      expand="block" 
+      color="danger" 
+      size="small" 
+      (click)="clearQRCode()">
+      <ion-icon slot="start" name="trash-outline"></ion-icon>
+      Effacer
+    </ion-button>
+  </ion-card-content>
+</ion-card>
     </div>
         <p>Comment souhaites-tu te connecter ?</p>
       </div>

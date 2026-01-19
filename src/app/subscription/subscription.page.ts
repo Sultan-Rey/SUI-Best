@@ -193,7 +193,7 @@ this.registrationData.myPlan = {
     this.registrationData.last_name || userCreated.id.toString().substring(0, 8)
   ),
         displayName: `${this.registrationData.first_name} ${this.registrationData.last_name}`,
-        avatar: 'assets/avatar-default.png',
+        avatar: 'storage/uploads/avatar-default.png',
         isVerified: false,
         isFollowing: false,
         bio: '',
@@ -229,7 +229,7 @@ this.registrationData.myPlan = {
         message: 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.',
         buttonTitle: 'Se connecter'
       });
-
+          
           this.registrationData.id = userCreated.id;
           this.registrationData.password_hash = "";
           this.registrationData.QR_proof = "";

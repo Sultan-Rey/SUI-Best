@@ -6,6 +6,8 @@ import { home, trophy, addCircle, person, star } from 'ionicons/icons';
 import { firstValueFrom } from 'rxjs';
 import { Auth } from 'src/services/AUTH/auth';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 
 @Component({
@@ -17,43 +19,64 @@ import { UserService } from 'src/services/USER_SERVICE/user-service';
 export class TabsPage implements OnInit {
   public environmentInjector = inject(EnvironmentInjector);
    activeTab = 'home';
+   private destroy$ = new Subject<void>();
    subscriptionStatus: 'active' | 'expiring' | 'expired' | 'inactive' = 'inactive';
-  constructor( private userService:UserService, private authService:Auth) {
-    
-    addIcons({ home, trophy, addCircle, person, star });
-  }
-    async checkSubscriptionStatus() {
-    try {
-      // Récupérer l'utilisateur connecté via le service Auth
-      const currentUser = this.authService.getCurrentUser();
-      if (!currentUser || !currentUser.email) {
-        this.subscriptionStatus = 'inactive';
-        return;
-      }
-
-      // Récupérer les détails complets de l'utilisateur via UserService
-      const user = await firstValueFrom(
-        this.userService.getUserById(currentUser.id.toString())
-      );
-
-      if (user && user.myPlan) {
-        const endDate = new Date(user.myPlan.endDate);
-        const today = new Date();
-        const daysUntilExpiry = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        //console.log("subscription status", user.first_name);
-        if (user.myPlan.status === 'active' && user.myPlan.id !=='exhibition') {
-          this.subscriptionStatus = daysUntilExpiry <= 7 ? 'expiring' : 'active';
-        } else {
-          this.subscriptionStatus = 'expired';
-        }
+  
+constructor(
+  private userService: UserService, 
+  private authService: Auth
+) {
+  addIcons({ home, trophy, addCircle, person, star });
+  
+  // 4. S'abonner aux changements d'authentification
+  this.authService.currentUser$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(user => {
+      if (user) {
+        this.checkSubscriptionStatus();
       } else {
         this.subscriptionStatus = 'inactive';
       }
-    } catch (error) {
-      console.error('Erreur lors de la vérification du statut d\'abonnement:', error);
+    });
+}
+
+   async checkSubscriptionStatus() {
+  try {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) {
+      this.subscriptionStatus = 'inactive';
+      return;
+    }
+
+    const user = await this.userService.getUserById(currentUser.id.toString()).toPromise();
+   
+    if (user?.myPlan) {
+      const endDate = new Date(user.myPlan.endDate);
+      const today = new Date();
+      
+      if (endDate < today || user.myPlan.id == 'exhibition') {
+        this.subscriptionStatus = 'expired';
+      } else if (this.isExpiringSoon(endDate)) {
+        this.subscriptionStatus = 'expiring';
+      } else {
+        this.subscriptionStatus = 'active';
+      }
+    } else {
       this.subscriptionStatus = 'inactive';
     }
+  } catch (error) {
+    console.error('Erreur lors de la vérification de l\'abonnement:', error);
+    this.subscriptionStatus = 'inactive';
   }
+}
+
+// 7. Implémentez la méthode isExpiringSoon si elle n'existe pas déjà
+private isExpiringSoon(endDate: Date): boolean {
+  const today = new Date();
+  const timeDiff = endDate.getTime() - today.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  return daysDiff <= 7; // Moins de 7 jours restants
+}
 
   getSubscriptionStatus() {
    
@@ -66,5 +89,10 @@ export class TabsPage implements OnInit {
 
   ngOnInit(): void {
     this.checkSubscriptionStatus();
+  }
+  
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

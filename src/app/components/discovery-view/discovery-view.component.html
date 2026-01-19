@@ -1,0 +1,277 @@
+<!-- Vue Découverte pour Cold Start -->
+<div class="discovery-container">
+  
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Découvrez les meilleurs talents</h1>
+      <p class="hero-subtitle">Rejoignez la communauté BEST et votez pour vos artistes préférés</p>
+    </div>
+    <div class="hero-stats">
+  <div class="stat-item">
+    <span class="stat-number">{{ heroStats.totalArtists | number:'1.0-0' }}K+</span>
+    <span class="stat-label">Artistes</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-number">{{ heroStats.activeChallenges }}+</span>
+    <span class="stat-label">Challenges actifs</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-number">{{ heroStats.totalVotes | number:'1.0-0' }}+</span>
+    <span class="stat-label">Votes</span>
+  </div>
+</div>
+  </div>
+
+  <!-- Challenge en vedette -->
+  <div class="featured-challenge">
+    <div class="section-header">
+      <h2 class="section-title">🎯 Challenge de la semaine</h2>
+      <ion-button fill="clear" size="small" class="see-all-btn" routerLink="/challenges">Voir tous</ion-button>
+    </div>
+    
+    <!-- Chargeur pendant le chargement -->
+    <ng-container *ngIf="isLoadingPopularChallenge">
+      <div class="challenge-card loading">
+        <div class="challenge-overlay"></div>
+        <ion-skeleton-text animated style="width: 100%; height: 100%;"></ion-skeleton-text>
+      </div>
+    </ng-container>
+    
+    <!-- Carte du challenge populaire -->
+    <ng-container *ngIf="!isLoadingPopularChallenge && mostPopularChallenge">
+      <div class="challenge-card" 
+           [style.background-image]="mostPopularChallenge.cover_image_url ? 'url(' + getMediaUrl(mostPopularChallenge.cover_image_url) + ')' : 'none'">
+        <div class="challenge-overlay"></div>
+        <div class="challenge-content">
+          <div class="challenge-badge">ACTIF</div>
+          <div class="challenge-info">
+            <h3 class="challenge-name">{{ mostPopularChallenge.name }}</h3>
+            <p class="challenge-description">{{ mostPopularChallenge.description || 'Participez à ce défi passionnant !' }}</p>
+            <div class="challenge-meta">
+              <span class="meta-item">
+                <ion-icon name="people-outline"></ion-icon>
+                {{ (mostPopularChallenge.participants_count || 0) | number }} participants
+              </span>
+              <span class="meta-item" *ngIf="mostPopularChallenge.end_date">
+                <ion-icon name="time-outline"></ion-icon>
+                {{ calculateDaysLeft(mostPopularChallenge.end_date) }} jours restants
+              </span>
+            </div>
+          </div>
+          <ion-button 
+            expand="block" 
+            class="challenge-cta"
+            (click)="viewChallenge(mostPopularChallenge.id)">
+            {{ mostPopularChallenge.call_to_action || 'Découvrir le challenge' }}
+          </ion-button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Catégories populaires -->
+  <div class="categories-section">
+    <div class="section-header">
+      <h2 class="section-title">Explorer par catégorie</h2>
+    </div>
+    <div class="categories-grid">
+      <div class="category-card">
+        <div class="category-icon">🎤</div>
+        <span class="category-name">Rap/Hip-Hop</span>
+        <span class="category-count">12K artistes</span>
+      </div>
+      <div class="category-card">
+        <div class="category-icon">🎨</div>
+        <span class="category-name">Arts Visuels</span>
+        <span class="category-count">8K artistes</span>
+      </div>
+      <div class="category-card">
+        <div class="category-icon">💃</div>
+        <span class="category-name">Danse</span>
+        <span class="category-count">15K artistes</span>
+      </div>
+      <div class="category-card">
+        <div class="category-icon">🎸</div>
+        <span class="category-name">Musique</span>
+        <span class="category-count">20K artistes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Talents en vedette - Slider horizontal -->
+  <div class="slider-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">⭐ Talents du moment</h2>
+        <p class="section-subtitle">Commencez par suivre ces artistes populaires</p>
+      </div>
+      <ion-button fill="clear" size="small" class="see-all-btn">Tout voir</ion-button>
+    </div>
+
+    <div class="horizontal-scroll" *ngIf="!isLoadingArtists; else loadingArtists">
+      <!-- Talent 1 -->
+      <div class="talent-slide-card" *ngFor="let talent of topArtists" >
+        <div class="talent-slide-media">
+          <img src="assets/sample-thumbnail-1.jpg" class="talent-slide-thumbnail" alt="Performance">
+          <div class="play-overlay">
+            <ion-icon name="play-circle"></ion-icon>
+          </div>
+        </div>
+        <div class="talent-slide-info" (click)="goTo(talent.id)">
+          <div class="talent-header">
+            <img [src]="getMediaUrl(talent.avatar)" class="talent-avatar" alt="Avatar">
+            <div class="talent-name-wrapper">
+              <h4 class="talent-slide-name">{{talent.username}}</h4>
+              <span class="talent-slide-category">🎤 Rap/Hip-Hop</span>
+            </div>
+          </div>
+          <p class="talent-slide-description">{{talent.bio}}</p>
+          <div class="talent-slide-stats">
+            <span class="stat">
+              <ion-icon name="heart"></ion-icon>
+              {{talent.stats.votes}}K
+            </span>
+            <span class="stat">
+              <ion-icon name="people"></ion-icon>
+              {{getFansCount(talent.stats.fans)}}K
+            </span>
+          </div>
+          <ion-button expand="block" 
+           (click)="subscribeTo(talent.id)" 
+          size="small" class="follow-btn">
+            <ion-icon  name="add" slot="start"></ion-icon>
+            {{isFollowingUser[talent.id] ?   'Suivre' : 'Desabonner'}}
+          </ion-button>
+        </div>
+      </div>
+
+      
+    </div>
+     <ng-template #loadingArtists>
+    <div class="loading-container">
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 200px;"></ion-skeleton-text>
+    </div>
+  </ng-template>
+  </div>
+
+  <!-- SECTION 2: Créateurs Phare - Slider horizontal -->
+  <div class="slider-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">🏆 Créateurs Phare</h2>
+        <p class="section-subtitle">Les créateurs les plus engagés de la communauté</p>
+      </div>
+      <ion-button fill="clear" size="small" class="see-all-btn">Tout voir</ion-button>
+    </div>
+
+    <div class="horizontal-scroll" *ngIf="!isLoadingCreators; else loadingCreators">
+      <!-- Créateur 1 -->
+      <div class="creator-slide-card" *ngFor="let creator of topCreators">
+        <div class="creator-slide-header">
+          <div class="creator-slide-avatar" (click)="goTo(creator.id)">
+            <img [src]="getMediaUrl(creator.avatar) || 'assets/avatar-default.png'" (error)="onImageAvatarError($event)"  alt="Avatar">
+            <div class="creator-badge">👑</div>
+          </div>
+          <div class="creator-slide-info" (click)="goTo(creator.id)">
+            <h4 class="creator-slide-name">{{creator.username}}</h4>
+            <span class="creator-slide-role">Producteur musical</span>
+            <div class="creator-slide-stats">
+              <span class="stat">
+                <ion-icon name="trophy"></ion-icon>
+                {{creator.stats.posts}} défis
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="creator-slide-content">
+          <p class="creator-slide-bio">{{creator.bio || 'Aucune information de bio'}}</p>
+          <div class="creator-slide-tags">
+            <span class="tag">#Beatmaking</span>
+            <span class="tag">#HipHop</span>
+            <span class="tag">#Producer</span>
+          </div>
+        </div>
+        <ion-button expand="block"
+  (click)="subscribeTo(creator.id)"
+  size="small" 
+  class="follow-btn">
+  <ion-icon [name]="isFollowingUser[creator.id] ? 'checkmark' : 'add'" slot="start"></ion-icon>
+  {{isFollowingUser[creator.id] ? 'Abonné' : 'Suivre'}}
+</ion-button>
+      </div>
+
+      
+    </div>
+    <ng-template #loadingCreators>
+    <div class="loading-container">
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 200px;"></ion-skeleton-text>
+    </div>
+  </ng-template>
+  </div>
+
+  <!-- SECTION 3: Top Fans - Slider horizontal -->
+  <div class="slider-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">💖 Top Fans</h2>
+        <p class="section-subtitle">Les supporters les plus actifs de la plateforme</p>
+      </div>
+      <ion-button fill="clear" size="small" class="see-all-btn">Tout voir</ion-button>
+    </div>
+
+    <div class="horizontal-scroll" *ngIf="!isLoadingFans; else loadingFans">
+      <!-- Fan 1 -->
+      <div class="fan-slide-card" *ngFor="let fan of topFans; let i = index">
+  <!-- Afficher la médaille uniquement pour les 3 premiers -->
+  <div class="fan-slide-rank" *ngIf="i < 3">
+    <span *ngIf="i === 0">🥇</span>
+    <span *ngIf="i === 1">🥈</span>
+    <span *ngIf="i === 2">🥉</span>
+  </div>
+  <!-- Afficher un espace vide pour l'alignement pour les autres -->
+  <div class="fan-slide-rank" *ngIf="i >= 3"></div>
+  
+  <div class="fan-slide-avatar" (click)="goTo(fan.id)">
+    <img [src]="getMediaUrl(fan.avatar) || 'assets/avatar-default.png'" (error)="onImageAvatarError($event)" alt="Avatar">
+  </div>
+  <h4 class="fan-slide-name">{{fan.username || fan.displayName || 'Fan'}}</h4>
+  <span class="fan-slide-level">{{getFanLevel(fan)}}</span>
+  <div class="fan-slide-stats">
+    <div class="fan-stat">
+      <ion-icon name="thumbsUp"></ion-icon>
+      <span class="fan-stat-number">{{(fan.stats.votes || 0) >= 1000 ? ((fan.stats.votes || 0) / 1000).toFixed(1) + 'K' : (fan.stats.votes || 0)}}</span>
+      <span class="fan-stat-label">votes</span>
+    </div>
+    <div class="fan-stat">
+      <ion-icon name="star"></ion-icon>
+      <span class="fan-stat-number">{{fan.stats.stars || 0}}</span>
+      <span class="fan-stat-label">Success</span>
+    </div>
+  </div>
+  <p class="fan-slide-desc">A voté dans {{getVoteParticipation(fan)}}% des battles cette semaine</p>
+</div>
+
+     
+
+      
+    </div>
+    <ng-template #loadingFans>
+    <div class="loading-container">
+      <ion-skeleton-text [animated]="true" style="width: 100%; height: 200px;"></ion-skeleton-text>
+    </div>
+  </ng-template>
+  </div>
+
+  <!-- Call to Action final -->
+  <div class="cta-section">
+    <div class="cta-content">
+      <h3 class="cta-title">Prêt à commencer ?</h3>
+      <p class="cta-description">Suivez vos premiers artistes pour personnaliser votre feed</p>
+      <ion-button expand="block" size="large" class="cta-button">
+        Explorer tous les talents
+      </ion-button>
+    </div>
+  </div>
+
+</div>

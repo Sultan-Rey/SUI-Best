@@ -37,3 +37,21 @@ ion-content {
   justify-content: center;
   padding: 20px;
 }
+
+.no-comments {
+  text-align: center;
+  padding: 2rem;
+  color: var(--ion-color-medium);
+  
+  ion-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+  }
+
+  .hint {
+    font-size: 0.9rem;
+    color: var(--ion-color-medium);
+    margin-top: 0.5rem;
+  }
+}

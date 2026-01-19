@@ -2,6 +2,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { addIcons } from 'ionicons';
+import { send,chatbubbleOutline } from 'ionicons/icons';
 import { 
   IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonItem, 
   IonIcon, IonButtons, IonList, IonAvatar, IonLabel, IonFooter, 
@@ -13,7 +15,7 @@ import { of } from 'rxjs';
 import { CommentService } from '../../services/COMMENTS_SERVICE/comment-service';
 import { Comment } from '../../models/Comment';
 import { UserProfile } from '../../models/User';
-import { Auth } from 'src/services/AUTH/auth';
+
 
 @Component({
   selector: 'app-content-comments',
@@ -56,6 +58,10 @@ export class ContentCommentsPage implements OnInit {
   }
 
   ngOnInit() {
+    addIcons({
+      send,
+      chatbubbleOutline
+    });
     this.loadComments();
   }
 

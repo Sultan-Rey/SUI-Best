@@ -1,8 +1,9 @@
 // src/services/COMMENT/comment.service.ts
 import { Injectable } from '@angular/core';
-import { Observable, switchMap } from 'rxjs';
+import { Observable, switchMap, take, tap, Subject } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { Comment } from '../../models/Comment';
+import { Content } from 'src/models/Content';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +12,10 @@ export class CommentService {
   private readonly resource = 'comments';
 
   constructor(private api: ApiJSON) {}
+
+  private commentAdded = new Subject<{contentId: string, increment: number}>();
+ commentAdded$ = this.commentAdded.asObservable();
+
 
   /**
    * Récupère les commentaires d'un contenu
@@ -26,15 +31,38 @@ export class CommentService {
    * Ajoute un nouveau commentaire
    */
   addComment(comment: Omit<Comment, 'id' | 'createdAt' | 'likes'>): Observable<Comment> {
-    const newComment = {
-      ...comment,
-      likes: 0,
-      createdAt: new Date().toISOString(),
-      replies: []
-    };
-    return this.api.create<Comment>(this.resource, newComment);
-  }
+  const newComment = {
+    ...comment,
+    likes: 0,
+    createdAt: new Date().toISOString(),
+    replies: []
+  };
+  
+  return this.api.create<Comment>('comments', newComment).pipe(  // Utilisez newComment ici
+    tap(createdComment => {
+      this.commentAdded.next({  // Utilisez .next() directement sur le Subject
+        contentId: comment.contentId, 
+        increment: 1
+      });
+      this.updateContentCommentCount(comment.contentId, 1);
+    })
+  );
+}
 
+  private updateContentCommentCount(contentId: string, increment: number): void {
+  this.api.getById<Content>('contents', contentId).pipe(
+    take(1),
+    switchMap(content => {
+      const newCount = (content.commentCount || 0) + increment;
+      return this.api.update<Content>('contents', contentId, {
+        commentCount: newCount
+      });
+    })
+  ).subscribe({
+    next: () => console.log('Comment count updated'),
+    error: (err) => console.error('Failed to update comment count', err)
+  });
+}
   /**
    * Met à jour un commentaire existant
    */

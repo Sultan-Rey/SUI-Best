@@ -22,10 +22,16 @@ export const routes: Routes = [
           import('../tab-upload/upload.page').then((m) => m.UploadPage),
       },
       {
-        path: 'profile',
+        path: 'profile/:id',
         loadComponent: () =>
           import('../tab-profile/profile.page').then((m) => m.ProfilePage),
       },
+      {
+  path: 'profile',
+  loadComponent: () =>
+    import('../tab-profile/profile.page').then(m => m.ProfilePage),
+  data: { isCurrentUser: true }
+},
       {
         path: '',
         redirectTo: '/tabs/home',
