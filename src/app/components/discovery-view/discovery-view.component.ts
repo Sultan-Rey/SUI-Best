@@ -11,7 +11,7 @@ import { UserProfile } from 'src/models/User';
 import { Input } from '@angular/core';
 import { ToastController, AlertController} from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { add, checkmark } from 'ionicons/icons';
+import { add, checkmark, peopleOutline, people, timeOutline, playCircle, heart, trophy, thumbsUp, star } from 'ionicons/icons';
 
 
 @Component({
@@ -34,16 +34,18 @@ export class DiscoveryViewComponent implements OnInit {
   topArtists: UserProfile[] = [];
   topCreators: UserProfile[] = [];
   topFans: UserProfile[] = [];
+  artistContents: { [key: string]: string } = {}; // Pour stocker les premiers contenus des artistes
   isLoadingPopularChallenge = false;
   isLoadingArtists = false;
   isLoadingCreators = false;
   isLoadingFans = false;
   heroStats = {
-  totalArtists: 0,
-  activeChallenges: 0,
-  totalVotes: 0
-};
+    totalArtists: 0,
+    activeChallenges: 0,
+    totalVotes: 0
+  };
   private destroy$ = new Subject<void>();
+  isFollowingUser: { [key: string]: boolean } = {};
 
   constructor(
     private creationService: CreationService,
@@ -52,7 +54,9 @@ export class DiscoveryViewComponent implements OnInit {
     private toastController: ToastController,
     private alertController: ToastController,
     private router: Router
-  ) {  addIcons({ add, checkmark })}
+  ) {  
+    addIcons({peopleOutline,timeOutline,playCircle,heart,people,add,trophy,thumbsUp,star,checkmark});
+  }
 
   ngOnInit() {
     this.loadHeroStats();
@@ -112,67 +116,93 @@ loadHeroStats(): void {
 }
 
   loadTopArtists(): void {
-  this.isLoadingArtists = true;
-  this.cdr.markForCheck();
+    this.isLoadingArtists = true;
+    this.cdr.markForCheck();
 
-  this.profileService.getTopArtists()
-    .pipe(
-      takeUntil(this.destroy$),
-      map(artists => {
-        // Filtrer pour exclure le profil de l'utilisateur connecté
-        return artists.filter(artist => artist.id !== this.currentUserProfile?.id);
-      }),
-      finalize(() => {
-        this.isLoadingArtists = false;
-        this.cdr.markForCheck();
-      })
-    )
-    .subscribe({
-      next: (filteredArtists) => {
-        this.topArtists = filteredArtists;
-        // Initialiser l'état de suivi
-        filteredArtists.forEach(artist => {
-          if (artist.id && this.currentUserProfile?.myFollows?.includes(artist.id)) {
-            this.isFollowingUser[artist.id] = true;
+    this.profileService.getTopArtists()
+      .pipe(
+        takeUntil(this.destroy$),
+        map(artists => {
+          // Filtrer pour exclure le profil de l'utilisateur connecté
+          return artists.filter(artist => artist.id !== this.currentUserProfile?.id);
+        }),
+        finalize(() => {
+          this.isLoadingArtists = false;
+          this.cdr.markForCheck();
+        })
+      )
+      .subscribe({
+        next: (filteredArtists) => {
+          this.topArtists = filteredArtists;
+          // Initialiser l'état de suivi et charger le contenu pour chaque artiste
+          filteredArtists.forEach(artist => {
+            if (artist.id && this.currentUserProfile?.myFollows?.includes(artist.id)) {
+              this.isFollowingUser[artist.id] = true;
+            }
+            // Charger le premier contenu de l'artiste
+            if (artist.id) {
+              this.loadArtistFirstContent(artist.id);
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des artistes populaires:', error);
+        }
+      });
+  }
+
+  /**
+   * Charge le premier contenu d'un artiste
+   * @param artistId ID de l'artiste
+   */
+  loadArtistFirstContent(artistId: string): void {
+    this.creationService.getUserContents(artistId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (contents) => {
+          if (contents && contents.length > 0) {
+            // Stocke l'URL du premier contenu pour cet artiste
+            this.artistContents[artistId] = contents[0].fileUrl;
+            this.cdr.markForCheck();
           }
-        });
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des artistes populaires:', error);
-      }
-    });
-}
+        },
+        error: (error) => {
+          console.error(`Erreur lors du chargement du contenu pour l'artiste ${artistId}:`, error);
+        }
+      });
+  }
+
   loadTopCreators(): void {
-  this.isLoadingCreators = true;
-  this.cdr.markForCheck();
+    this.isLoadingCreators = true;
+    this.cdr.markForCheck();
 
-  this.profileService.getTopCreators()
-    .pipe(
-      takeUntil(this.destroy$),
-      map(creators => {
-        // Filtrer pour exclure le profil de l'utilisateur connecté
-        return creators.filter(creator => creator.id !== this.currentUserProfile?.id);
-      }),
-      finalize(() => {
-        this.isLoadingCreators = false;
-        this.cdr.markForCheck();
-      })
-    )
-    .subscribe({
-      next: (filteredCreators) => {
-        this.topCreators = filteredCreators;
-        // Initialiser l'état de suivi
-        filteredCreators.forEach(creator => {
-          if (creator.id && this.currentUserProfile?.myFollows?.includes(creator.id)) {
-            this.isFollowingUser[creator.id] = true;
-          }
-        });
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des créateurs populaires:', error);
-      }
-    });
-}
+    this.profileService.getTopCreators()
+      .pipe(
+        takeUntil(this.destroy$),
+        map(creators => {
+          // Filtrer pour exclure le profil de l'utilisateur connecté
+          return creators.filter(creator => creator.id !== this.currentUserProfile?.id);
+        }),
+        finalize(() => {
+          this.isLoadingCreators = false;
+          this.cdr.markForCheck();
+        })
+      )
+      .subscribe({
+        next: (filteredCreators) => {
+          this.topCreators = filteredCreators;
+          // Initialiser l'état de suivi
+          filteredCreators.forEach(creator => {
+            if (creator.id && this.currentUserProfile?.myFollows?.includes(creator.id)) {
+              this.isFollowingUser[creator.id] = true;
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des créateurs populaires:', error);
+        }
+      });
+  }
 
 // Dans votre composant
 loadTopFans(): void {
@@ -250,7 +280,16 @@ loadTopFans(): void {
       // Optionnel : ajouter une classe pour styliser différemment l'avatar par défaut si besoin
       imgElement.classList.add('is-default');
     }
-
+ onImageContentError(event: any) {
+    // On récupère l'élément HTML <img> qui a déclenché l'erreur
+    const imgElement = event.target as HTMLImageElement;
+   imgElement.onerror = null;
+    // On remplace la source par l'image locale
+    imgElement.src = 'assets/splash.png';
+    // Optionnel : ajouter une classe pour styliser différemment l'avatar par défaut si besoin
+    imgElement.classList.add('is-default');
+  }
+  
   getMediaUrl(relativePath: string): string {
     return getMediaUrl(relativePath);
   }
@@ -264,7 +303,6 @@ loadTopFans(): void {
   }
 
   //Follow and unfollow 
-  isFollowingUser: { [key: string]: boolean } = {};
 
 async subscribeTo(profileId: string) {
   if (!this.currentUserProfile?.id) return;

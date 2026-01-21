@@ -65,7 +65,7 @@ loginWithEmail(): void {
   this.loadingController.create({
     message: 'Connexion en cours...',
     spinner: 'crescent',
-    
+    duration: 6000
   }).then(loading => {
     loading.present();
      this.auth.login(this.email, this.password).subscribe({

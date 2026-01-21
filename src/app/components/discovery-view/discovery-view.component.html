@@ -41,7 +41,7 @@
     <!-- Carte du challenge populaire -->
     <ng-container *ngIf="!isLoadingPopularChallenge && mostPopularChallenge">
       <div class="challenge-card" 
-           [style.background-image]="mostPopularChallenge.cover_image_url ? 'url(' + getMediaUrl(mostPopularChallenge.cover_image_url) + ')' : 'none'">
+           [style.background-image]="mostPopularChallenge.cover_image_url ? 'url(' + getMediaUrl(mostPopularChallenge.cover_image_url) || 'assets/splash.png' + ')' : 'none'">
         <div class="challenge-overlay"></div>
         <div class="challenge-content">
           <div class="challenge-badge">ACTIF</div>
@@ -113,7 +113,7 @@
       <!-- Talent 1 -->
       <div class="talent-slide-card" *ngFor="let talent of topArtists" >
         <div class="talent-slide-media">
-          <img src="assets/sample-thumbnail-1.jpg" class="talent-slide-thumbnail" alt="Performance">
+          <img [src]="artistContents[talent.id] || 'assets/sample-thumbnail-1.jpg'" (error)="onImageContentError($event)" class="talent-slide-thumbnail" alt="Performance">
           <div class="play-overlay">
             <ion-icon name="play-circle"></ion-icon>
           </div>
@@ -122,11 +122,11 @@
           <div class="talent-header">
             <img [src]="getMediaUrl(talent.avatar)" class="talent-avatar" alt="Avatar">
             <div class="talent-name-wrapper">
-              <h4 class="talent-slide-name">{{talent.username}}</h4>
+              <h4 class="talent-slide-name">{{talent.displayName}}</h4>
               <span class="talent-slide-category">🎤 Rap/Hip-Hop</span>
             </div>
           </div>
-          <p class="talent-slide-description">{{talent.bio}}</p>
+          <p class="talent-slide-description">{{talent.bio || "En savoir plus sur son profil"}}</p>
           <div class="talent-slide-stats">
             <span class="stat">
               <ion-icon name="heart"></ion-icon>
