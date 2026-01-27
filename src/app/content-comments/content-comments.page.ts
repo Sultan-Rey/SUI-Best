@@ -12,9 +12,9 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { CommentService } from '../../services/COMMENTS_SERVICE/comment-service';
-import { Comment } from '../../models/Comment';
-import { UserProfile } from '../../models/User';
+import { CommentService } from '../../services/COMMENTS_SERVICE/comment-service.js';
+import { Comment } from '../../models/Comment.js';
+import { UserProfile } from '../../models/User.js';
 
 
 @Component({

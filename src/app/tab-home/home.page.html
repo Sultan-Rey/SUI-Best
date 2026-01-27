@@ -22,12 +22,19 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-   <!-- Vue Découverte pour Cold Start -->
-  <app-discovery-view [currentUserProfile]="currentUserProfile" *ngIf="currentUserProfile.myFollows.length <=1"></app-discovery-view>
-
+   <!-- Vue Découverte avec animation -->
+   <div [class.hidden]="!showDiscoveryView" 
+       [class.fade-out]="isTransitioning && !showDiscoveryView">
+    <app-discovery-view 
+      [currentUserProfile]="currentUserProfile" 
+      *ngIf="showDiscoveryView">
+    </app-discovery-view>
+  </div>
 
   <!-- Vue Posts normale (utilisateurs avec abonnements) -->
-  <div class="posts-container" *ngIf="currentUserProfile.myFollows.length >=2">
+    <div [class.hidden]="showDiscoveryView" 
+       [class.fade-in]="!showDiscoveryView && !isTransitioning"
+       class="posts-container">
     <div 
       class="post" 
       *ngFor="let post of posts | filter: filterPublic; trackBy: trackByPostId" 
@@ -47,7 +54,7 @@
                 <h4 class="profile-name">{{ post.username || 'Utilisateur' }}</h4>
                 <ion-button 
                   (click)="subscribeTo(post.userId)" 
-                  *ngIf="currentUserProfile.id !== post.userId && !isFollowingUser[post.userId]" 
+                  *ngIf="currentUserProfile.id !== post.userId && isFollowingUser[post.userId]" 
                   fill="clear" 
                   size="small" 
                   class="subscribe-btn">
@@ -63,24 +70,35 @@
               
               <p class="artist-location">{{ post.description | slice:0:60 }}...</p>
               
-              <div *ngIf="post.challengeId" class="challenge-title" [class.loading]="currentChallenge[post.challengeId] === undefined">
-                <span *ngIf="hasActiveChallenge(post)">🎯 {{ currentChallenge[post.challengeId]?.name }}</span>
-                <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement du défi...</span>
-              </div>
+             
             </div>
           </div>
           
-          <ion-button 
-            *ngIf="post.challengeId"
-            class="vote-button" 
-            [class.loading]="currentChallenge[post.challengeId] === undefined"
-            [disabled]="!hasActiveChallenge(post)"
-            (click)="hasActiveChallenge(post) && voteForArtist(post)">
-            <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement...</span>
-            <span *ngIf="currentChallenge[post.challengeId] !== undefined">
-              {{ hasActiveChallenge(post) ? (currentChallenge[post.challengeId]?.call_to_action || 'Participer') : 'Défi terminé' }}
-            </span>
-          </ion-button>
+         <!-- Remplacez les lignes existantes par ceci -->
+<div class="challenge-row" *ngIf="post.challengeId">
+  <div class="challenge-title" [class.loading]="currentChallenge[post.challengeId] === undefined">
+  <span 
+    *ngIf="hasActiveChallenge(post)" 
+    [class.long-text]="(currentChallenge[post.challengeId]?.name?.length || 0) > 15">
+    <ion-icon name="trophy" color="warning">  </ion-icon> {{ currentChallenge[post.challengeId]?.name }}
+  </span>
+  <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement du défi...</span>
+</div>
+  
+  <div class="separator"></div>
+  
+  <ion-button 
+    class="vote-button" 
+    [class.loading]="currentChallenge[post.challengeId] === undefined"
+    [disabled]="!hasActiveChallenge(post)"
+    (click)="hasActiveChallenge(post) && voteForArtist(post)">
+    <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement...</span>
+    <span *ngIf="currentChallenge[post.challengeId] !== undefined">
+      {{ hasActiveChallenge(post) ? (currentChallenge[post.challengeId]?.call_to_action || 'Participer') : 'Défi terminé' }}
+    </span>
+  </ion-button>
+  
+</div>
         </div>
 
         <div class="side-actions">

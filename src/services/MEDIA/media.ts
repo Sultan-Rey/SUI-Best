@@ -1,5 +1,5 @@
 // media.service.ts
-import { Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -8,7 +8,7 @@ import { map } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class MediaService {
-  constructor(private apiJSON: ApiJSON) {}
+  constructor(@Inject('ApiJSON') private apiJSON: ApiJSON) {}
 
   getImageURL(path: string): Observable<string> {
     if (!path) {

@@ -41,53 +41,36 @@
       </div>
     </div>
 
-    <!-- Top 6 Section -->
-    <div class="top-section">
-      <h2 class="section-title">Top 6</h2>
-      
-      <div class="top-artists-scroll">
-        <div class="artist-card" *ngFor="let artist of topArtists">
-          <div class="rank-badge">
-            <ion-icon name="trophy"></ion-icon>
-            <span>{{ artist.rank }}</span>
-          </div>
-          <div class="artist-image" [style.background-image]="'url(' + artist.imageUrl + ')'">
-            <div class="image-overlay"></div>
-          </div>
-          <div class="artist-info">
-            <h3 class="artist-name">{{ artist.name }}</h3>
-            <p class="artist-category">{{ artist.category }}</p>
-            <p class="artist-votes">{{ formatVotes(artist.votes) }} votes</p>
-          </div>
-        </div>
-      </div>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <ion-spinner name="crescent" color="warning"></ion-spinner>
+      <p>Chargement des classements...</p>
     </div>
 
-    <!-- All Artists Section -->
-    <div class="all-artists-section">
-      <h2 class="section-title">Tous les artistes</h2>
-      
-      <div class="artists-grid">
-        <ion-card 
-          class="artist-grid-card" 
-          *ngFor="let artist of allArtists"
-          button="true">
-          <div class="rank-corner" *ngIf="artist.rank">
-            <span>{{ artist.rank }}</span>
-          </div>
-          <ion-icon 
-            [name]="artist.isFavorite ? 'star' : 'star-outline'" 
-            class="favorite-icon"
-            [class.active]="artist.isFavorite"
-            (click)="toggleFavorite(artist); $event.stopPropagation()">
-          </ion-icon>
-          <div class="card-image" [style.background-image]="'url(' + artist.imageUrl + ')'"></div>
-          <ion-card-content>
-            <h3>{{ artist.name }}</h3>
-            <p>{{ artist.category }}</p>
-          </ion-card-content>
-        </ion-card>
-      </div>
-    </div>
+    <!-- ============================================ -->
+    <!-- SECTION VOTES (affichée uniquement si votes) -->
+    <!-- ============================================ -->
+    <ng-container *ngIf="!isLoading && selectedTab === 'votes'">
+      <app-votes-ranking 
+        [isLoading]="isLoading"
+        [challengeRankings]="challengeRankings"
+        [topArtists]="topArtists"
+        (viewChallenge)="onViewChallenge($event)">
+      </app-votes-ranking>
+    </ng-container>
+
+    <!-- ============================================ -->
+    <!-- SECTION DONS (affichée uniquement si dons)  -->
+    <!-- ============================================ -->
+    <ng-container *ngIf="!isLoading && selectedTab === 'dons'">
+      <app-donations-ranking 
+        [isLoading]="isLoading"
+        [topDonors]="topDonors"
+        [donorTiers]="donorTiers"
+        (viewDonor)="onViewDonor($event)">
+      </app-donations-ranking>
+    </ng-container>
   </div>
+  
+ 
 </ion-content>

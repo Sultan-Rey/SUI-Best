@@ -892,3 +892,65 @@
     transform: translateY(-50%) translateX(5px);
   }
 }
+
+.custom-alert {
+  --backdrop-opacity: 0.5;
+  --background: var(--ion-color-light);
+  --color: var(--ion-color-dark);
+  --border-radius: 16px;
+  --max-width: 90%;
+  --width: 100%;
+
+  .alert-wrapper {
+    border-radius: 16px;
+    max-width: 90%;
+    width: 100%;
+  }
+
+  .alert-head {
+    text-align: center;
+    padding: 16px;
+    
+    .alert-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+    }
+  }
+
+  .alert-message {
+    text-align: center;
+    font-size: 1rem;
+    color: var(--ion-color-medium);
+    padding: 0 16px 16px;
+  }
+
+  .alert-button-group {
+    padding: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    border-top: 1px solid var(--ion-color-light-shade);
+  }
+
+  .alert-button {
+    margin: 0;
+    flex: 1;
+    --background: transparent;
+    --color: var(--ion-color-primary);
+    --background-activated: var(--ion-color-light-shade);
+    --background-hover: var(--ion-color-light-shade);
+    --border-radius: 0;
+    height: 48px;
+    font-weight: 500;
+
+    &.alert-cancel {
+      --color: var(--ion-color-medium);
+      border-right: 1px solid var(--ion-color-light-shade);
+    }
+
+    &.alert-confirm {
+      --color: var(--ion-color-primary);
+      font-weight: 600;
+    }
+  }
+}

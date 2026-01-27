@@ -1,17 +1,18 @@
 import { Component, OnDestroy } from '@angular/core';
 import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
-import { CameraService } from '../../services/CAMERA_SERVICE/camera-service';
-import { CreationService } from '../../services/CREATION/creation-service';
-import { Content, ContentSource, ContentType } from '../../models/Content';
+import { CameraService } from '../../services/CAMERA_SERVICE/camera-service.js';
+import { CreationService } from '../../services/CREATION/creation-service.js';
+import { Content, ContentSource, ContentType } from '../../models/Content.js';
 import { IonButton,  IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonProgressBar, IonList, IonToolbar, IonTitle, IonRadioGroup, IonButtons, IonListHeader, IonRadio } from "@ionic/angular/standalone";
 import { NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import { camera, arrowBack, closeCircle, close, image, images, globe, lockClosed, download } from 'ionicons/icons';
-import { Challenge } from 'src/models/Challenge';
-import { Auth } from 'src/services/AUTH/auth';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { Challenge } from '../../models/Challenge.js';
+import { Auth } from '../../services/AUTH/auth.js';
+import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service.js';
 import { Router } from '@angular/router';
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
 
 @Component({
   selector: 'app-upload',
@@ -60,6 +61,7 @@ export class UploadPage implements OnDestroy {
   constructor(
     private cameraService: CameraService,
     private creationService: CreationService,
+    private challengeService: ChallengeService,
     private authService: Auth,
     private profileService: ProfileService,
     private loadingCtrl: LoadingController,
@@ -73,7 +75,7 @@ export class UploadPage implements OnDestroy {
   async loadChallenges() {
   try {
     // Supprimez le await inutile car on utilise subscribe
-    this.creationService.getChallengesByCreator(
+    this.challengeService.getChallengesByCreator(
       this.authService.getCurrentUser()?.id as string || ''
     ).subscribe({
       next: (challenges: Challenge[]) => {
@@ -197,7 +199,7 @@ removeMedia(event: Event) {
     message: 'Publication en cours...'
   });
   await loading.present();
-
+ 
   try {
     // Création du contenu
     const newContent = await this.creationService.createContentWithFile(

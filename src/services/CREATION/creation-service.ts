@@ -9,7 +9,6 @@ import { Challenge } from '../../models/Challenge';
 })
 export class CreationService {
   private readonly contentResource = 'contents';
-  private readonly challengeResource = 'challenges';
   private readonly uploadResource = 'api/upload'
   private newContentSubject = new BehaviorSubject<Content | null>(null);
 newContent$ = this.newContentSubject.asObservable();
@@ -36,6 +35,9 @@ createContentWithFile(
   },
   progressCallback?: (progress: number) => void
 ): Observable<Content> {
+
+ 
+ 
   return this.api.upload<{ file: { path: string } }>(
     this.uploadResource, 
     file, 
@@ -63,6 +65,7 @@ createContentWithFile(
     mimeType: file.type,
     fileSize: file.size,
     status: ContentStatus.PUBLISHED,
+    challengeId: metadata.challengeId || '',
     viewCount: 0,
     likeCount: 0,
     commentCount: 0,
@@ -144,9 +147,30 @@ getFeedContents(page: number = 1, limit: number = 10): Observable<Content[]> {
   );
 }
 
-  // Dans creation-service.ts
-
-// ...
+  /**
+ * Récupère tous les contenus associés à un défi spécifique
+ * @param challengeId L'identifiant du défi
+ * @returns Un observable de tableau de contenus
+ */
+getContentsByChallenge(challengeId: string): Observable<Content[]> {
+  return this.api.getAll<Content>(this.contentResource).pipe(
+    map((contents: Content[]) => {
+      // Filtrer les contenus par challengeId
+      const filteredContents = contents.filter(content => 
+        content.challengeId === challengeId
+      );
+      
+      // Trier par date de création décroissante
+      return filteredContents.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }),
+    catchError(error => {
+      console.error(`Erreur lors de la récupération des contenus pour le défi ${challengeId}:`, error);
+      return of([]); // Retourne un tableau vide en cas d'erreur
+    })
+  );
+}
 
   /**
    * Ajoute un like à un contenu
@@ -220,140 +244,6 @@ getFeedContents(page: number = 1, limit: number = 10): Observable<Content[]> {
       })
     );
   }
-  // =====================
-  // MÉTHODES POUR LES DÉFIS
-  // =====================
-
-  createChallenge(challengeData: Omit<Challenge, 'id' | 'created_at' | 'is_active'>): Observable<Challenge> {
-    const challenge = {
-      ...challengeData,
-      created_at: new Date(Date.now()),
-      is_active: true
-    };
-    return this.api.create<Challenge>(this.challengeResource, challenge);
-  }
-
-createChallengeWithCoverImage(
-  coverImage: File,
-  challengeData: Omit<Challenge, 'id' | 'created_at' | 'is_active' | 'cover_image_url'>,
-  progressCallback?: (progress: number) => void
-): Observable<Challenge> {
-  return new Observable(observer => {
-    this.api.upload<{ file: { path: string } }>(
-      this.uploadResource,
-      coverImage,  // Envoyer directement le fichier
-      'file',      // Nom du champ pour le fichier
-      !!progressCallback
-    ).subscribe({
-      next: (event: any) => {
-        if (event.type === 1 && event.loaded && event.total && progressCallback) {
-          const progress = Math.round((100 * event.loaded) / event.total);
-          progressCallback(progress);
-        } else if (event.type === 4) {
-          // Gestion de la réponse
-          let coverImageUrl: string;
-          
-          if (typeof event.body === 'string') {
-            coverImageUrl = event.body;
-          } else if (event.body?.file?.path) {
-            coverImageUrl = event.body.file.path;
-          } else if (event.body?.path) {
-            coverImageUrl = event.body.path;
-          } else {
-            observer.error(new Error('Format de réponse inattendu'));
-            return;
-          }
-
-          // Créer le challenge avec l'URL de l'image
-          const challengeWithImage = {
-            ...challengeData,
-            cover_image_url: coverImageUrl
-          };
-
-          this.api.create<Challenge>(this.challengeResource, challengeWithImage)
-            .subscribe({
-              next: (challenge) => observer.next(challenge),
-              error: (err) => observer.error(err)
-            });
-        }
-      },
-      error: (err) => observer.error(err)
-    });
-  });
-}
-  /**
- * Récupère la liste des défis actifs
- * @returns Observable<Challenge[]> Liste des défis actifs
- */
-getActiveChallenges(): Observable<Challenge[]> {
-  return this.api.getAll<Challenge>(this.challengeResource, {
-    is_active: 'true',
-    _sort: 'created_at',
-    _order: 'desc'
-  });
-}
-
-  // =====================
-  // MÉTHODES UTILITAIRES
-  // =====================
-
-  /**
- * Désactive un défi
- * @param id ID du défi à désactiver
- * @returns Observable<Challenge> Le défi mis à jour
- */
-updateChallenge(id: string, updates: Partial<Challenge>): Observable<Challenge> {
-  return this.api.update<Challenge>(this.challengeResource, id, updates);
-}
-
-  /**
-   * Récupère un défi par son ID
-   * @param id ID du défi à récupérer
-   * @returns Observable<Challenge> Le défi correspondant à l'ID
-   */
-  getChallengeById(id: string): Observable<Challenge> {
-    return this.api.getById<Challenge>(this.challengeResource, id);
-  }
-
-  /**
-   * Récupère tous les défis créés par un utilisateur spécifique
-   * @param creatorId ID du créateur des défis
-   * @returns Observable<Challenge[]> Liste des défis créés par l'utilisateur
-   */
-  getChallengesByCreator(creatorId: string): Observable<Challenge[]> {
-    return this.api.getAll<Challenge>(this.challengeResource, {
-      creator_id: creatorId,
-      _sort: 'created_at',
-      _order: 'desc'
-    });
-  }
-
-  /**
-   * Récupère le challenge actif avec le plus grand nombre de participants
-   * @returns Observable<Challenge | null> Le challenge actif le plus populaire ou null si aucun challenge actif
-   */
-  getMostPopularActiveChallenge(): Observable<Challenge | null> {
-    return this.getActiveChallenges().pipe(
-      map(challenges => {
-        if (!challenges || challenges.length === 0) {
-          return null;
-        }
-        
-        // Trier les challenges par participants_count décroissant
-        const sortedChallenges = [...challenges].sort((a, b) => {
-          const aCount = a.participants_count || 0;
-          const bCount = b.participants_count || 0;
-          return bCount - aCount;
-        });
-
-        // Retourner le premier élément (celui avec le plus de participants)
-        return sortedChallenges[0];
-      }),
-      catchError(error => {
-        console.error('Erreur lors de la récupération du challenge le plus populaire:', error);
-        return of(null);
-      })
-    );
-  }
+ 
 
 }

@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { NgFor, NgIf,  SlicePipe, DatePipe } from '@angular/common';
-import { FilterPipe } from '../utils/pipes/filter-pipe';
-import { ToastController } from '@ionic/angular';
+import { FilterPipe } from '../utils/pipes/filter-pipe.js';
+import { ToastController, ModalController } from '@ionic/angular';
 import { 
   IonHeader, 
   IonToolbar, 
@@ -25,17 +25,19 @@ import {
   chatbubbleEllipsesOutline, 
   starOutline, 
   shareOutline, chevronUp, chevronDown, trophyOutline, peopleOutline, timeOutline, playCircle, add } from 'ionicons/icons';
-import { Content } from 'src/models/Content';
-import { CreationService } from 'src/services/CREATION/creation-service';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
-import { getMediaUrl} from 'src/app/utils/media.utils';
-import { Challenge } from 'src/models/Challenge';
-import { Auth } from 'src/services/AUTH/auth';
-import { UserProfile } from 'src/models/User';
+import { Content } from 'src/models/Content.js';
+import { CreationService } from 'src/services/CREATION/creation-service.js';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { getMediaUrl} from 'src/app/utils/media.utils.js';
+import { Challenge } from 'src/models/Challenge.js';
+import { Auth } from 'src/services/AUTH/auth.js';
+import { UserProfile } from 'src/models/User.js';
 import { Router } from '@angular/router';
-import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service';
+import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service.js';
 import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize } from 'rxjs';
-import { DiscoveryViewComponent } from "../components/discovery-view/discovery-view.component";
+import { DiscoveryViewComponent } from "../components/discovery-view/discovery-view.component.js";
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
+import { CouponModalComponent } from '../components/coupon-modal/coupon-modal.component.js';
 
 
 @Component({
@@ -43,6 +45,7 @@ import { DiscoveryViewComponent } from "../components/discovery-view/discovery-v
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
+  providers: [ModalController],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DiscoveryViewComponent, DatePipe, IonRefresherContent, IonRefresher, FilterPipe, IonInfiniteScrollContent,
     IonInfiniteScroll, NgFor, NgIf, SlicePipe, IonHeader, IonToolbar, IonIcon, IonButton, IonContent, DiscoveryViewComponent]
@@ -53,7 +56,9 @@ export class HomePage implements OnInit {
   private destroy$ = new Subject<void>();
   needsRefresh = false;
   posts: Content[] = [];
- 
+ showDiscoveryView: boolean = true;
+isTransitioning: boolean = false;
+
   currentIndex = 0;
   currentPage = 1;
   isLoading = false;
@@ -75,8 +80,10 @@ export class HomePage implements OnInit {
   
   constructor(private cdr: ChangeDetectorRef, 
     private toastController:ToastController, 
+    private modalController: ModalController,
     private router: Router, 
     private creationService: CreationService, 
+    private challengeService: ChallengeService,
     private commentService: CommentService,
     private ProfileService: ProfileService, 
     private authService: Auth)
@@ -146,6 +153,7 @@ private setupAuthSubscription(): void {
       this.ProfileService.getProfileById(user.id.toString()).pipe(
         tap(profile => {
           this.currentUserProfile = profile;
+          this.updateViewState(profile.myFollows.length);
           this.cdr.markForCheck();
         })
       )
@@ -162,6 +170,7 @@ private setupNewContentSubscription(): void {
       const exists = this.posts.some(p => p.id === newContent.id);
       if (!exists) {
         this.posts = [newContent, ...this.posts];
+        console.log(this.posts[0].challengeId);
         this.loadAvatarForPost(newContent);
         this.cdr.markForCheck();
       }
@@ -189,6 +198,7 @@ private loadInitialFeed(): Observable<void> {
     })
   );
 }
+
 
 private async processNewPosts(newPosts: Content[]): Promise<void> {
   // Créer une copie des posts avec les propriétés supplémentaires
@@ -257,6 +267,22 @@ private loadAvatarForPost(post: Content): void {
   }
 }
 
+
+private updateViewState(followsCount: number) {
+  const shouldShowDiscovery = followsCount <= 1;
+  
+  // Si l'état change, on déclenche la transition
+  if (this.showDiscoveryView !== shouldShowDiscovery) {
+    this.isTransitioning = true;
+    
+    // Petite pause pour laisser le temps à l'animation de se terminer
+    setTimeout(() => {
+      this.showDiscoveryView = shouldShowDiscovery;
+      this.isTransitioning = false;
+      this.cdr.detectChanges();
+    }, 300); // Durée de la transition en ms
+  }
+}
 
   
   handleAction(action: any) { action.action(); }
@@ -342,7 +368,7 @@ private getCurrentChallenge(post: Content): void {
   // Marquer le chargement en cours
   this.currentChallenge[post.challengeId] = null;
 
-  this.creationService.getChallengeById(post.challengeId).pipe(
+  this.challengeService.getChallengeById(post.challengeId).pipe(
     takeUntil(this.destroy$)
   ).subscribe({
     next: (challenge) => {
@@ -560,7 +586,51 @@ private async copyToClipboard(text: string): Promise<void> {
   }
 }
 
-  voteForArtist(post: Content) { console.log('Vote pour user:', post.userId); }
+async voteForArtist(post: any) {
+    const modal = await this.modalController.create({
+  component: CouponModalComponent,
+  cssClass: 'vote-modal',
+  breakpoints: [0, 0.7, 0.85], // Points d'arrêt réajustés
+  initialBreakpoint: 0.85, // Plus grand par défaut
+  backdropDismiss: true,
+  componentProps: {
+    artistName: post.username || 'Utilisateur',
+    artistAvatar: this.userAvatars[post.userId] || 'assets/avatar-default.png',
+    challengeName: this.currentChallenge[post.challengeId]?.name || 'Challenge',
+    postId: post.id,
+    usageRule: this.currentChallenge[post.challengeId]?.vote_rule 
+  }
+});
+
+    await modal.present();
+
+    // Gérer le résultat du vote
+    const { data } = await modal.onWillDismiss();
+    
+    if (data && data.voted) {
+      console.log('Vote confirmé:', data);
+      // Ici vous pouvez:
+      // 1. Envoyer le vote à votre backend
+      // 2. Mettre à jour l'UI (compteur de votes, etc.)
+      // 3. Afficher un toast de confirmation
+      // 4. Retirer le coupon utilisé de la liste
+      
+      // Exemple de toast:
+      // await this.showVoteConfirmationToast(data.voteValue);
+    }
+  }
+
+  // Méthode optionnelle pour afficher un toast de confirmation
+  async showVoteConfirmationToast(voteValue: number) {
+    const toast = await this.toastController.create({
+      message: `✅ Votre vote de ${voteValue} point${voteValue > 1 ? 's' : ''} a été comptabilisé !`,
+      duration: 3000,
+      position: 'bottom',
+      color: 'success',
+      cssClass: 'custom-toast'
+    });
+    await toast.present();
+  }
 
 
 isFollowingUser: { [key: string]: boolean } = {};

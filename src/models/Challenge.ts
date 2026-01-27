@@ -1,3 +1,5 @@
+import { Artist } from 'src/models/User';
+
 export interface Challenge {
   id: string;
   name: string;
@@ -22,4 +24,12 @@ export enum VoteRule {
   ONE_VOTE_PER_USER = 'one_vote_per_user',
   UNLIMITED_VOTES = 'unlimited_votes',
   // Ajoutez d'autres règles au besoin
+}
+
+
+
+export interface ChallengeRanking {
+  challengeId: string;
+  challengeName: string;
+  artists: Artist[];
 }

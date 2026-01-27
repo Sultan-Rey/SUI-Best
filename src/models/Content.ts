@@ -19,7 +19,7 @@ export interface Content {
   // Identifiants
   id?: string;                // ID unique généré par la base de données
   userId: string;             // ID de l'utilisateur créateur
-  challengeId?: string;       // Optionnel : ID du défi associé
+  challengeId: string;       // Optionnel : ID du défi associé
   commentIds: string[];      // IDs des commentaires associés à ce contenu
   likedIds?:string[];
   // Métadonnées du contenu
@@ -51,6 +51,7 @@ export interface Content {
   // Statistiques
   viewCount: number;          // Nombre de vues
   likeCount: number;          // Nombre de likes
+  voteCount?: number          // Nombre de votes
   commentCount: number;       // Nombre de commentaires
   downloadCount: number;      // Nombre de téléchargements
 }

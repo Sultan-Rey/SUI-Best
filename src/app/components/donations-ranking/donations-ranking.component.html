@@ -1,0 +1,129 @@
+<!-- Hero Section - Podium -->
+<div class="podium-section">
+  <div class="podium-title-wrapper">
+    <h2 class="podium-title">🏆 Podium des Généreux</h2>
+    <p class="podium-subtitle">Les champions de la générosité</p>
+  </div>
+  
+  <div class="podium-container">
+    <!-- 2ème place -->
+    <div class="podium-place second" *ngIf="topDonors[1]">
+      <div class="podium-rank-badge silver">2</div>
+      <div class="donor-avatar-wrapper">
+        <div class="tier-ring" [style.border-color]="getTierColor(topDonors[1].tier)">
+          <img [src]="topDonors[1].imageUrl" class="donor-avatar" (error)="onImageError($event)" />
+        </div>
+        <div class="level-badge">Nv.{{topDonors[1].level}}</div>
+      </div>
+      <h3 class="donor-name">{{topDonors[1].name}}</h3>
+      <p class="donor-amount">{{formatDonation(topDonors[1].totalDonations)}}</p>
+      <div class="donor-badge">{{topDonors[1].badge}}</div>
+    </div>
+
+    <!-- 1ère place -->
+    <div class="podium-place first" *ngIf="topDonors[0]">
+      <div class="crown-icon">👑</div>
+      <div class="podium-rank-badge gold">1</div>
+      <div class="donor-avatar-wrapper">
+        <div class="tier-ring legendary" [style.border-color]="getTierColor(topDonors[0].tier)">
+          <img [src]="topDonors[0].imageUrl" class="donor-avatar" (error)="onImageError($event)" />
+        </div>
+        <div class="level-badge legendary">Nv.{{topDonors[0].level}}</div>
+      </div>
+      <h3 class="donor-name">{{topDonors[0].name}}</h3>
+      <p class="donor-amount highlight">{{formatDonation(topDonors[0].totalDonations)}}</p>
+      <div class="donor-badge legendary">{{topDonors[0].badge}}</div>
+    </div>
+
+    <!-- 3ème place -->
+    <div class="podium-place third" *ngIf="topDonors[2]">
+      <div class="podium-rank-badge bronze">3</div>
+      <div class="donor-avatar-wrapper">
+        <div class="tier-ring" [style.border-color]="getTierColor(topDonors[2].tier)">
+          <img [src]="topDonors[2].imageUrl" class="donor-avatar" (error)="onImageError($event)" />
+        </div>
+        <div class="level-badge">Nv.{{topDonors[2].level}}</div>
+      </div>
+      <h3 class="donor-name">{{topDonors[2].name}}</h3>
+      <p class="donor-amount">{{formatDonation(topDonors[2].totalDonations)}}</p>
+      <div class="donor-badge">{{topDonors[2].badge}}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tiers / Paliers -->
+<div class="tiers-section">
+  <h2 class="section-title">🎖️ Paliers de Récompenses</h2>
+  <div class="tiers-scroll">
+    <div class="tier-card" *ngFor="let tier of donorTiers">
+      <div class="tier-icon" [style.background]="'linear-gradient(135deg, ' + tier.color + ', ' + tier.color + '99)'">
+        <ion-icon [name]="tier.icon"></ion-icon>
+      </div>
+      <h3 class="tier-name" [style.color]="tier.color">{{tier.name}}</h3>
+      <p class="tier-amount">À partir de {{formatDonation(tier.minAmount)}}</p>
+      <div class="tier-benefits">
+        <div class="benefit-item" *ngFor="let benefit of tier.benefits">
+          <ion-icon name="checkmark-circle" [style.color]="tier.color"></ion-icon>
+          <span>{{benefit}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Classement complet -->
+<div class="full-ranking-section">
+  <div class="section-header">
+    <h2 class="section-title">📊 Classement Complet</h2>
+  </div>
+
+  <div class="ranking-list">
+    <div class="ranking-item" *ngFor="let donor of topDonors; let i = index" (click)="onDonorClick(donor.id)">
+      <div class="rank-number" [class.top-3]="i < 3">
+        <span *ngIf="i === 0">🥇</span>
+        <span *ngIf="i === 1">🥈</span>
+        <span *ngIf="i === 2">🥉</span>
+        <span *ngIf="i > 2">{{i + 1}}</span>
+      </div>
+      <div class="donor-info">
+        <div class="donor-avatar-wrapper">
+          <div class="tier-ring" [style.border-color]="getTierColor(donor.tier)">
+            <img [src]="donor.imageUrl" class="donor-avatar" (error)="onImageError($event)" />
+          </div>
+          <div class="level-badge" [class.legendary]="donor.tier === 'legendary'"
+                               [class.epic]="donor.tier === 'epic'"
+                               [class.rare]="donor.tier === 'rare'">
+            Nv.{{donor.level}}
+          </div>
+        </div>
+        <div class="donor-details">
+          <h3 class="donor-name">{{donor.name}}</h3>
+          <div class="donor-stats">
+            <span class="donation-amount">{{formatDonation(donor.totalDonations)}}</span>
+            <span class="donation-count">{{donor.donationCount}} dons</span>
+          </div>
+        </div>
+      </div>
+      <div class="donor-badge" [class.legendary]="donor.tier === 'legendary'"
+                           [class.epic]="donor.tier === 'epic'"
+                           [class.rare]="donor.tier === 'rare'">
+        {{donor.badge}}
+      </div>
+    </div>
+  </div>
+</div>
+
+ <!-- Call to Action -->
+  <div class="cta-section">
+    <div class="cta-card">
+      <div class="cta-icon">🎁</div>
+      <h3 class="cta-title">Rejoignez nos Généreux Donateurs</h3>
+      <p class="cta-description">
+        Soutenez vos artistes préférés et gagnez des récompenses exclusives !
+      </p>
+      <ion-button expand="block" color="warning" class="cta-button">
+        <ion-icon name="heart" slot="start"></ion-icon>
+        Faire un Don
+      </ion-button>
+    </div>
+  </div>

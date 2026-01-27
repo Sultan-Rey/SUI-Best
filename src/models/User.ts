@@ -53,10 +53,21 @@ export interface UserProfile {
   memberSince: string;
   userType: 'fan' | 'artist' | 'creator' | 'admin';
   myFollows: string[];
+  myCoupons: string[];
   stats: {
     posts: number;
     fans: number;
     votes: number;
     stars: number;
   };
+}
+
+export interface Artist {
+  id: string;
+  name: string;
+  category: string;
+  votes: number;
+  imageUrl: string;
+  rank?: number;
+  isFavorite?: boolean;
 }

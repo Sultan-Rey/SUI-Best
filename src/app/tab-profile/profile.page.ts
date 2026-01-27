@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { NgIf, CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
-import { ChallengeFormComponent } from '../components/challenge-form/challenge-form.component';
+import { ChallengeFormComponent } from '../components/challenge-form/challenge-form.component.js';
 import { addIcons } from 'ionicons';
 
 import { 
@@ -40,15 +40,16 @@ import {
   IonFabButton, IonSpinner, IonTitle }  from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, ToastController } from '@ionic/angular';
-import { UserProfile } from 'src/models/User';
+import { UserProfile } from 'src/models/User.js';
 import { Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
-import { Challenge } from 'src/models/Challenge';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
-import { Auth } from 'src/services/AUTH/auth';
-import { CreationService } from 'src/services/CREATION/creation-service';
-import { UserService } from 'src/services/USER_SERVICE/user-service';
-import { Content } from 'src/models/Content';
-import { getMediaUrl } from '../utils/media.utils';
+import { Challenge } from 'src/models/Challenge.js';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { Auth } from 'src/services/AUTH/auth.js';
+import { CreationService } from 'src/services/CREATION/creation-service.js';
+import { UserService } from 'src/services/USER_SERVICE/user-service.js';
+import { Content } from 'src/models/Content.js';
+import { getMediaUrl } from '../utils/media.utils.js';
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
 
 
 interface Post {
@@ -97,6 +98,7 @@ export class ProfilePage implements OnInit {
     private profileService : ProfileService,
     private authservice: Auth,
     private creationService: CreationService,
+    private challengeService: ChallengeService,
     private alertController: AlertController,
     private toastController: ToastController,
     private actionSheetController: ActionSheetController,
@@ -237,7 +239,7 @@ getMediaUrl(relativePath: string): string {
 
 
   loadActiveChallenges(UerId: string){
-    this.activeChallenges$ = this.creationService.getChallengesByCreator(UerId);
+    this.activeChallenges$ = this.challengeService.getChallengesByCreator(UerId);
     this.activeChallenges$.subscribe((challenges: Challenge[]) => {
       this.activeChallengesCount = challenges.length;
     });

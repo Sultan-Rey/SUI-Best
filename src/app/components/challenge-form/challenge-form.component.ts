@@ -43,8 +43,8 @@ import {
 } from 'ionicons/icons';
 import { ModalController } from '@ionic/angular';
 import { ToastController } from '@ionic/angular';
-import { Challenge } from '../../../models/Challenge';
-import { CreationService } from '../../../services/CREATION/creation-service';
+import { Challenge } from '../../../models/Challenge.js';
+import { CreationService } from '../../../services/CREATION/creation-service.js';
 import { 
   IonIcon, 
   IonSelect, 
@@ -67,6 +67,7 @@ import {
 import { ReactiveFormsModule } from '@angular/forms';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { firstValueFrom, Subscription } from 'rxjs';
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
 
 @Component({
   selector: 'app-challenge-form',
@@ -125,6 +126,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private creationService: CreationService,
+    private challengeService : ChallengeService,
     private modalCtrl: ModalController,
     private toastCtrl: ToastController
   ) {
@@ -353,7 +355,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
       // Mise à jour du défi existant
       if (this.coverImageFile) {
         result = await firstValueFrom(
-          this.creationService.createChallengeWithCoverImage(
+          this.challengeService.createChallengeWithCoverImage(
             this.coverImageFile,
             formData as Omit<Challenge, 'id' | 'created_at' | 'is_active' | 'cover_image_url'>,
             (progress) => {
@@ -372,7 +374,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
       // Création d'un nouveau défi
       if (this.coverImageFile) {
         result = await firstValueFrom(
-          this.creationService.createChallengeWithCoverImage(
+          this.challengeService.createChallengeWithCoverImage(
             this.coverImageFile,
             formData as Omit<Challenge, 'id' | 'created_at' | 'is_active' | 'cover_image_url'>,
             (progress) => {
@@ -382,7 +384,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
         );
       } else {
         result = await firstValueFrom(
-          this.creationService.createChallenge(
+          this.challengeService.createChallenge(
             formData as Omit<Challenge, 'id' | 'created_at' | 'is_active'>
           )
         );

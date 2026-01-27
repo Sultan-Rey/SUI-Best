@@ -1,6 +1,6 @@
 import { Auth } from '../../services/AUTH/auth';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, Inject, OnInit, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Dialog } from '@capacitor/dialog';
 import { FormsModule } from '@angular/forms';
@@ -140,7 +140,7 @@ maxDate = new Date().toISOString();
   constructor(
     private router: Router,
     private platform: Platform,
-    private auth: Auth,
+    @Inject('Auth') private auth: Auth,
   ) {
     addIcons({
     'arrow-back': arrowBack,

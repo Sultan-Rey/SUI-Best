@@ -2,16 +2,17 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule, DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
 import { finalize, takeUntil, Subject, map, Observable, forkJoin } from 'rxjs';
-import { Challenge } from 'src/models/Challenge';
-import { CreationService } from 'src/services/CREATION/creation-service';
+import { Challenge } from 'src/models/Challenge.js';
+import { CreationService } from 'src/services/CREATION/creation-service.js';
 import { IonButton, IonIcon, IonSkeletonText } from "@ionic/angular/standalone";
-import { getMediaUrl} from 'src/app/utils/media.utils';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
-import { UserProfile } from 'src/models/User';
+import { getMediaUrl} from 'src/app/utils/media.utils.js';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { UserProfile } from 'src/models/User.js';
 import { Input } from '@angular/core';
 import { ToastController, AlertController} from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { add, checkmark, peopleOutline, people, timeOutline, playCircle, heart, trophy, thumbsUp, star } from 'ionicons/icons';
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
 
 
 @Component({
@@ -49,6 +50,7 @@ export class DiscoveryViewComponent implements OnInit {
 
   constructor(
     private creationService: CreationService,
+    private challengeService: ChallengeService,
     private profileService: ProfileService,
     private cdr: ChangeDetectorRef,
     private toastController: ToastController,
@@ -80,7 +82,7 @@ getGlobalStats(): Observable<{
     artists: this.profileService.getProfiles().pipe(
       map(profiles => profiles.filter(p => p.userType === 'artist').length)
     ),
-    challenges: this.creationService.getActiveChallenges().pipe(
+    challenges: this.challengeService.getActiveChallenges().pipe(
       map(challenges => challenges.length)
     ),
     votes: this.profileService.getProfiles().pipe(
@@ -237,7 +239,7 @@ loadTopFans(): void {
 
   loadMostPopularActiveChallenge(): void {
     this.isLoadingPopularChallenge = true;
-    this.creationService.getMostPopularActiveChallenge()
+    this.challengeService.getMostPopularActiveChallenge()
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => {
@@ -372,20 +374,20 @@ getVoteParticipation(fan: UserProfile): number {
 
 async handleExploreClick() {
   if (this.currentUserProfile?.myFollows?.length >= 2) {
-    // Recharger la page actuelle
     window.location.reload();
   } else {
-    // Afficher une alerte
     const alert = await this.alertController.create({
+      cssClass: 'custom-alert', // Ajoutez une classe CSS personnalisée
       header: 'Découverte requise',
       message: 'Pour une expérience utilisateur optimale, nous vous recommandons de suivre au moins 2 personnes.',
       buttons: [
         {
-          text: 'Annuler',
-          role: 'cancel'
+          text: 'Plus tard',
+          role: 'cancel',
+          
         },
         {
-          text: 'Découvrir des profils',
+          text: 'Découvrir',
           handler: () => {
             this.router.navigate(['/explore']);
           }

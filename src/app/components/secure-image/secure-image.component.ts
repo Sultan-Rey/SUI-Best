@@ -1,5 +1,5 @@
 // secure-image.component.ts
-import { Component, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { Component, Inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { MediaService } from 'src/services/MEDIA/media';
@@ -70,7 +70,7 @@ export class SecureImageComponent implements OnChanges, OnDestroy {
   imageError = false;
   private imageSubscription?: Subscription;
 
-  constructor(private mediaService: MediaService) {}
+  constructor(@Inject('MediaService') private mediaService: MediaService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['imagePath'] && this.imagePath) {

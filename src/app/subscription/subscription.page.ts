@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AlertController } from '@ionic/angular';
@@ -62,8 +62,12 @@ export class SubscriptionPage implements OnInit {
   isLoading = false;
   error: string | null = null
   registrationData: User | null = null;
-  constructor( private router: Router, private subscriptionService: SubscriptionService, 
-              private userService: UserService, private profileService: ProfileService) {
+  constructor(
+    private router: Router, 
+    @Inject('SubscriptionService') private subscriptionService: SubscriptionService,
+    @Inject('UserService') private userService: UserService, 
+    @Inject('ProfileService') private profileService: ProfileService
+  ) {
      addIcons({
     'arrow-back': arrowBack,
     'sparkles': sparkles,
@@ -188,6 +192,7 @@ this.registrationData.myPlan = {
       const userProfile: UserProfile = {
         id: userCreated.id.toString(),
         myFollows: [],
+        myCoupons: [],
         username: await this.generateUniqueUsername(
     this.registrationData.first_name || 'user',
     this.registrationData.last_name || userCreated.id.toString().substring(0, 8)
