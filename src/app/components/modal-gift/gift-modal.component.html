@@ -1,0 +1,46 @@
+<div class="gift-container">
+  <header class="modal-header">
+    <h2>Offrir un cadeau</h2>
+    <div class="user-balance">
+      <img src="assets/icon/coin-gold.png" alt="coins">
+      <span>2,450</span>
+    </div>
+  </header>
+
+  <nav class="category-tabs">
+    <button 
+      *ngFor="let cat of ['Tous','Classiques', 'Luxe', 'Épiques']"
+      [class.active]="currentCategory === cat"
+      (click)="setCategory(cat)"
+      class="tab-btn">
+      {{ cat }}
+    </button>
+  </nav>
+
+  <div class="gift-grid custom-scrollbar">
+    <div class="gift-card" 
+         *ngFor="let gift of filteredGifts" 
+         [class.selected]="selectedGift?.id === gift.id"
+         (click)="selectGift(gift)">
+      
+      <div class="gift-icon-wrapper">
+        <ng-lottie [options]="{ path: gift.lottie, autoplay: true }"></ng-lottie>
+        
+        <div class="global-badge" *ngIf="gift.is_global">
+          <ion-icon name="globe-outline"></ion-icon>
+        </div>
+      </div>
+
+      <div class="gift-price">
+        <img src="assets/icon/coin-gold.png" alt="coin">
+        <span>{{ gift.price }}</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="modal-footer">
+    <button class="btn-send" [disabled]="!selectedGift" (click)="sendGift()">
+      Envoyer {{ selectedGift ? selectedGift.price : '' }}
+    </button>
+  </footer>
+</div>

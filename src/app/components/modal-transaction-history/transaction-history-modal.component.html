@@ -1,0 +1,128 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      <ion-icon name="receipt" class="title-icon"></ion-icon>
+      Historique des transactions
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" fill="clear">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Filtres -->
+  <div class="filters-section">
+    <ion-grid>
+      <ion-row>
+        <ion-col size="12" size-md="6">
+          <ion-item>
+            <ion-label position="stacked">Type de transaction</ion-label>
+            <ion-select [(ngModel)]="selectedFilter" (ionChange)="onFilterChange()" placeholder="Tous les types">
+              <ion-select-option value="all">Tous les types</ion-select-option>
+              <ion-select-option value="purchase">Achat</ion-select-option>
+              <ion-select-option value="usage">Utilisation</ion-select-option>
+              <ion-select-option value="refund">Remboursement</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-col>
+        <ion-col size="12" size-md="6">
+          <ion-item>
+            <ion-label position="stacked">Type d'item</ion-label>
+            <ion-select [(ngModel)]="selectedItemType" (ionChange)="onFilterChange()" placeholder="Tous les items">
+              <ion-select-option value="all">Tous les items</ion-select-option>
+              <ion-select-option value="coins">Pièces</ion-select-option>
+              <ion-select-option value="coupons">Coupons</ion-select-option>
+              <ion-select-option value="gift">Cadeaux</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-section" *ngIf="filteredTransactions.length > 0">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Résumé</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="stat-item">
+          <span class="stat-label">Total des transactions:</span>
+          <span class="stat-value">{{ filteredTransactions.length }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Solde net:</span>
+          <span class="stat-value" [ngClass]="getTotalAmount() >= 0 ? 'positive' : 'negative'">
+            {{ getTotalAmount() >= 0 ? '+' : '' }}{{ getTotalAmount() }}
+          </span>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Liste des transactions -->
+  <div class="transactions-list">
+    <ion-list *ngIf="filteredTransactions.length > 0; else noTransactions">
+      <ion-item *ngFor="let transaction of filteredTransactions" class="transaction-item">
+        <ion-avatar slot="start">
+          <ion-icon 
+            [name]="getTransactionIcon(transaction.type)" 
+            [color]="getTransactionColor(transaction.type)"
+            class="transaction-type-icon">
+          </ion-icon>
+        </ion-avatar>
+        
+        <ion-label>
+          <h2 class="transaction-title">
+            {{ transaction.description }}
+            <ion-chip 
+              [color]="getTransactionColor(transaction.type)" 
+              class="transaction-type-chip">
+              <ion-icon [name]="getTransactionIcon(transaction.type)"></ion-icon>
+              {{ transaction.type === 'purchase' ? 'Achat' : 
+                 transaction.type === 'usage' ? 'Usage' : 'Remboursement' }}
+            </ion-chip>
+          </h2>
+          
+          <p class="transaction-details">
+            <ion-icon [name]="getItemTypeIcon(transaction.itemType)" class="item-type-icon"></ion-icon>
+            {{ transaction.itemType === 'coins' ? 'Pièces' : 
+               transaction.itemType === 'coupons' ? 'Coupons' : 'Cadeaux' }}
+            • {{ transaction.amount }} unités
+          </p>
+          
+          <p class="transaction-date">
+            <ion-icon name="time-outline"></ion-icon>
+            {{ formatDate(transaction.date) }}
+          </p>
+          
+          <p *ngIf="transaction.price" class="transaction-price">
+            <ion-icon name="card-outline"></ion-icon>
+            {{ transaction.price }} €
+            <span *ngIf="transaction.paymentMethod">• {{ transaction.paymentMethod }}</span>
+          </p>
+        </ion-label>
+        
+        <div slot="end" class="transaction-amount">
+          <span 
+            [ngClass]="transaction.type === 'purchase' ? 'amount-positive' : 'amount-negative'">
+            {{ transaction.type === 'purchase' ? '+' : '-' }}{{ transaction.amount }}
+          </span>
+        </div>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Template pour aucune transaction -->
+  <ng-template #noTransactions>
+    <div class="empty-state">
+      <ion-icon name="receipt-outline" class="empty-icon"></ion-icon>
+      <h3>Aucune transaction</h3>
+      <p>Aucune transaction ne correspond aux filtres sélectionnés.</p>
+    </div>
+  </ng-template>
+</ion-content>

@@ -1,0 +1,115 @@
+<!-- discovery-view.component.html -->
+<div class="discovery-content">
+
+  <!-- Filtres catégories -->
+  <div class="categories-scroll">
+    <div class="categories-inner">
+      <button
+        *ngFor="let cat of categories"
+        class="cat-pill"
+        [class.active]="activeCategory === cat.id"
+        (click)="setCategory(cat.id)">
+        <span class="cat-icon">{{ cat.icon }}</span>
+        <span class="cat-label">{{ cat.label }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mosaic Grid -->
+  <div class="mosaic-grid">
+    <div
+      *ngFor="let item of filteredItems; let i = index"
+      class="tile"
+      [ngClass]="'tile--' + item.size"
+      [style.animation-delay]="(i * 60) + 'ms'"
+      (click)="openItem(item)"
+      [class.loading]="item.loading">
+
+      <!-- Loading overlay -->
+      <div class="loading-overlay" *ngIf="item.loading">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+
+      <!-- Media background -->
+      <div class="tile-media" [style.background-image]="'url(' + (item.thumbnail | mediaUrl) + ')'">
+        <div class="tile-gradient"></div>
+      </div>
+
+      <!-- Badge type -->
+      <div class="tile-badge" [ngClass]="'badge--' + item.type">
+        <svg *ngIf="item.type === 'video'" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+        <svg *ngIf="item.type === 'audio'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+        <svg *ngIf="item.type === 'image'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span>{{ item.type }}</span>
+      </div>
+
+      <!-- Trending indicator -->
+      <div class="tile-trending" *ngIf="item.trending">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+          <polyline points="16 7 22 7 22 13"/>
+        </svg>
+        Tendance
+      </div>
+
+      <!-- Content overlay -->
+      <div class="tile-content">
+        <div class="tile-meta">
+          <img class="author-avatar" [src]="item.author.avatar | mediaUrl" [alt]="item.author.name"/>
+          <span class="author-name">{{ item.author.name }}</span>
+          <span class="dot-sep">·</span>
+          <span class="time-ago">{{ item.timeAgo }}</span>
+        </div>
+        <h3 class="tile-title">{{ item.title }}</h3>
+        <div class="tile-stats" *ngIf="item.size !== 'sm'">
+          <span class="stat">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            {{ item.likes }}
+          </span>
+          <span class="stat">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            {{ item.comments }}
+          </span>
+          <span class="stat views">{{ item.views }}</span>
+        </div>
+      </div>
+
+      <!-- Save button -->
+      <button class="save-btn" (click)="saveItem($event, item)" [class.saved]="item.saved">
+        <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="item.saved ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Stories section -->
+  <div class="stories-section">
+    <div class="section-header">
+      <h2 class="section-title">Top stars</h2>
+      <a class="section-more">Tout voir</a>
+    </div>
+    <div class="stories-scroll">
+      <div class="story-item" *ngFor="let story of stories">
+        <div class="story-ring" [class.active]="story.isLive">
+          <img class="story-avatar" [src]="story.avatar | mediaUrl" [alt]="story.name"/>
+          <span class="live-badge" *ngIf="story.isLive">LIVE</span>
+        </div>
+        <span class="story-name">{{ story.name }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 120px"></div>
+</div>

@@ -1,0 +1,423 @@
+// ─────────────────────────────────────────────
+//  Search Page — Premium Dark
+//  Palette : pure black + IG blue accent
+// ─────────────────────────────────────────────
+
+// ── Tokens ──────────────────────────────────
+$black:      #000000;
+$surface:    #111111;
+$surface2:   #1a1a1a;
+$surface3:   #242424;
+$border:     #1f1f1f;
+$border2:    #2a2a2a;
+$ig-blue:    #0095f6;
+$text-1:     #ffffff;
+$text-2:     #a8a8a8;
+$text-3:     #4e4e4e;
+
+// User type palette
+$type-artist:  #ff6b6b;
+$type-creator: #2ed573;
+$type-fan:     $ig-blue;
+$type-admin:   #ff9f43;
+
+// ── Mixins ──────────────────────────────────
+@mixin flex-center { display: flex; align-items: center; }
+@mixin ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ─────────────────────────────────────────────
+//  GLOBAL
+// ─────────────────────────────────────────────
+ion-content {
+  --background: #{$black};
+}
+
+// ─────────────────────────────────────────────
+//  HEADER
+// ─────────────────────────────────────────────
+ion-header {
+  ion-toolbar {
+    --background: #{$black};
+    --border-color: #{$border};
+
+    ion-title {
+      color: $text-1;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+
+      &[size="large"] {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+    }
+
+    ion-back-button {
+      --color: #{$text-1};
+      --icon-font-size: 20px;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SEARCH BAR
+// ─────────────────────────────────────────────
+.search-container {
+  padding: 10px 16px 12px;
+  background: $black;
+
+  .search-bar {
+    --background: #{$surface2};
+    --border-radius: 12px;
+    --box-shadow: none;
+    --placeholder-color: #{$text-3};
+    --icon-color: #{$text-3};
+    --color: #{$text-1};
+    --cancel-button-color: #{$ig-blue};
+    --clear-button-color: #{$text-3};
+    padding: 0;
+    margin: 0;
+    height: 42px;
+    font-size: 15px;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SKELETON LOADING
+// ─────────────────────────────────────────────
+.loading-container {
+  padding: 12px 16px;
+}
+
+.skeleton-item {
+  @include flex-center;
+  gap: 13px;
+  padding: 10px 0;
+
+  .skeleton-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    --border-radius: 50%;
+  }
+
+  .skeleton-lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .skeleton-name {
+      width: 38%;
+      height: 13px;
+      border-radius: 6px;
+    }
+
+    .skeleton-sub {
+      width: 58%;
+      height: 11px;
+      border-radius: 6px;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  RESULTS LABEL
+// ─────────────────────────────────────────────
+.results-label {
+  padding: 14px 16px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: $text-3;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+// ─────────────────────────────────────────────
+//  CONTAINERS
+// ─────────────────────────────────────────────
+.results-container,
+.suggestions-container {
+  padding: 0 0 24px;
+}
+
+// ─────────────────────────────────────────────
+//  SECTION HEADER (suggestions)
+// ─────────────────────────────────────────────
+.section-header {
+  @include flex-center;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: $text-1;
+    margin: 0;
+    letter-spacing: -0.2px;
+  }
+
+  .see-all-link {
+    @include flex-center;
+    gap: 2px;
+    color: $ig-blue;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+
+    ion-icon { font-size: 14px; }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PROFILE ITEM  (custom — no ion-item)
+// ─────────────────────────────────────────────
+.profile-item {
+  @include flex-center;
+  gap: 13px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  position: relative;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  // subtle separator between items
+  & + .profile-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 81px; // avatar width + padding + gap
+    right: 0;
+    height: 0.5px;
+    background: $border;
+  }
+
+  // ── Avatar ──
+  .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+
+    .profile-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      background: $surface2;
+    }
+  }
+
+  // ── Info block ──
+  .profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .name-row {
+      @include flex-center;
+      gap: 5px;
+      flex-wrap: nowrap;
+
+      .profile-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: $text-1;
+        @include ellipsis;
+        max-width: 140px;
+      }
+
+      // IG-style verified check
+      .verified-badge {
+        @include flex-center;
+        flex-shrink: 0;
+
+        .verified-icon {
+          font-size: 14px;
+          color: $ig-blue;
+        }
+      }
+
+      // User type pill
+      .user-type-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        flex-shrink: 0;
+        margin-left: 2px;
+
+        &.type-artist  { background: rgba($type-artist,  0.12); color: $type-artist;  }
+        &.type-creator { background: rgba($type-creator, 0.12); color: $type-creator; }
+        &.type-fan     { background: rgba($type-fan,     0.12); color: $type-fan;     }
+        &.type-admin   { background: rgba($type-admin,   0.12); color: $type-admin;   }
+      }
+    }
+
+    .profile-username {
+      font-size: 13px;
+      color: $text-2;
+      margin: 0;
+      @include ellipsis;
+    }
+
+    .profile-bio {
+      font-size: 12.5px;
+      color: $text-2;
+      margin: 2px 0 0;
+      line-height: 1.35;
+      @include ellipsis;
+    }
+
+    .profile-stats {
+      @include flex-center;
+      gap: 6px;
+      margin-top: 4px;
+
+      .stat-item {
+        font-size: 12px;
+        color: $text-2;
+
+        strong {
+          color: $text-1;
+          font-weight: 600;
+        }
+      }
+
+      .stat-sep {
+        color: $text-3;
+        font-size: 12px;
+        line-height: 1;
+      }
+    }
+  }
+
+  // ── Chevron ──
+  .arrow-icon {
+    font-size: 16px;
+    color: $text-3;
+    flex-shrink: 0;
+  }
+
+  // ── Suggestion variant ──
+  &.suggestion-item {
+    // no visual difference — keep clean
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SHARED STATE ICON WRAP
+// ─────────────────────────────────────────────
+.state-icon-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 1.5px solid $border2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+
+  ion-icon {
+    font-size: 28px;
+    color: $text-2;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  NO RESULTS
+// ─────────────────────────────────────────────
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px 40px;
+  text-align: center;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: $text-1;
+    margin: 0 0 8px;
+    letter-spacing: -0.2px;
+  }
+
+  p {
+    font-size: 14px;
+    color: $text-2;
+    margin: 0 0 20px;
+    line-height: 1.5;
+
+    em {
+      font-style: normal;
+      color: $text-1;
+      font-weight: 500;
+    }
+  }
+
+  .clear-search-btn {
+    --color: #{$ig-blue};
+    --padding-start: 20px;
+    --padding-end: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    height: 38px;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  EMPTY STATE
+// ─────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px 40px;
+  text-align: center;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: $text-1;
+    margin: 0 0 8px;
+    letter-spacing: -0.2px;
+  }
+
+  p {
+    font-size: 14px;
+    color: $text-2;
+    margin: 0;
+    line-height: 1.5;
+    max-width: 240px;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ANIMATIONS
+// ─────────────────────────────────────────────
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.profile-item {
+  animation: fadeSlideIn 0.22s ease both;
+
+  @for $i from 1 through 20 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 0.035}s; }
+  }
+}

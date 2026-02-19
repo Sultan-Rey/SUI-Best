@@ -1,0 +1,184 @@
+<ion-header class="premium-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()" fill="clear" class="close-btn">
+        <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Modifier le profil</ion-title>
+    <ion-buttons slot="end">
+      <ion-button 
+        (click)="onSubmit()" 
+        [disabled]="editForm.invalid || isSubmitting"
+        class="save-btn"
+        [class.pulse]="editForm.valid && editForm.dirty"
+      >
+        <ion-icon name="checkmark-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="premium-content">
+  <div class="content-wrapper">
+    <form [formGroup]="editForm">
+      <!-- Avatar Section Premium -->
+      <div class="avatar-section-premium">
+        <div class="avatar-container">
+          <ion-avatar class="avatar-premium" (click)="selectAvatar()">
+            <ion-img 
+              *ngIf="avatarPreview === profile.avatar"
+              [src]="avatarPreview  | mediaUrl" 
+              alt="Profile avatar"
+              (ionError)="onImageAvatarError($event)"
+            ></ion-img>.
+            <ion-img 
+              *ngIf="avatarPreview !== profile.avatar"
+              [src]="avatarPreview" 
+              alt="Profile avatar"
+            ></ion-img>
+            <div class="avatar-overlay-premium">
+              <div class="overlay-content">
+                <ion-icon name="camera-outline"></ion-icon>
+                <span>Changer</span>
+              </div>
+            </div>
+            <div class="avatar-border"></div>
+            <!-- Progress indicator -->
+            <div class="upload-progress" *ngIf="uploadProgress > 0 && uploadProgress < 100">
+              <div class="progress-ring">
+                <svg class="progress-svg" width="60" height="60">
+                  <circle
+                    class="progress-bg"
+                    cx="30"
+                    cy="30"
+                    r="25"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.3)"
+                    stroke-width="3"
+                  />
+                  <circle
+                    class="progress-bar"
+                    cx="30"
+                    cy="30"
+                    r="25"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    [attr.stroke-dasharray]="157"
+                    [attr.stroke-dashoffset]="157 - (157 * uploadProgress / 100)"
+                    transform="rotate(-90 30 30)"
+                  />
+                </svg>
+                <div class="progress-text">{{ uploadProgress }}%</div>
+              </div>
+            </div>
+          </ion-avatar>
+          <div class="avatar-badge" *ngIf="editForm.dirty">
+            <ion-icon name="create-outline"></ion-icon>
+          </div>
+        </div>
+        <p class="avatar-hint-premium">Appuyez pour modifier votre photo</p>
+      </div>
+
+      <!-- Form Fields Premium -->
+      <div class="form-container">
+        <!-- Display Name Premium -->
+        <div class="form-group" [class.has-error]="displayNameControl?.invalid && (displayNameControl?.dirty || displayNameControl?.touched)">
+          <ion-item lines="none" class="premium-item">
+            <div class="input-wrapper">
+              <ion-label class="premium-label">
+                Nom d'affichage <span class="required">*</span>
+              </ion-label>
+              <ion-input
+                formControlName="displayName"
+                placeholder="Comment voulez-vous être appelé ?"
+                class="premium-input"
+              ></ion-input>
+              <div class="input-border"></div>
+              <div class="char-counter">
+                <span>{{ displayNameControl?.value?.length || 0 }}</span>/50
+              </div>
+            </div>
+          </ion-item>
+          
+          <div class="error-message-premium" *ngIf="displayNameControl?.invalid && (displayNameControl?.dirty || displayNameControl?.touched)">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span *ngIf="displayNameControl?.errors?.['required']">Le nom d'affichage est requis</span>
+            <span *ngIf="displayNameControl?.errors?.['maxlength']">Maximum 50 caractères</span>
+          </div>
+        </div>
+
+        <!-- Bio Premium -->
+        <div class="form-group" [class.has-error]="bioControl?.invalid && (bioControl?.dirty || bioControl?.touched)">
+          <ion-item lines="none" class="premium-item">
+            <div class="input-wrapper">
+              <ion-label class="premium-label">
+                À propos de vous
+              </ion-label>
+              <ion-textarea
+                formControlName="bio"
+                placeholder="Partagez quelques mots sur vous, vos passions, votre parcours..."
+                class="premium-textarea"
+                rows="4"
+                autoGrow="true"
+              ></ion-textarea>
+              <div class="input-border"></div>
+              <div class="char-counter">
+                <span>{{ bioControl?.value?.length || 0 }}</span>/500
+              </div>
+            </div>
+          </ion-item>
+          
+          <div class="error-message-premium" *ngIf="bioControl?.invalid && (bioControl?.dirty || bioControl?.touched)">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span *ngIf="bioControl?.errors?.['maxlength']">Maximum 500 caractères</span>
+          </div>
+        </div>
+
+        <!-- Contact Premium -->
+        <div class="form-group" [class.has-error]="contactControl?.invalid && (contactControl?.dirty || contactControl?.touched)">
+          <ion-item lines="none" class="premium-item">
+            <div class="input-wrapper">
+              <ion-label class="premium-label">
+                Email de contact
+              </ion-label>
+              <ion-input
+                formControlName="contact"
+                type="email"
+                placeholder="votre.email@exemple.com"
+                class="premium-input"
+              >
+                <ion-icon name="mail-outline" slot="start" class="input-icon"></ion-icon>
+              </ion-input>
+              <div class="input-border"></div>
+            </div>
+          </ion-item>
+          
+          <div class="error-message-premium" *ngIf="contactControl?.invalid && (contactControl?.dirty || contactControl?.touched)">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span *ngIf="contactControl?.errors?.['email']">Adresse email invalide</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Info -->
+      <div class="form-info" *ngIf="!editForm.dirty">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <p>Modifiez vos informations pour personnaliser votre profil</p>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading Overlay Premium -->
+  <div class="loading-overlay-premium" *ngIf="isSubmitting">
+    <div class="loading-content">
+      <div class="spinner-wrapper">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+      <h3>Enregistrement en cours</h3>
+      <p>Mise à jour de votre profil...</p>
+    </div>
+  </div>
+</ion-content>

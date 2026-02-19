@@ -1,123 +1,63 @@
-<ion-header [translucent]="true" class="header">
-  <ion-toolbar class="header-toolbar">
-    <div class="search-container">
-      <div class="search-wrapper">
-        <ion-icon name="search" class="search-icon"></ion-icon>
-        <input
-          type="text"
-          placeholder="Search Artists, Schools, Categories..."
-          class="search-input"
-        />
-      </div>
-      <button class="notification-button">
-        <ion-icon name="notifications-outline" class="notification-icon"></ion-icon>
-        <span class="notification-badge"></span>
-      </button>
-    </div>
-  </ion-toolbar>
-</ion-header>
+<!-- Header natif HTML - pas de balises Ionic -->
+<div class="native-header">
+  <div class="header-container">
+    <!-- Icône search à gauche -->
+    <button class="action-button search-button" (click)="openSearch()">
+      <ion-icon name="search" class="action-icon"></ion-icon>
+    </button>
 
-<ion-content [fullscreen]="true" [scrollY]="true" class="tiktok-content">
-  <ion-refresher slot="fixed" (ionRefresh)="refreshFeed($event)">
-    <ion-refresher-content></ion-refresher-content>
-  </ion-refresher>
-
-   <!-- Vue Découverte avec animation -->
-   <div [class.hidden]="!showDiscoveryView" 
-       [class.fade-out]="isTransitioning && !showDiscoveryView">
-    <app-discovery-view 
-      [currentUserProfile]="currentUserProfile" 
-      *ngIf="showDiscoveryView">
-    </app-discovery-view>
-  </div>
-
-  <!-- Vue Posts normale (utilisateurs avec abonnements) -->
-    <div [class.hidden]="showDiscoveryView" 
-       [class.fade-in]="!showDiscoveryView && !isTransitioning"
-       class="posts-container">
-    <div 
-      class="post" 
-      *ngFor="let post of posts | filter: filterPublic; trackBy: trackByPostId" 
-    >
-      
-      <div class="video-container">
-        <img [src]="getMediaUrl(post.thumbnailUrl || post.fileUrl)" (error)="onImageContentError($event)" class="video-thumbnail">
-        <div class="video-overlay"></div>
-      </div>
-
-      <div class="main-content">
-        <div class="artist-info">
-          <div class="artist-header">
-            <img [src]="userAvatars[post.userId] || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
-            <div class="artist-details">
-              <div class="profile-header">
-                <h4 class="profile-name">{{ post.username || 'Utilisateur' }}</h4>
-                <ion-button 
-                  (click)="subscribeTo(post.userId)" 
-                  *ngIf="currentUserProfile.id !== post.userId && isFollowingUser[post.userId]" 
-                  fill="clear" 
-                  size="small" 
-                  class="subscribe-btn">
-                  S'abonner
-                </ion-button>
-              </div>
-              
-              <div class="artist-name">
-                <span class="post-title">{{ post.title }}</span>
-                <span class="separator">•</span>
-                <span class="post-date">{{ post.createdAt | date:'dd MMM yyyy' }}</span>
-              </div>
-              
-              <p class="artist-location">{{ post.description | slice:0:60 }}...</p>
-              
-             
-            </div>
-          </div>
-          
-         <!-- Remplacez les lignes existantes par ceci -->
-<div class="challenge-row" *ngIf="post.challengeId">
-  <div class="challenge-title" [class.loading]="currentChallenge[post.challengeId] === undefined">
-  <span 
-    *ngIf="hasActiveChallenge(post)" 
-    [class.long-text]="(currentChallenge[post.challengeId]?.name?.length || 0) > 15">
-    <ion-icon name="trophy" color="warning">  </ion-icon> {{ currentChallenge[post.challengeId]?.name }}
-  </span>
-  <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement du défi...</span>
-</div>
-  
-  <div class="separator"></div>
-  
-  <ion-button 
-    class="vote-button" 
-    [class.loading]="currentChallenge[post.challengeId] === undefined"
-    [disabled]="!hasActiveChallenge(post)"
-    (click)="hasActiveChallenge(post) && voteForArtist(post)">
-    <span *ngIf="currentChallenge[post.challengeId] === undefined">Chargement...</span>
-    <span *ngIf="currentChallenge[post.challengeId] !== undefined">
-      {{ hasActiveChallenge(post) ? (currentChallenge[post.challengeId]?.call_to_action || 'Participer') : 'Défi terminé' }}
-    </span>
-  </ion-button>
-  
-</div>
-        </div>
-
-        <div class="side-actions">
-          <button class="action-button" *ngFor="let action of getActionsForPost(post)" (click)="action.action()">
-            <div class="action-icon" [class.liked]="action.icon === 'heart'">
-              <ion-icon [name]="action.icon"></ion-icon>
-            </div>
-            <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
-          </button>
-        </div>
+    <!-- Système de tabs custom -->
+    <div class="tabs-system">
+      <div class="tabs-track">
+        
+        <button class="tab-item" 
+                [class.active]="selectedSegment === 'discovery'"
+                (click)="switchTab('discovery')">
+          <span class="tab-label">Découverte</span>
+        </button>
+        
+        <button class="tab-item" 
+                [class.active]="selectedSegment === 'followed'"
+                (click)="switchTab('followed')">
+          <span class="tab-label">Suivis</span>
+        </button>
+        
+        <!-- Indicateur orbital -->
+        
       </div>
     </div>
+
+    <!-- Bouton notification à droite -->
+    <button class="action-button notification-button" (click)="openNotifications()">
+      <ion-icon name="notifications-outline" class="action-icon"></ion-icon>
+      <span class="notification-badge" *ngIf="hasNotifications"></span>
+    </button>
   </div>
+  
+  <!-- Gradient de fusion -->
+  <div class="header-fade"></div>
+</div>
 
-  <ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)">
-    <ion-infinite-scroll-content
-      loadingSpinner="bubbles"
-      loadingText="Chargement de la suite...">
-    </ion-infinite-scroll-content>
-  </ion-infinite-scroll>
+<!-- Contenu Ionic simplifié -->
+<ion-content [fullscreen]="true" class="home-content">
+  <!-- Padding top pour compenser le header fixed -->
+  <div class="content-spacer"></div>
+  
+  <!-- Container swipeable -->
+  <div class="views-container" [class.show-followed]="selectedSegment === 'followed'">
+    
+    <!-- Vue Découverte -->
+    <div class="view-panel discovery-panel">
+      <app-discovery-view 
+        [currentUserProfile]="currentUserProfile">
+      </app-discovery-view>
+    </div>
 
+    <!-- Vue Suivis -->
+    <div class="view-panel followed-panel">
+      <app-followed-view 
+        [currentUserProfile]="currentUserProfile">
+      </app-followed-view>
+    </div>
+  </div>
 </ion-content>

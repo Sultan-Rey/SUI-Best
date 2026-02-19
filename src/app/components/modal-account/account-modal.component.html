@@ -1,0 +1,86 @@
+ <div class="modal-wrapper">
+
+ <div class="modal-header-minimal">
+    <h2>Mon Compte</h2>
+    <button class="close-button" (click)="dismiss()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+  </div>
+
+  <div class="modal-content">
+    <!-- BALANCE SECTION -->
+  <div class="balance-section">
+  
+    <div class="balance-header">
+      <h4>Balance</h4>
+      <button class="history-btn" (click)="goToHistory()">
+        <ion-icon name="receipt-outline"></ion-icon>
+        <span>Historique</span>
+      </button>
+    </div>
+
+    <div class="balance-cards">
+      <div class="balance-card coins">
+        <div class="balance-icon">💰</div>
+        <div class="balance-amount" [class.counting]="isCoinsCounting">{{ (userBalance.coins || 0) | number }}</div>
+        <div class="balance-label">Coins</div>
+      </div>
+      
+      <div class="balance-card coupons">
+        <div class="balance-icon">🎫</div>
+        <div class="balance-amount" [class.counting]="isCouponsCounting">{{ (userBalance.coupons || 0) | number }}</div>
+        <div class="balance-label">Coupons</div>
+      </div>
+    </div>
+  </div>
+
+  
+
+  <!-- COUPON TYPES (visible when coupons tab is active) -->
+  <div class="coupon-types-section">
+    <h3 class="section-title">Mes Coupons par Type</h3>
+    <div class="types-grid">
+      <div class="type-item" *ngFor="let type of couponTypes$ | async">
+        <div class="type-indicator" [ngClass]="type.type"></div>
+        <div class="type-count">{{ type.count }}</div>
+        <div class="type-label">{{ type.type }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MES AVOIRS SECTION -->
+  <div class="assets-section">
+    <h3 class="section-title">Mes avoirs</h3>
+    <div class="assets-list">
+      <ion-list>
+        <ion-item button (click)="createCoupon()">
+          <ion-icon name="ticket" slot="start" color="primary"></ion-icon>
+          <ion-label>
+            <h3>Créer des coupons</h3>
+            <p>Générer des coupons pour vos clients</p>
+          </ion-label>
+          <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+        </ion-item>
+        
+        <ion-item button (click)="buyCoins()">
+          <ion-icon name="wallet-outline" slot="start" color="secondary"></ion-icon>
+          <ion-label>
+            <h3>Acheter des Coins</h3>
+            <p>Recharger votre solde de coins</p>
+          </ion-label>
+          <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+        </ion-item>
+
+        <ion-item button (click)="buyCoupons()">
+          <ion-icon name="ticket-outline" slot="start" color="secondary"></ion-icon>
+          <ion-label>
+            <h3>Acheter des Coupons</h3>
+            <p>Obtenir des coupons pour participer aux defis</p>
+          </ion-label>
+          <ion-icon name="chevron-forward-outline" slot="end" color="medium"></ion-icon>
+        </ion-item>
+      </ion-list>
+    </div>
+  </div>
+  </div>
+</div>

@@ -1,0 +1,875 @@
+// ============================================
+// MINIMAL PREMIUM CHALLENGE MODAL - ORANGE/GOLD
+// Design épuré, lisible, sans effets excessifs
+// ============================================
+
+.challenge-container {
+  --background: #0a0a0a;
+  color: #ffffff;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ===== MEDIA SECTION AVEC MARGES ===== */
+
+.media-wrapper {
+  position: relative;
+  height: 62vh;
+  margin: 16px 16px 0 16px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  // Gradient subtil pour lisibilité du header uniquement
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 140px;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.5) 0%,
+      transparent 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  // Gradient subtil pour lisibilité des actions
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.6) 0%,
+      transparent 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+}
+
+/* ===== TOP OVERLAY - GLASSMORPHISME UNIQUEMENT ICI ===== */
+
+.overlay-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 10;
+
+  .creator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px 6px 6px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: scale(0.96);
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      object-fit: cover;
+      background: linear-gradient(135deg, #ff8a00 0%, #e52e71 100%);
+    }
+
+    .username {
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.2px;
+      color: #ffffff;
+    }
+  }
+
+  // BOUTON CLOSE CIRCULAIRE GLASSMORPHE
+  .follow-btn {
+    --color: #ffffff;
+    --background: rgba(0, 0, 0, 0.4);
+    --border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    margin: 0;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+
+    ion-icon {
+      font-size: 22px;
+    }
+
+    &:active {
+      transform: scale(0.9) rotate(90deg);
+      --background: rgba(0, 0, 0, 0.6);
+    }
+  }
+}
+
+/* ===== ACTION BUTTONS - MINIMALISTE ===== */
+
+.overlay-actions {
+  position: absolute;
+  bottom: 28px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 10;
+
+  .action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    ion-icon {
+      font-size: 28px;
+      color: #ffffff;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+    }
+
+    span {
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffffff;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    }
+
+    &:active {
+      transform: scale(0.92);
+      
+      ion-icon {
+        color: #ff8a00;
+      }
+    }
+  }
+}
+
+/* ===== CONTENT SECTION ===== */
+
+.content {
+  padding: 24px 20px 32px;
+  background: #0a0a0a;
+  transition: all 0.3s ease;
+
+  &.hidden {
+    opacity: 0;
+    transform: translateX(-20px);
+    pointer-events: none;
+  }
+}
+
+/* ===== CARDS MINIMALISTES - FOND SOLIDE ===== */
+
+.card {
+  background: #141414;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+
+  h3 {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #ffffff;
+    position: relative;
+    padding-bottom: 12px;
+
+    // Ligne décorative simple
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 32px;
+      height: 2px;
+      background: #ff8a00;
+      border-radius: 1px;
+    }
+  }
+}
+
+/* ===== RULES SECTION - ÉPURÉE ===== */
+
+.rules {
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+
+    li {
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 12px;
+      padding-left: 28px;
+      position: relative;
+      font-weight: 400;
+
+      // Puce minimaliste - simple carré orange
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 6px;
+        width: 16px;
+        height: 16px;
+        background: #ff8a00;
+        border-radius: 3px;
+      }
+
+      // Icône check simple
+      &::after {
+        content: '✓';
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+/* ===== HASHTAGS MINIMALISTES ===== */
+
+.hashtags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  span {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 100px;
+    background: rgba(255, 138, 0, 0.12);
+    color: #ff8a00;
+    letter-spacing: 0;
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: scale(0.96);
+      background: rgba(255, 138, 0, 0.2);
+    }
+  }
+}
+
+/* ===== PARTICIPANTS - SIMPLE ET CLAIR ===== */
+
+.participants {
+  .participants-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #ffffff;
+      position: relative;
+      padding-bottom: 12px;
+
+      // Ligne décorative simple
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 32px;
+        height: 2px;
+        background: #ff8a00;
+        border-radius: 1px;
+      }
+    }
+
+    .view-all-btn {
+      --color: #ff8a00;
+      --background: transparent;
+      --border-radius: 8px;
+      --padding-start: 8px;
+      --padding-end: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      height: 32px;
+      min-height: 32px;
+      transition: all 0.2s ease;
+
+      ion-icon {
+        font-size: 16px;
+        margin-left: 4px;
+      }
+
+      &:hover {
+        --background: rgba(255, 138, 0, 0.1);
+      }
+
+      &:active {
+        transform: scale(0.96);
+      }
+    }
+  }
+
+  .avatars {
+    display: flex;
+    align-items: center;
+    gap: 0;
+
+    .loading-avatars {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .skeleton-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+      background-size: 200% 100%;
+      animation: skeletonLoading 1.5s ease-in-out infinite;
+      border: 2px solid #141414;
+      margin-left: -12px;
+
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+
+    img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid #141414;
+      margin-left: -12px;
+      transition: all 0.2s ease;
+      position: relative;
+      object-fit: cover;
+      background: linear-gradient(135deg, #ff8a00 0%, #e52e71 100%);
+
+      &:first-child {
+        margin-left: 0;
+        z-index: 5;
+      }
+
+      &:nth-child(2) {
+        z-index: 4;
+      }
+
+      &:nth-child(3) {
+        z-index: 3;
+      }
+
+      &:active {
+        transform: scale(1.1) translateY(-4px);
+        z-index: 10 !important;
+        border-color: #ff8a00;
+      }
+    }
+
+    .more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #ff8a00;
+      border: 2px solid #141414;
+      font-size: 13px;
+      font-weight: 700;
+      margin-left: -12px;
+      z-index: 2;
+      color: #ffffff;
+    }
+
+    .no-participants {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
+      font-weight: 400;
+    }
+  }
+}
+
+/* ===== CTA BUTTON MINIMALISTE PREMIUM ===== */
+
+.cta {
+  --background: #ff8a00;
+  --background-activated: #e67e00;
+  --color: #ffffff;
+  --border-radius: 12px;
+  height: 54px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  text-transform: none;
+  margin-top: 8px;
+  box-shadow: 0 4px 16px rgba(255, 138, 0, 0.3);
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(255, 138, 0, 0.3);
+  }
+}
+
+/* ===== ANIMATIONS SUBTILES ===== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+// Animations au chargement - très subtiles
+.media-wrapper {
+  animation: fadeIn 0.3s ease;
+}
+
+.content {
+  animation: slideUp 0.4s ease 0.1s backwards;
+}
+
+.card {
+  &:nth-child(1) {
+    animation: slideUp 0.3s ease 0.2s backwards;
+  }
+
+  &:nth-child(2) {
+    animation: slideUp 0.3s ease 0.3s backwards;
+  }
+}
+
+.cta {
+  animation: slideUp 0.3s ease 0.4s backwards;
+}
+
+/* ===== PARTICIPANTS VIEW - CONTAINER CACHÉ ===== */
+
+.participants-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0a;
+  z-index: 100;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  padding: 20px;
+
+  &.active {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .participants-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    ion-button {
+      --color: #ff8a00;
+      --background: transparent;
+      font-size: 14px;
+      font-weight: 600;
+      height: 36px;
+
+      &:hover {
+        --background: rgba(255, 138, 0, 0.1);
+      }
+    }
+  }
+
+  .stats-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #141414 0%, #1a1a1a 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 20px;
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.2s ease;
+
+        &:active {
+          transform: scale(0.96);
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        ion-icon {
+          font-size: 24px;
+          margin-bottom: 8px;
+          color: #ff8a00;
+        }
+
+        .stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: #ffffff;
+          margin-bottom: 4px;
+        }
+
+        .stat-label {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+  }
+
+  .participants-list {
+    .swipe-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      background: rgba(255, 138, 0, 0.1);
+      border: 1px solid rgba(255, 138, 0, 0.2);
+      border-radius: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      font-weight: 500;
+      animation: swipeHintPulse 2s ease-in-out infinite;
+
+      ion-icon {
+        font-size: 16px;
+        color: #ff8a00;
+        
+        &:first-child {
+          animation: swipeLeft 1.5s ease-in-out infinite;
+        }
+        
+        &:last-child {
+          animation: swipeRight 1.5s ease-in-out infinite;
+        }
+      }
+
+      span {
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 500;
+      }
+    }
+
+    ion-list {
+      --background: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    ion-item {
+      --background: #141414;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --color: #ffffff;
+      margin-bottom: 2px;
+      border-radius: 0;
+      transition: all 0.2s ease;
+
+      &:hover {
+        --background: #1a1a1a;
+      }
+    }
+
+    ion-avatar {
+      width: 48px;
+      height: 48px;
+      border: 2px solid #ff8a00;
+      box-shadow: 0 4px 12px rgba(255, 138, 0, 0.2);
+
+      img {
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      &.is-default {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+    }
+
+    ion-label {
+      h2 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #ffffff;
+        letter-spacing: -0.3px;
+      }
+
+      .participant-stats {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+
+        ion-icon {
+          font-size: 16px;
+        }
+      }
+    }
+
+    .rank-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      background: #2a2a2a;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+
+      &.rank-first {
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        border-color: #ffd700;
+        color: #000000;
+        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+      }
+
+      &.rank-second {
+        background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+        border-color: #c0c0c0;
+        color: #000000;
+        box-shadow: 0 4px 12px rgba(192, 192, 192, 0.3);
+      }
+
+      &.rank-third {
+        background: linear-gradient(135deg, #cd7f32 0%, #e67e22 100%);
+        border-color: #cd7f32;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(205, 127, 50, 0.3);
+      }
+
+      &.rank-other {
+        background: #2a2a2a;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    ion-item-sliding {
+      margin-bottom: 2px;
+    }
+
+    ion-item-options {
+      border: none;
+    }
+
+    ion-item-option {
+      min-width: 80px;
+      font-size: 14px;
+      font-weight: 600;
+
+      ion-icon {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+    }
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-height: 750px) {
+  .media-wrapper {
+    height: 58vh;
+    margin-top: 12px;
+  }
+  
+  .content {
+    padding: 20px 16px 28px;
+  }
+}
+
+@media (max-height: 650px) {
+  .media-wrapper {
+    height: 52vh;
+    margin: 12px 12px 0 12px;
+    border-radius: 20px;
+  }
+  
+  .card {
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .overlay-actions {
+    bottom: 20px;
+    gap: 16px;
+
+    .action ion-icon {
+      font-size: 26px;
+    }
+  }
+
+  .cta {
+    height: 50px;
+  }
+}
+
+@media (max-height: 600px) {
+  .media-wrapper {
+    height: 48vh;
+  }
+
+  .participants-view {
+    .swipe-hint {
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+  }
+}
+
+/* ===== SWIPE HINT ANIMATIONS ===== */
+
+@keyframes swipeHintPulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes swipeLeft {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes swipeRight {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+/* ===== SKELETON LOADING ANIMATION ===== */
+
+@keyframes skeletonLoading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+

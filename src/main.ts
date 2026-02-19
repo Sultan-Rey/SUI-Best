@@ -6,6 +6,8 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { IonicStorageModule } from '@ionic/storage-angular';
 import { importProvidersFrom } from '@angular/core';
+import { provideLottieOptions } from 'ngx-lottie';
+import player from 'lottie-web';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -14,5 +16,8 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(),
     importProvidersFrom(IonicStorageModule.forRoot({})),
+    provideLottieOptions({
+      player: () => player,
+    }),
   ],
 });

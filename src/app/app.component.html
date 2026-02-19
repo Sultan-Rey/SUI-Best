@@ -1,3 +1,9 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
+  <div class="lottie-overlay" *ngIf="animService.animationState$ | async as path">
+    <ng-lottie 
+      [options]="{ path: path, autoplay: true, loop: true }"
+      (animationCreated)="onAnimationCreated($event)">
+    </ng-lottie>
+  </div>
 </ion-app>

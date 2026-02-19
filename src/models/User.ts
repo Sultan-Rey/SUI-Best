@@ -54,6 +54,7 @@ export interface UserProfile {
   userType: 'fan' | 'artist' | 'creator' | 'admin';
   myFollows: string[];
   myCoupons: string[];
+  myBlackList: string[];
   stats: {
     posts: number;
     fans: number;

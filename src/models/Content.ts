@@ -1,3 +1,5 @@
+import { Vote } from "./Vote";
+
 export enum ContentType {
   IMAGE = 'image',
   VIDEO = 'video'
@@ -21,17 +23,22 @@ export interface Content {
   userId: string;             // ID de l'utilisateur créateur
   challengeId: string;       // Optionnel : ID du défi associé
   commentIds: string[];      // IDs des commentaires associés à ce contenu
-  likedIds?:string[];
+  likedIds?:string[];        // IDs des likes associés à ce contenu
+  giftIds?:string[];         // IDs des donateurs associés à ce contenu
+  votersList?:Vote[];      // Models des votes associés à ce contenu
+
   // Métadonnées du contenu
-  title: string;              // Titre du contenu
   description?: string;       // Description optionnelle
   username?:string;            // Nom d'utilisateur du post
   tags?: string[];            // Mots-clés pour la recherche
+  cadrage: 'default' | 'fit'; // cadrage de l'image 
   isPublic: boolean;          // Visibilité publique/privée
   allowDownloads: boolean;    // Autoriser le téléchargement
   allowComments: boolean;     // Autoriser les commentaires
   source: ContentSource;      // Source: caméra ou galerie
   isLikedByUser?: boolean;
+  isGiftedByUser?:boolean;
+  isVotedByUser?:boolean;
 
   // Fichier média
   fileUrl: string;            // URL du fichier sur le serveur
@@ -52,6 +59,8 @@ export interface Content {
   viewCount: number;          // Nombre de vues
   likeCount: number;          // Nombre de likes
   voteCount?: number          // Nombre de votes
+  shareCount:number;         // Nombre de partage
+  giftCount?:number;          // Nombre de cadeaux
   commentCount: number;       // Nombre de commentaires
   downloadCount: number;      // Nombre de téléchargements
 }

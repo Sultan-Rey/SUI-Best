@@ -1,0 +1,611 @@
+// ==========================================
+// MODERN SOCIAL WALLET UI - IONIC OPTIMIZED
+// Clean, minimal, youth-focused design
+// ==========================================
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+// ==========================================
+// IONIC COLOR VARIABLES OVERRIDE
+// ==========================================
+:root {
+  // Override Ionic variables for light theme
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #111827;
+  --ion-text-color-rgb: 17, 24, 39;
+  --ion-color-step-50: #f9fafb;
+  --ion-color-step-100: #f3f4f6;
+  --ion-color-step-150: #e5e7eb;
+  --ion-color-step-200: #d1d5db;
+  --ion-color-step-250: #9ca3af;
+  --ion-color-step-300: #6b7280;
+  --ion-color-step-350: #4b5563;
+  --ion-color-step-400: #374151;
+  --ion-color-step-450: #1f2937;
+  --ion-color-step-500: #111827;
+  --ion-color-step-550: #030712;
+  
+  // Custom brand colors
+  --ion-color-primary: #6366f1;
+  --ion-color-primary-rgb: 99, 102, 241;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #5652d6;
+  --ion-color-primary-tint: #7375f2;
+  
+  --ion-color-secondary: #10b981;
+  --ion-color-secondary-rgb: 16, 185, 129;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #0ea372;
+  --ion-color-secondary-tint: #29c08c;
+  
+  --ion-color-tertiary: #f59e0b;
+  --ion-color-tertiary-rgb: 245, 158, 11;
+  --ion-color-tertiary-contrast: #000000;
+  --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+  --ion-color-tertiary-shade: #d88c0a;
+  --ion-color-tertiary-tint: #f6a823;
+  
+  // Custom design tokens
+  --wallet-bg-primary: #ffffff;
+  --wallet-bg-secondary: #f9fafb;
+  --wallet-bg-tertiary: #f3f4f6;
+  --wallet-text-primary: #111827;
+  --wallet-text-secondary: #6b7280;
+  --wallet-text-tertiary: #9ca3af;
+  --wallet-border-light: #e5e7eb;
+  --wallet-border-medium: #d1d5db;
+  --wallet-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --wallet-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --wallet-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+// ==========================================
+// MODAL WRAPPER
+// ==========================================
+.modal-wrapper {
+  background: #ffffff;
+  border-radius: 16px;
+  max-height: 90vh;
+  overflow-y: scroll !important;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+// ==========================================
+// IONIC CONTENT RESET
+// ==========================================
+ion-content {
+  --background: #f9fafb !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  overflow-y: auto !important;
+}
+
+// ==========================================
+// SCROLLABLE CONTENT
+// ==========================================
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Personnalisation du scrollbar vertical */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// ==========================================
+// MODAL HEADER MINIMAL
+// ==========================================
+.modal-header-minimal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #ffffff;
+  
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+  }
+
+  
+  .close-button {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
+    
+    ion-icon {
+      font-size: 1.25rem;
+    }
+  }
+}
+
+// ==========================================
+// IONIC COMPONENT RESETS
+// ==========================================
+ion-content {
+  --background: #f9fafb !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+ion-header {
+  box-shadow: none !important;
+  
+  ion-toolbar {
+    --background: #111827 !important;
+    --border-width: 0 !important;
+    --min-height: 56px;
+    
+    ion-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #ffffff;
+      padding: 0 16px;
+    }
+    
+    ion-buttons {
+      ion-button {
+        --color: #6b7280;
+        
+        ion-icon {
+          font-size: 1.5rem;
+        }
+      }
+    }
+  }
+}
+
+// Reset list styles
+ion-list {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+// Reset item styles
+ion-item {
+  --background: transparent !important;
+  --inner-padding-end: 0 !important;
+  --padding-start: 0 !important;
+  --inner-border-width: 0 !important;
+}
+
+// ==========================================
+// BALANCE SECTION
+// ==========================================
+.balance-section {
+  padding: 16px;
+  background: #ffffff;
+  margin-bottom: 8px;
+}
+
+.balance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #111827;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .history-btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-family: 'Inter', sans-serif;
+    
+    ion-icon {
+      font-size: 1rem;
+    }
+  }
+}
+
+.balance-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  
+  .balance-card {
+    background: #f9fafb;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    transition: transform 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    
+    &:active {
+      transform: scale(0.98);
+      background: #f3f4f6;
+    }
+    
+    .balance-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+    
+    &.coins .balance-icon {
+      background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+    }
+    
+    &.coupons .balance-icon {
+      background: linear-gradient(135deg, #818CF8 0%, #6366F1 100%);
+    }
+    
+    .balance-amount {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 2px;
+      line-height: 1.2;
+      font-family: 'Inter', sans-serif;
+      
+      // Animation de comptage
+      &.counting {
+        animation: countUp 0.8s ease-out;
+      }
+    }
+    
+    .balance-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: 'Inter', sans-serif;
+    }
+  }
+}
+
+// Animation de comptage simple
+@keyframes countUp {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// ==========================================
+// COUPON TYPES SECTION
+// ==========================================
+.coupon-types-section {
+  padding: 16px;
+  background: #ffffff;
+  margin-bottom: 8px;
+  
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 16px 0;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .types-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    
+    .type-item {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #e5e7eb;
+      
+      .type-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin: 0 auto 8px;
+        
+        &.standard { background: #9CA3AF; }
+        &.premium { background: #F59E0B; }
+        &.legendary { background: #EF4444; }
+        &.special { background: #3B82F6; }
+      }
+      
+      .type-count {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 2px;
+        font-family: 'Inter', sans-serif;
+      }
+      
+      .type-label {
+        font-size: 0.625rem;
+        font-weight: 500;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-family: 'Inter', sans-serif;
+      }
+    }
+  }
+}
+
+
+
+
+
+// ==========================================
+// ASSETS SECTION
+// ==========================================
+.assets-section {
+  padding: 16px;
+  background: #ffffff;
+  margin-bottom: 8px;
+  
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 16px 0;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .assets-list {
+    ion-list {
+      background: transparent !important;
+      padding: 0 !important;
+    }
+    
+    ion-item {
+      --background: #f9fafb !important;
+      --border-radius: 12px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+      --inner-padding-end: 16px;
+      margin-bottom: 8px;
+      border: 1px solid #e5e7eb;
+      transition: transform 0.2s ease, background 0.2s ease;
+      
+      &:hover {
+        background: #f3f4f6 !important;
+        transform: translateY(-1px);
+      }
+      
+      &:active {
+        transform: scale(0.98);
+      }
+      
+      ion-icon[slot="start"] {
+        font-size: 1.25rem;
+        margin-right: 12px;
+      }
+      
+      ion-icon[slot="end"] {
+        font-size: 1rem;
+      }
+      
+      ion-label {
+        h3 {
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: #111827;
+          margin: 0 0 2px 0;
+          font-family: 'Inter', sans-serif;
+        }
+        
+        p {
+          font-size: 0.75rem;
+          color: #6b7280;
+          margin: 0;
+          font-family: 'Inter', sans-serif;
+        }
+      }
+    }
+  }
+}
+
+// ==========================================
+// ANIMATIONS
+// ==========================================
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation: slideUp 0.3s ease-out;
+}
+
+.success-animation {
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.3s ease;
+}
+
+// ==========================================
+// LOADING STATE
+// ==========================================
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: inherit;
+  }
+}
+
+// ==========================================
+// RESPONSIVE DESIGN
+// ==========================================
+@media (max-width: 380px) {
+  .balance-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .packs-section .packs-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .coupon-types-section .types-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .balance-section,
+  .tabs-wrapper,
+  .coupon-types-section,
+  .packs-section,
+  .promo-section {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .packs-section .packs-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+// ==========================================
+// TOAST CUSTOMIZATION
+// ==========================================
+.custom-toast {
+  --background: #ffffff;
+  --color: #111827;
+  --border-radius: 12px;
+  --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  
+  &.success-toast {
+    --background: #10b981;
+    --color: white;
+  }
+  
+  &.error-toast {
+    --background: #EF4444;
+    --color: white;
+  }
+  
+  &.warning-toast {
+    --background: #f59e0b;
+    --color: white;
+  }
+}
+
+// ==========================================
+// ACCESSIBILITY
+// ==========================================
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+ion-button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+// ==========================================
+// GLOBAL FONT OVERRIDE
+// ==========================================
+ion-app {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}

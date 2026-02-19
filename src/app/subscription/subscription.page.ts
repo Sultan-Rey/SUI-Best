@@ -29,7 +29,7 @@ import {
   trophy,
   eyeOutline,
 } from 'ionicons/icons';
-import { SubscriptionService } from 'src/services/SUBSCRIPTION/subscription-service';
+import { SubscriptionService } from 'src/services/SUBSCRIPTION_SERVICE/subscription-service';
 import { User } from 'src/models/User';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
 import { firstValueFrom, tap } from 'rxjs';
@@ -193,6 +193,7 @@ this.registrationData.myPlan = {
         id: userCreated.id.toString(),
         myFollows: [],
         myCoupons: [],
+        myBlackList: [],
         username: await this.generateUniqueUsername(
     this.registrationData.first_name || 'user',
     this.registrationData.last_name || userCreated.id.toString().substring(0, 8)

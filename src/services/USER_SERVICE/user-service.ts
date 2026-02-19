@@ -73,6 +73,15 @@ export class UserService {
     });
   }
 
+  updatePasswordHash(
+    id: string,
+    passwordHash: string
+  ): Observable<User> {
+    return this.api.patch<User>(this.resource, id, {
+      password_hash: passwordHash,
+    });
+  }
+
   /* =====================
      DELETE
      ===================== */

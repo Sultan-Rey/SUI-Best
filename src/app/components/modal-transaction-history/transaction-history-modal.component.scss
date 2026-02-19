@@ -1,0 +1,284 @@
+.transaction-history-modal {
+  --background: var(--ion-background-color);
+}
+
+.title-icon {
+  margin-right: 8px;
+  font-size: 24px;
+}
+
+.filters-section {
+  margin-bottom: 20px;
+  
+  ion-item {
+    --background: var(--ion-item-background, #fff);
+    --border-radius: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.stats-section {
+  margin-bottom: 20px;
+  
+  ion-card {
+    --background: var(--ion-card-background, #fff);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin: 0;
+  }
+  
+  .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--ion-color-light, #f4f4f4);
+    }
+  }
+  
+  .stat-label {
+    font-weight: 500;
+    color: var(--ion-color-medium, #666);
+  }
+  
+  .stat-value {
+    font-weight: 700;
+    font-size: 18px;
+    
+    &.positive {
+      color: var(--ion-color-success, #2dd36f);
+    }
+    
+    &.negative {
+      color: var(--ion-color-danger, #eb445a);
+    }
+  }
+}
+
+.transactions-list {
+  .transaction-item {
+    --background: var(--ion-item-background, #fff);
+    --border-radius: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 4px;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s ease;
+    }
+  }
+  
+  .transaction-type-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .transaction-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    
+    ion-chip {
+      margin: 0;
+      font-size: 12px;
+      height: 24px;
+      
+      ion-icon {
+        font-size: 14px;
+        margin-right: 4px;
+      }
+    }
+  }
+  
+  .transaction-details {
+    display: flex;
+    align-items: center;
+    color: var(--ion-color-medium, #666);
+    font-size: 14px;
+    margin-bottom: 4px;
+    
+    .item-type-icon {
+      font-size: 16px;
+      margin-right: 6px;
+    }
+  }
+  
+  .transaction-date {
+    display: flex;
+    align-items: center;
+    color: var(--ion-color-medium, #666);
+    font-size: 13px;
+    margin-bottom: 4px;
+    
+    ion-icon {
+      font-size: 14px;
+      margin-right: 6px;
+    }
+  }
+  
+  .transaction-price {
+    display: flex;
+    align-items: center;
+    color: var(--ion-color-dark, #222);
+    font-size: 13px;
+    
+    ion-icon {
+      font-size: 14px;
+      margin-right: 6px;
+    }
+  }
+  
+  .transaction-amount {
+    text-align: right;
+    
+    span {
+      font-weight: 700;
+      font-size: 18px;
+      
+      &.amount-positive {
+        color: var(--ion-color-success, #2dd36f);
+      }
+      
+      &.amount-negative {
+        color: var(--ion-color-danger, #eb445a);
+      }
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  
+  .empty-icon {
+    font-size: 80px;
+    color: var(--ion-color-medium, #666);
+    margin-bottom: 20px;
+    opacity: 0.5;
+  }
+  
+  h3 {
+    color: var(--ion-color-dark, #222);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  
+  p {
+    color: var(--ion-color-medium, #666);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .filters-section {
+    ion-row {
+      ion-col {
+        margin-bottom: 0;
+      }
+    }
+  }
+  
+  .transactions-list {
+    .transaction-title {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      
+      ion-chip {
+        align-self: flex-start;
+      }
+    }
+    
+    .transaction-amount {
+      span {
+        font-size: 16px;
+      }
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .transaction-history-modal {
+    --background: var(--ion-background-color);
+  }
+  
+  .filters-section {
+    ion-item {
+      --background: var(--ion-item-background, #1f1f1f);
+    }
+  }
+  
+  .stats-section {
+    ion-card {
+      --background: var(--ion-card-background, #1f1f1f);
+    }
+    
+    .stat-item {
+      &:not(:last-child) {
+        border-bottom-color: var(--ion-color-dark, #333);
+      }
+    }
+  }
+  
+  .transactions-list {
+    .transaction-item {
+      --background: var(--ion-item-background, #1f1f1f);
+    }
+  }
+  
+  .empty-state {
+    h3 {
+      color: var(--ion-color-light, #fff);
+    }
+  }
+}
+
+// Animations
+.transaction-item {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Custom scrollbar for long lists
+ion-content {
+  --background: var(--ion-background-color);
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--ion-color-light, #f4f4f4);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--ion-color-medium, #666);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--ion-color-dark, #222);
+    }
+  }
+}

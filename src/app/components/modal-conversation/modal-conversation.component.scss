@@ -1,0 +1,310 @@
+.conversation-header {
+  ion-toolbar {
+    --background: var(--ion-color-dark);
+    --border-color: var(--ion-color-dark-shade);
+  }
+
+  .back-btn {
+    --color: var(--ion-color-light);
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    margin-left: 8px;
+
+    .user-avatar-wrapper {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--ion-color-dark-shade);
+      }
+
+      .online-indicator {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid var(--ion-color-dark);
+        background: var(--ion-color-medium);
+        
+        &.online {
+          background: var(--ion-color-success);
+        }
+      }
+    }
+
+    .user-details {
+      .username {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--ion-color-light);
+        margin-bottom: 2px;
+      }
+
+      .user-status {
+        font-size: 12px;
+        color: var(--ion-color-medium);
+
+        .status-online {
+          color: var(--ion-color-success);
+        }
+
+        .status-typing {
+          color: var(--ion-color-primary);
+          font-style: italic;
+        }
+      }
+    }
+  }
+
+  .icon-btn {
+    --color: var(--ion-color-light);
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
+}
+
+.conversation-content {
+  --background: var(--ion-color-dark);
+  
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+  }
+
+  .messages-container {
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .message-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &.from-me {
+      align-items: flex-end;
+    }
+
+    &.from-other {
+      align-items: flex-start;
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+  }
+
+  .date-separator {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+    width: 100%;
+    align-self: center;
+    text-align: center;
+
+    .date-text {
+      background: var(--ion-color-medium);
+      color: var(--ion-color-light);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
+
+  .message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 80%;
+  }
+
+  .message-text {
+    background: var(--ion-color-medium);
+    color: var(--ion-color-light);
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    max-width: 100%;
+
+    &.from-me {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+      border-bottom-right-radius: 4px;
+    }
+
+    &.from-other {
+      background: var(--ion-color-light);
+      color: var(--ion-color-dark);
+      border-bottom-left-radius: 4px;
+    }
+  }
+
+  .message-deleted {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ion-color-medium);
+    color: var(--ion-color-light);
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.7;
+
+    &.from-me {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+      border-bottom-right-radius: 4px;
+    }
+
+    &.from-other {
+      background: var(--ion-color-light);
+      color: var(--ion-color-dark);
+      border-bottom-left-radius: 4px;
+    }
+  }
+
+  .message-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ion-color-medium);
+    margin-top: 2px;
+
+    .message-time {
+      white-space: nowrap;
+    }
+
+    .message-status {
+      display: flex;
+      align-items: center;
+
+      ion-icon {
+        font-size: 14px;
+
+        &.status-pending {
+          color: var(--ion-color-medium);
+        }
+
+        &.status-sent {
+          color: var(--ion-color-medium);
+        }
+
+        &.status-read {
+          color: var(--ion-color-success);
+        }
+      }
+    }
+  }
+
+  .scroll-bottom-btn {
+    --background: var(--ion-color-primary);
+    --color: var(--ion-color-primary-contrast);
+    margin-bottom: 80px;
+  }
+}
+
+.conversation-footer {
+  --background: var(--ion-color-dark);
+  border-top: 1px solid var(--ion-color-dark-shade);
+  padding: 8px 16px 16px 16px;
+
+  .message-input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    background: var(--ion-color-light);
+    border-radius: 24px;
+    padding: 4px;
+
+    .input-actions-left {
+      display: flex;
+      gap: 4px;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      min-height: 40px;
+
+      .message-input {
+        --background: transparent;
+        --color: var(--ion-color-dark);
+        --padding-start: 12px;
+        --padding-end: 12px;
+        --padding-top: 10px;
+        --padding-bottom: 10px;
+        border: none;
+        font-size: 14px;
+        line-height: 1.4;
+        resize: none;
+        max-height: 120px;
+      }
+
+      .emoji-btn {
+        --color: var(--ion-color-medium);
+        --padding: 8px;
+      }
+    }
+
+    .input-actions-right {
+      display: flex;
+      gap: 4px;
+
+      .action-btn {
+        --color: var(--ion-color-primary);
+        --padding: 8px;
+
+        &.voice-btn {
+          &.recording {
+            --color: var(--ion-color-danger);
+            background: rgba(var(--ion-color-danger-rgb), 0.1);
+            border-radius: 50%;
+          }
+        }
+
+        &.send-btn:disabled {
+          --color: var(--ion-color-medium);
+        }
+      }
+
+      .recording-text {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ion-color-danger);
+      }
+    }
+  }
+
+  .action-btn {
+    --background: transparent;
+    --ripple-color: var(--ion-color-primary);
+    min-width: 40px;
+    height: 40px;
+  }
+}

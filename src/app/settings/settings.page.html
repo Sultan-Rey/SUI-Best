@@ -1,21 +1,380 @@
-<ion-header [translucent]="true">
+<ion-header class="settings-header">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/tab-profile"></ion-back-button>
+      <ion-button (click)="back()" fill="clear" class="back-btn">
+        <ion-icon name="chevron-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
     </ion-buttons>
     <ion-title>Paramètres</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  <div class="settings-container">
-    <ion-button 
-      expand="block" 
-      color="danger" 
-      (click)="onLogout()"
-      class="logout-button">
-      <ion-icon name="log-out-outline" slot="start"></ion-icon>
-      Se déconnecter
-    </ion-button>
+<ion-content class="settings-content">
+  <div class="content-wrapper">
+    
+    <!-- Section: Compte -->
+    <div class="settings-section">
+      <div class="section-header">
+        <ion-icon name="person-circle-outline" class="section-icon"></ion-icon>
+        <h2 class="section-title">Compte</h2>
+      </div>
+
+      <div class="settings-list">
+        <!-- Changer mot de passe -->
+        <div class="setting-item" (click)="changePassword()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-blue">
+              <ion-icon name="key-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Mot de passe</h3>
+              <p>Modifiez votre mot de passe</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Vérifier compte -->
+        <div class="setting-item" (click)="verifyAccount()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-green">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Vérifier mon compte</h3>
+              <p>Obtenez le badge vérifié</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-badge class="verify-badge" *ngIf="!isVerified">Nouveau</ion-badge>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Liste noire -->
+        <div class="setting-item" (click)="manageBlockList()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-red">
+              <ion-icon name="ban-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Liste noire</h3>
+              <p>Comptes bloqués ({{ blockedCount }})</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Confidentialité -->
+    <div class="settings-section">
+      <div class="section-header">
+        <ion-icon name="lock-closed-outline" class="section-icon"></ion-icon>
+        <h2 class="section-title">Confidentialité</h2>
+      </div>
+
+      <div class="settings-list">
+        <!-- Ne pas me suivre (localisation) -->
+        <div class="setting-item toggle-item">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-purple">
+              <ion-icon name="location-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Localisation</h3>
+              <p>Ne pas partager ma position</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-toggle 
+              name="disableLocation"
+              [(ngModel)]="privacySettings.disableLocation" 
+              (ionChange)="updatePrivacySetting('location', $event)"
+              class="custom-toggle"
+            ></ion-toggle>
+          </div>
+        </div>
+
+        <!-- Accès aux contacts -->
+        <div class="setting-item toggle-item">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-orange">
+              <ion-icon name="people-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Accès aux contacts</h3>
+              <p>Synchroniser avec mes contacts</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-toggle 
+              name="contactsAccess"
+              [(ngModel)]="privacySettings.contactsAccess" 
+              (ionChange)="updatePrivacySetting('contacts', $event)"
+              class="custom-toggle"
+            ></ion-toggle>
+          </div>
+        </div>
+
+        <!-- Compte privé -->
+        <div class="setting-item toggle-item">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-indigo">
+              <ion-icon name="eye-off-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Compte privé</h3>
+              <p>Approuver manuellement les abonnés</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-toggle 
+              name="privateAccount"
+              [(ngModel)]="privacySettings.privateAccount" 
+              (ionChange)="updatePrivacySetting('private', $event)"
+              class="custom-toggle"
+            ></ion-toggle>
+          </div>
+        </div>
+
+        <!-- Statut en ligne -->
+        <div class="setting-item toggle-item">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-teal">
+              <ion-icon name="radio-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Statut en ligne</h3>
+              <p>Masquer mon activité</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-toggle 
+              name="hideOnlineStatus"
+              [(ngModel)]="privacySettings.hideOnlineStatus" 
+              (ionChange)="updatePrivacySetting('onlineStatus', $event)"
+              class="custom-toggle"
+            ></ion-toggle>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Notifications -->
+    <div class="settings-section">
+      <div class="section-header">
+        <ion-icon name="notifications-outline" class="section-icon"></ion-icon>
+        <h2 class="section-title">Notifications</h2>
+      </div>
+
+      <div class="settings-list">
+        <!-- Préférences notifications -->
+        <div class="setting-item" (click)="manageNotifications()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-pink">
+              <ion-icon name="settings-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Préférences</h3>
+              <p>Gérer toutes les notifications</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Push notifications -->
+        <div class="setting-item toggle-item">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-blue">
+              <ion-icon name="phone-portrait-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Notifications push</h3>
+              <p>Alertes sur votre appareil</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-toggle 
+              name="pushEnabled"
+              [(ngModel)]="notificationSettings.pushEnabled" 
+              (ionChange)="updateNotificationSetting('push', $event)"
+              class="custom-toggle"
+            ></ion-toggle>
+          </div>
+        </div>
+
+        <!-- Email notifications -->
+        <div class="setting-item toggle-item">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-green">
+              <ion-icon name="mail-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Notifications email</h3>
+              <p>Recevoir des emails</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-toggle 
+              name="emailEnabled"
+              [(ngModel)]="notificationSettings.emailEnabled" 
+              (ionChange)="updateNotificationSetting('email', $event)"
+              class="custom-toggle"
+            ></ion-toggle>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Sécurité -->
+    <div class="settings-section">
+      <div class="section-header">
+        <ion-icon name="shield-outline" class="section-icon"></ion-icon>
+        <h2 class="section-title">Sécurité</h2>
+      </div>
+
+      <div class="settings-list">
+        <!-- Authentification à deux facteurs -->
+        <div class="setting-item" (click)="setup2FA()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-yellow">
+              <ion-icon name="finger-print-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Authentification 2FA</h3>
+              <p>{{ is2FAEnabled ? 'Activée' : 'Désactivée' }}</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-badge [color]="is2FAEnabled ? 'success' : 'medium'" class="status-badge">
+              {{ is2FAEnabled ? 'ON' : 'OFF' }}
+            </ion-badge>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Sessions actives -->
+        <div class="setting-item" (click)="manageSessions()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-cyan">
+              <ion-icon name="desktop-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Sessions actives</h3>
+              <p>{{ activeSessionsCount }} appareils connectés</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: À propos -->
+    <div class="settings-section">
+      <div class="section-header">
+        <ion-icon name="information-circle-outline" class="section-icon"></ion-icon>
+        <h2 class="section-title">À propos</h2>
+      </div>
+
+      <div class="settings-list">
+        <!-- Conditions d'utilisation -->
+        <div class="setting-item" (click)="openTerms()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-gray">
+              <ion-icon name="document-text-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Conditions d'utilisation</h3>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="open-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Politique de confidentialité -->
+        <div class="setting-item" (click)="openPrivacyPolicy()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-gray">
+              <ion-icon name="shield-half-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Politique de confidentialité</h3>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="open-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Version -->
+        <div class="setting-item no-hover">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-gray">
+              <ion-icon name="code-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Version</h3>
+              <p>{{ appVersion }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Zone de danger -->
+    <div class="settings-section danger-section">
+      <div class="section-header">
+        <ion-icon name="warning-outline" class="section-icon"></ion-icon>
+        <h2 class="section-title">Zone de danger</h2>
+      </div>
+
+      <div class="settings-list">
+        <!-- Se déconnecter -->
+        <div class="setting-item danger-item" (click)="logout()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-danger">
+              <ion-icon name="log-out-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Se déconnecter</h3>
+              <p>Déconnexion de votre compte</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Supprimer le compte -->
+        <div class="setting-item danger-item" (click)="deleteAccount()">
+          <div class="item-left">
+            <div class="item-icon-wrapper icon-danger">
+              <ion-icon name="trash-outline"></ion-icon>
+            </div>
+            <div class="item-content">
+              <h3>Supprimer mon compte</h3>
+              <p>Action irréversible</p>
+            </div>
+          </div>
+          <div class="item-right">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer spacer -->
+    <div class="footer-spacer"></div>
+
   </div>
 </ion-content>

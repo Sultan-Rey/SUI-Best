@@ -1,0 +1,197 @@
+<div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <header class="modal-header">
+      <div class="header-content">
+        <h1 class="modal-title">Créer un pack</h1>
+        <p class="modal-subtitle">Configurez votre pack de coupons</p>
+      </div>
+      <button class="close-btn" (click)="closeModal()" aria-label="Fermer">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Content -->
+    <div class="modal-body">
+      
+      <!-- Taux de conversion -->
+      <div class="conversion-badge">
+        <span class="badge-text">1 HTG = {{ conversionRate }} coins</span>
+         <span class="badge-icon">🪙</span>
+      </div>
+
+      <!-- Balance actuelle -->
+      <div class="balance-info">
+        <div class="balance-label">Votre solde actuel</div>
+        <div class="balance-amount">{{ currentBalance.coins || 0 | number }} coins</div>
+      </div>
+
+      <!-- Sélection du type -->
+      <section class="form-section">
+        <label class="section-label">Type de coupon</label>
+        <div class="type-grid">
+          <button
+            *ngFor="let type of couponTypes"
+            class="type-card"
+            [class.active]="packConfig.type === type.type"
+            [style.--card-color]="type.color"
+            (click)="selectType(type.type)"
+          >
+            <span class="type-icon">{{ type.icon }}</span>
+            <span class="type-label">{{ type.label }}</span>
+            <span class="type-price">{{ getReferencePriceForType(type.type) }} HTG</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Quantité -->
+      <section class="form-section">
+        <label class="section-label" for="amount">Quantité</label>
+        <div class="input-group">
+          <input
+            type="number"
+            id="amount"
+            class="input-field"
+            [(ngModel)]="packConfig.amount"
+            (ngModelChange)="onAmountChange()"
+            min="1"
+            placeholder="10"
+          />
+          <span class="input-suffix">coupons</span>
+        </div>
+      </section>
+
+      <!-- Coût d'achat (système) -->
+      <div class="cost-display">
+        <div class="cost-row">
+          <span class="cost-label">Coût d'achat du pack</span>
+          <span class="cost-value">{{ formatNumber(baseCostInCoins) }} coins</span>
+        </div>
+        <div class="cost-breakdown">
+          {{ referencePriceHTG }} HTG × {{ packConfig.amount }} × {{ conversionRate }}
+        </div>
+      </div>
+
+      <!-- Prix de revente -->
+      <section class="form-section">
+        <label class="section-label" for="customPrice">Prix de revente</label>
+        <div class="input-group">
+          <input
+            type="number"
+            id="customPrice"
+            class="input-field"
+            [(ngModel)]="packConfig.customPrice"
+            min="0"
+            placeholder="{{ baseCostInCoins }}"
+          />
+          <span class="input-suffix">coins</span>
+        </div>
+        <p class="field-hint">Prix auquel vous vendrez ce pack aux clients</p>
+      </section>
+
+      <!-- Réduction -->
+      <section class="form-section">
+        <label class="section-label" for="discount">Promo / Réduction (optionnel)</label>
+        <div class="input-group">
+          <input
+            type="number"
+            id="discount"
+            class="input-field"
+            [(ngModel)]="packConfig.discount"
+            (ngModelChange)="onDiscountChange()"
+            min="0"
+            max="100"
+            placeholder="0"
+          />
+          <span class="input-suffix">%</span>
+        </div>
+        <div *ngIf="packConfig.discount && packConfig.discount > 0" class="discount-info">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 2L10 6L14 6.5L11 9.5L11.5 14L8 12L4.5 14L5 9.5L2 6.5L6 6L8 2Z" fill="currentColor"/>
+          </svg>
+          <span>Réduction de {{ formatNumber(discountAmount) }} coins appliquée</span>
+        </div>
+      </section>
+
+      <!-- Prix final de vente -->
+      <div class="final-cost">
+        <div class="final-label">Prix final client</div>
+        <div class="final-value">
+          <span class="final-amount">{{ formatNumber(finalSalePriceInCoins) }}</span>
+          <span class="final-currency">coins</span>
+        </div>
+        <div class="profit-display" [class.positive]="profitAmount >= 0" [class.negative]="profitAmount < 0">
+          <span class="profit-label">
+            {{ profitAmount >= 0 ? 'Profit' : 'Perte' }}:
+          </span>
+          <span class="profit-value">
+            {{ profitAmount >= 0 ? '+' : '' }}{{ formatNumber(profitAmount) }} coins
+            ({{ profitAmount >= 0 ? '+' : '' }}{{ profitPercentage }}%)
+          </span>
+        </div>
+      </div>
+
+      <!-- Nom et description -->
+      <section class="form-section">
+        <label class="section-label" for="name">Nom du pack</label>
+        <input
+          type="text"
+          id="name"
+          class="input-field"
+          [(ngModel)]="packConfig.name"
+          placeholder="Pack Premium x10"
+        />
+      </section>
+
+      <section class="form-section">
+        <label class="section-label" for="description">Description (optionnel)</label>
+        <textarea
+          id="description"
+          class="input-field textarea"
+          [(ngModel)]="packConfig.description"
+          rows="3"
+          placeholder="Ajoutez une description pour ce pack..."
+        ></textarea>
+      </section>
+
+      <!-- Durée de validité -->
+      <section class="form-section">
+        <label class="section-label" for="expiryDays">Validité</label>
+        <div class="input-group">
+          <input
+            type="number"
+            id="expiryDays"
+            class="input-field"
+            [(ngModel)]="packConfig.expiryDays"
+            min="1"
+            placeholder="30"
+          />
+          <span class="input-suffix">jours</span>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeModal()">
+        Annuler
+      </button>
+      <button 
+        class="btn btn-primary" 
+        (click)="createPack()"
+        [disabled]="!isFormValid() || isCreating"
+      >
+        <span *ngIf="!isCreating">Créer le pack</span>
+        <span *ngIf="isCreating" class="loading-text">
+          <span class="spinner"></span>
+          Création en cours...
+        </span>
+      </button>
+    </footer>
+
+  </div>
+</div>

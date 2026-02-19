@@ -1,0 +1,189 @@
+<ion-header class="conversation-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()" fill="clear" class="back-btn">
+        <ion-icon name="chevron-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <!-- Informations sur le receiver -->
+    <div class="user-info" slot="start">
+      <div class="user-avatar-wrapper">
+        <img
+          [src]="otherUser.avatar | mediaUrl"
+          [alt]="otherUser.username"
+          class="user-avatar"
+          (error)="onAvatarError($event)">
+        <div class="online-indicator" [class.online]="true"></div>
+      </div>
+      <div class="user-details">
+        <div class="username">{{ otherUser.username }}
+          <ion-icon name="checkmark-circle" *ngIf="otherUser.IsVerified"></ion-icon>
+        </div>
+        <div class="user-status">
+          <span class="status-typing" *ngIf="otherUserIsTyping">est en train d'écrire...</span>
+          <span class="status-online" *ngIf="!otherUserIsTyping">En ligne</span>
+        </div>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content
+  class="conversation-content"
+  [scrollEvents]="true"
+  (ionScroll)="onScroll($event)"
+  #content>
+
+  <!-- Chargement -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- Liste des messages -->
+  <div class="messages-container" *ngIf="!isLoading">
+    <ng-container
+      *ngFor="let message of messages; trackBy: trackByMessageId; let i = index">
+
+      <!-- Séparateur de date -->
+      <div
+        class="date-separator"
+        *ngIf="i === 0 ||
+               (messages[i-1].createdAt | date:'yyyyMMdd') !== (message.createdAt | date:'yyyyMMdd')">
+        <span class="date-text">{{ message.createdAt | date:'dd MMMM yyyy' }}</span>
+      </div>
+
+      <!-- Bulle de message -->
+      <div
+        class="message-wrapper"
+        [class.from-me]="isMessageFromMe(message)"
+        [class.from-other]="!isMessageFromMe(message)">
+
+        <!-- Avatar de l'autre utilisateur -->
+        <img
+          *ngIf="!isMessageFromMe(message)"
+          [src]="otherUser.avatar"
+          [alt]="message.senderName || 'Utilisateur'"
+          class="message-avatar"
+          (error)="onAvatarError($event)">
+
+        <div class="message-content">
+
+          <!-- Texte -->
+          <div
+            *ngIf="!message.isDeleted"
+            class="message-text"
+            [class.from-me]="isMessageFromMe(message)">
+            {{ message.content }}
+          </div>
+
+          <!-- Message supprimé -->
+          <div
+            *ngIf="message.isDeleted"
+            class="message-deleted"
+            [class.from-me]="isMessageFromMe(message)">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>Message supprimé</span>
+          </div>
+
+          <!-- Méta : heure + statut -->
+          <div class="message-meta">
+            <span class="message-time">{{ message.createdAt | dmTime }}</span>
+
+            <!-- Statut du message (uniquement pour mes messages) -->
+            <span *ngIf="isMessageFromMe(message)" class="message-status">
+              <ion-icon
+                [name]="getStatusIcon(message.status)"
+                [class]="getStatusClass(message.status)">
+              </ion-icon>
+            </span>
+          </div>
+
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Bouton scroll vers le bas -->
+  <ion-fab
+    *ngIf="showScrollToBottom"
+    vertical="bottom"
+    horizontal="end"
+    slot="fixed">
+    <ion-button
+      fill="solid"
+      shape="round"
+      size="small"
+      (click)="scrollToBottom()"
+      class="scroll-bottom-btn">
+      <ion-icon name="chevron-down"></ion-icon>
+    </ion-button>
+  </ion-fab>
+</ion-content>
+
+<!-- Footer : zone de saisie -->
+<ion-footer class="conversation-footer">
+  <div class="message-input-container">
+
+    <!-- Actions gauche -->
+    <div class="input-actions-left">
+      <input
+        type="file"
+        accept="image/*"
+        #imageInput
+        (change)="sendImage()"
+        style="display: none;">
+      <ion-button fill="clear" size="small" class="action-btn" (click)="imageInput.click()">
+        <ion-icon name="image"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Zone de texte -->
+    <div class="input-wrapper">
+      <ion-textarea
+        #messageInput
+        [(ngModel)]="newMessage"
+        (ionInput)="onMessageInput($event)"
+        (keydown.enter)="sendMessage()"
+        placeholder="Écrivez un message…"
+        class="message-input"
+        autoGrow="true"
+        rows="1">
+      </ion-textarea>
+      <ion-button fill="clear" size="small" class="emoji-btn">
+        <ion-icon name="happy"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Actions droite -->
+    <div class="input-actions-right">
+      <!-- Enregistrement vocal (saisie vide) -->
+      <ion-button
+        *ngIf="!newMessage.trim()"
+        fill="clear"
+        size="small"
+        class="action-btn voice-btn"
+        [class.recording]="isRecording"
+        (mousedown)="startVoiceRecording()"
+        (mouseup)="stopVoiceRecording()"
+        (touchstart)="startVoiceRecording()"
+        (touchend)="stopVoiceRecording()">
+        <ion-icon *ngIf="!isRecording" name="mic"></ion-icon>
+        <span *ngIf="isRecording" class="recording-text">
+          {{ formatDuration(recordingDuration) }}
+        </span>
+      </ion-button>
+
+      <!-- Bouton envoyer (saisie non vide) -->
+      <ion-button
+        *ngIf="newMessage.trim()"
+        fill="clear"
+        size="small"
+        class="action-btn send-btn"
+        (click)="sendMessage()">
+        <ion-icon name="send"></ion-icon>
+      </ion-button>
+    </div>
+
+  </div>
+</ion-footer>

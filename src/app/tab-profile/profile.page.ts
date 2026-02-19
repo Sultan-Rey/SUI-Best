@@ -2,15 +2,20 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { NgIf, CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
-import { ChallengeFormComponent } from '../components/challenge-form/challenge-form.component.js';
+import { ChallengeFormComponent } from '../components/modal-challenge-form/challenge-form.component.js';
+import { ModalChallengeComponent } from '../components/modal-challenge-view/modal-challenge.component.js';
+import { ModalMessageComponent } from '../components/modal-message/modal-message.component.js';
 import { addIcons } from 'ionicons';
 
 import { 
   shareSocialOutline, 
   ellipsisVertical, 
   addCircle, 
+  banOutline,
+  flagOutline,
   checkmarkCircle, 
   star, 
+  shieldHalf,
   linkOutline, 
   calendarOutline, 
   openOutline,
@@ -25,13 +30,14 @@ import {
   flameOutline,
   peopleOutline,
   timeOutline,
+  personCircleOutline,
+  rocketOutline,
   add, musicalNotesOutline, chatbubble, chevronBack, 
   create} from 'ionicons/icons';
 import { 
   IonContent, 
   IonHeader,
   IonToolbar, 
-  IonModal,
   IonButtons, 
   IonButton, 
   IonIcon, 
@@ -45,12 +51,16 @@ import { Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { Challenge } from 'src/models/Challenge.js';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { Auth } from 'src/services/AUTH/auth.js';
-import { CreationService } from 'src/services/CREATION/creation-service.js';
+import { CreationService } from 'src/services/CREATION_SERVICE/creation-service.js';
 import { UserService } from 'src/services/USER_SERVICE/user-service.js';
 import { Content } from 'src/models/Content.js';
-import { getMediaUrl } from '../utils/media.utils.js';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
-
+import { AccountModalComponent } from '../components/modal-account/account-modal.component.js';
+import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
+import { ModalEditProfileComponent } from '../components/modal-edit-profile/modal-edit-profile.component.js';
+import { ShortNumberPipe } from '../utils/pipes/shortNumberPipe/short-number-pipe.js';
+import { isNullOrUndefined } from 'html5-qrcode/esm/core.js';
+import { FollowedViewComponent } from '../components/view-followed/followed-view.component.js';
 
 interface Post {
   id: number;
@@ -71,7 +81,7 @@ interface Post {
   imports: [ NgIf,IonTitle, IonSpinner, 
     IonContent, IonHeader, IonToolbar, IonButtons, IonButton, 
     IonIcon, IonBadge, IonFab, IonFabButton,
-    CommonModule, FormsModule
+    CommonModule, FormsModule, MediaUrlPipe, ShortNumberPipe
   ] 
 })
 export class ProfilePage implements OnInit {
@@ -87,7 +97,6 @@ export class ProfilePage implements OnInit {
   activeChallengesCount : number = 0;
   userContents: Content[] = [];
   isLoadingContents = false; 
-  isRight_toWrite = false;
   successPosts: Post[] = [];
   private destroy$ = new Subject<void>();
   constructor(
@@ -112,36 +121,21 @@ export class ProfilePage implements OnInit {
       stars: 0;
     };
     
-    addIcons({ flag, ban, close, createOutline, settingsOutline, chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble});
+    addIcons({shieldHalf, rocketOutline, banOutline, flagOutline, close, createOutline, settingsOutline, chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble, personCircleOutline});
   }
 ngOnInit() {
-  // S'abonner aux changements de paramètres de route
-  this.route.paramMap.pipe(
-    takeUntil(this.destroy$)
-  ).subscribe(params => {
-    const userId = params.get('id');
-    const isCurrentUserProfile = this.route.snapshot.data['isCurrentUser'] === true;
-    const currentUser = this.authservice.getCurrentUser();
-    this.currentUserId = currentUser?.id?.toString() || null;
-    this.isRight_toWrite = !currentUser?.readonly;
-   
-    if (isCurrentUserProfile && this.currentUserId) {
-      // Cas de la route /my-profile
-      this.isOwnProfile = true;
-      this.loadUserProfile(this.currentUserId);
-    } else if (userId) {
-      // Cas de la route /profile/:id
-      this.isOwnProfile = userId === this.currentUserId;
-      this.loadUserProfile(userId);
-    } else if (this.currentUserId) {
-      // Fallback si pas d'ID mais utilisateur connecté
-      this.isOwnProfile = true;
-      this.loadUserProfile(this.currentUserId);
-    } else {
-      // Rediriger vers la page de connexion si pas connecté
-      this.router.navigate(['/login']);
-    }
-  });
+
+  const currentUser = this.authservice.getCurrentUser();
+  this.currentUserId = currentUser?.id?.toString() || null;
+  const param_id = this.route.snapshot.paramMap.get('id');
+  if(!isNullOrUndefined(param_id)){
+    this.isOwnProfile = false;
+    this.loadUserProfile(param_id as string).then(()=>{
+
+    })
+  }else{
+    this.loadUserProfile(this.currentUserId as string)
+  }
 
   // S'abonner aux changements d'authentification
   this.authservice.currentUser$.pipe(
@@ -149,17 +143,21 @@ ngOnInit() {
   ).subscribe(user => {
     const currentUserId = user?.id?.toString() || null;
     if (this.userProfile) {
-      const isCurrentUserProfile = this.route.snapshot.data['isCurrentUser'] === true;
-      this.isOwnProfile = isCurrentUserProfile || this.userProfile.id === currentUserId;
+      // Mettre à jour isOwnProfile en fonction de la route actuelle
+      const isTabsRoute = this.router.url.startsWith('/tabs');
+      if (isTabsRoute) {
+        this.isOwnProfile = true;
+      } else {
+        this.isOwnProfile = this.userProfile.id === currentUserId;
+      }
     }
     this.currentUserId = currentUserId;
-    this.isRight_toWrite = user?.readonly || false;
   });
 }
 
 async toggleFollow() {
   if (!this.currentUserId || !this.userProfile) return;
-
+  this.isLoading = true;
   try {
     let result;
     if (this.userProfile.isFollowing) {
@@ -186,13 +184,11 @@ async toggleFollow() {
       color: 'danger'
     });
     await toast.present();
+  }finally{
+    this.isLoading = false;
   }
 }
 
-// Add this method to your HomePage class
-getMediaUrl(relativePath: string): string {
-  return getMediaUrl(relativePath);
-}
  
    async loadUserProfile(userId: string) {
   if (!userId) {
@@ -201,12 +197,17 @@ getMediaUrl(relativePath: string): string {
   }
 
   this.isLoading = true;
+
   try {
+  
     const profile = await this.profileService.getProfileById(userId).toPromise();
     if (!profile) {
       throw new Error('Profil non trouvé');
     }
-    
+    if(this.currentUserId!== profile.id){
+     const myUserProfile =  await this.profileService.getProfileById(this.currentUserId as string).toPromise();
+      profile.isFollowing = myUserProfile?.myFollows.some((id)=> id == profile.id ) || false;
+    }
     this.userProfile = profile;
     this.isOwnProfile = this.currentUserId === userId;
     this.cdr.detectChanges();
@@ -217,7 +218,7 @@ getMediaUrl(relativePath: string): string {
     
   } catch (error) {
     console.error('Erreur lors du chargement du profil:', error);
-    this.router.navigate(['/tabs/home']);
+    this.router.navigate(['tabs/tabs/home']);
   } finally {
     this.isLoading = false;
   }
@@ -239,9 +240,12 @@ getMediaUrl(relativePath: string): string {
 
 
   loadActiveChallenges(UerId: string){
+    this.activeChallengesCount = 0;
     this.activeChallenges$ = this.challengeService.getChallengesByCreator(UerId);
     this.activeChallenges$.subscribe((challenges: Challenge[]) => {
-      this.activeChallengesCount = challenges.length;
+      if(challenges.some((challenge)=> challenge.is_active)){
+      this.activeChallengesCount++;
+      }
     });
     
   }
@@ -323,7 +327,7 @@ getMediaUrl(relativePath: string): string {
   }
 
   // Méthodes existantes
-  async presentShareOptions() {
+  async presentShareOptions(profile: UserProfile) {
     const actionSheet = await this.actionSheetController.create({
       header: 'Partager le profil',
       buttons: [
@@ -331,14 +335,14 @@ getMediaUrl(relativePath: string): string {
           text: 'Copier le lien',
           icon: 'link',
           handler: () => {
-            this.copyProfileLink();
+            this.copyProfileLink(profile);
           }
         },
         {
           text: 'Partager via...',
           icon: 'share-social',
           handler: () => {
-            this.shareProfile();
+            this.shareProfile(profile);
           }
         },
         {
@@ -357,8 +361,32 @@ getMediaUrl(relativePath: string): string {
   const buttons = [];
  
   if (isOwnProfile) {
+    buttons.push(
+      {
+        text: 'Mon Compte',
+        icon: 'person-circle-outline',
+        handler: () => {
+          this.openAccountModal();
+        }
+      },
+      {
+        text: 'Modifier le profil',
+        icon: 'create-outline',
+        handler: () => {
+          this.editProfile();
+        }
+      },
+      
+      {
+        text: 'Paramètres',
+        icon: 'settings-outline',
+        handler: () => {
+          this.openSettings();
+        }
+      }
+    );
     // Options pour le profil de l'utilisateur connecté
-    if(this.activeChallengesCount > 0 && this.userProfile?.userType === 'creator') {
+    /*if(this.activeChallengesCount > 0 && this.userProfile?.userType === 'creator') {
       buttons.push(
         {
           text: 'Nouveau Défi',
@@ -368,23 +396,8 @@ getMediaUrl(relativePath: string): string {
           }
         }
       );
-    }
-    buttons.push(
-      {
-        text: 'Modifier le profil',
-        icon: 'create-outline',
-        handler: () => {
-          this.editProfile();
-        }
-      },
-      {
-        text: 'Paramètres',
-        icon: 'settings-outline',
-        handler: () => {
-          this.openSettings();
-        }
-      }
-    );
+    }*/
+    
     
   } else {
     // Options pour le profil d'un autre utilisateur
@@ -423,13 +436,83 @@ getMediaUrl(relativePath: string): string {
   await actionSheet.present();
 }
 
-// Ajoutez ces méthodes si elles n'existent pas déjà
-private editProfile() {
-  this.router.navigate(['/edit-profile']);
+async openAccountModal() {
+  const modal = await this.modalCtrl.create({
+        component: AccountModalComponent,
+        componentProps: {},
+        cssClass: 'auto-height',
+        initialBreakpoint: 0.75,
+        breakpoints: [0, 0.75, 1],
+        handle: true
+      });
+      
+      await modal.present();
+      
+      modal.onDidDismiss().then((data) => {
+        if (data.data && data.data.success) {
+          //console.log('Achat de coins réussi:', data.data.pack);
+         
+        }
+      });
+}
+
+async openChallengeModal(challenge: Challenge){
+  const modal = await this.modalCtrl.create({
+    component: ModalChallengeComponent,
+    cssClass: 'auto-height',
+    componentProps: {challenge: challenge, currentUserProfile:this.userProfile},
+  })
+
+  await modal.present();
+}
+
+private async editProfile() {
+  const modal = await this.modalCtrl.create({
+    component: ModalEditProfileComponent,
+    componentProps: {
+      profile: this.userProfile
+    },
+    cssClass: 'auto-height',
+    initialBreakpoint: 0.9,
+    breakpoints: [0, 0.9, 1]
+  });
+
+  await modal.present();
+
+  const { data } = await modal.onDidDismiss();
+  
+  if (data?.success && data?.profile) {
+    // Update the local profile data
+    this.userProfile = data.profile;
+    this.cdr.detectChanges();
+    
+    // Show success message
+    const toast = await this.toastController.create({
+      message: 'Profil mis à jour avec succès',
+      duration: 2000,
+      position: 'bottom',
+      color: 'success'
+    });
+    await toast.present();
+  }
 }
 
 private openSettings() {
-  this.router.navigate(['/settings']);
+  // Récupérer l'utilisateur connecté
+  const currentUser = this.authservice.getCurrentUser();
+ 
+  if (!currentUser || !this.userProfile) {
+    console.error('Utilisateur ou profil non disponible pour les paramètres');
+    return;
+  }
+
+  // Naviguer vers settings avec les extras nécessaires
+  this.router.navigate(['/settings'], {
+    state: {
+      userProfile: this.userProfile,
+      user: currentUser
+    }
+  });
 }
 
 private async reportUser() {
@@ -502,26 +585,74 @@ private async presentToast(message: string, color: 'success' | 'warning' | 'dang
   await toast.present();
 }
 
-  copyProfileLink() {
-    const link = `https://app.com/profile/${this.userProfile.id}`;
+  copyProfileLink(profile:UserProfile) {
+    const link = `https://app.com/profile/${profile.id}`;
     navigator.clipboard.writeText(link);
     console.log('Link copied:', link);
   }
 
-  shareProfile() {
-    console.log('Sharing profile...');
+  async shareProfile(profile: UserProfile) {
+    const shareData = {
+      title: `${profile.displayName} - Best Academy`,
+      text: `Découvrez le profil de ${profile.displayName}${profile.bio ? ': ' + profile.bio : ''}`,
+      url: `https://app.com/profile/${profile.id}`
+    };
+
+    try {
+      // Vérifier si l'API Web Share est disponible
+      if (navigator.share) {
+        await navigator.share(shareData);
+        console.log('Profile shared successfully');
+      } else {
+        // Fallback: copier le lien dans le presse-papiers
+        await this.copyProfileLink(profile);
+        await this.presentToast('Lien du profil copié dans le presse-papiers', 'success');
+      }
+    } catch (error: unknown) {
+      console.error('Error sharing profile:', error);
+      
+      // En cas d'erreur, proposer de copier le lien
+      const errorName = error instanceof Error ? error.name : 'UnknownError';
+      if (errorName !== 'AbortError') { // L'utilisateur a annulé le partage
+        await this.copyProfileLink(profile);
+        await this.presentToast('Lien du profil copié dans le presse-papiers', 'success');
+      }
+    }
   }
 
-  sendMessage() {
-    console.log('Opening message...');
+  async openDM() {
+    const modal = await this.modalCtrl.create({
+      component: ModalMessageComponent,
+      componentProps: {
+        currentUserId: this.currentUserId,
+        currentUsername: this.userProfile?.displayName
+      },
+      cssClass: 'modal-fullscreen'
+    });
+    
+    await modal.present();
   }
 
   // Dans profile.page.ts
-openContent(content: Content) {
-  // Naviguer vers la page de détail du contenu
-  this.router.navigate(['/content-detail', content.id]);
-  // Ou ouvrir un modal avec le contenu
-  // this.presentContentModal(content);
+async openContent(content: Content) {
+  
+  if (!content) {
+        console.error('Content not found for item:', content);
+        return;
+      }
+      const myUserProfile = await this.profileService.getProfileById(this.currentUserId as string).toPromise();
+          const modal = await this.modalCtrl.create({
+          component: FollowedViewComponent,
+          componentProps: {
+            currentUserProfile: myUserProfile,
+            posts: [content],
+            challengeName: '-'
+          },
+          animated: true,
+          cssClass: 'followed-view-modal',
+          handle: true
+        });
+        await modal.present();
 }
 
 

@@ -1,0 +1,135 @@
+<div class="modal-wrapper">
+  <div class="modal-header-minimal">
+    <h2>Acheter des Coins</h2>
+    <button class="close-button" (click)="dismiss()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+  </div>
+
+  <ion-content>
+    <!-- ÉTAT DE CHARGEMENT -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Chargement des packs de coins...</p>
+      </div>
+    </div>
+
+    <!-- ÉTAT D'ERREUR -->
+    <div *ngIf="hasError" class="error-state">
+      <div class="error-content">
+        <ion-icon name="alert-circle" class="error-icon"></ion-icon>
+        <h3>Erreur de chargement</h3>
+        <p>{{ errorMessage }}</p>
+        <button class="retry-button" (click)="retryLoad()">
+          <ion-icon name="refresh"></ion-icon>
+          Réessayer
+        </button>
+      </div>
+    </div>
+
+    <!-- ÉTAT VIDE (PAS DE PACKS) -->
+    <div *ngIf="showEmptyState" class="empty-state">
+      <div class="empty-content">
+        <ion-icon name="cube-outline" class="empty-icon"></ion-icon>
+        <h3>Aucun pack disponible</h3>
+        <p>Les packs de coins seront bientôt disponibles. Revenez plus tard !</p>
+        <button class="refresh-button" (click)="retryLoad()">
+          <ion-icon name="refresh"></ion-icon>
+          Actualiser
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENU NORMAL (SI PACKS DISPONIBLES) -->
+    <div *ngIf="hasPacks && !isLoading && !hasError">
+      <!-- SLIDER CONTAINER -->
+      <div class="slider-container">
+        <!-- SLIDER CONTROLS -->
+        <button 
+          class="slider-control prev" 
+          (click)="prevSlide()" 
+          [disabled]="currentSlideIndex === 0"
+        >
+          <ion-icon name="chevron-back-outline"></ion-icon>
+        </button>
+
+        <!-- SLIDES WRAPPER -->
+        <div class="slides-wrapper">
+          <div 
+            class="slides-track" 
+            [style.transform]="'translateX(-' + (currentSlideIndex * 100) + '%)'"
+          >
+            <div 
+              *ngFor="let slide of slidesData; let i = index" 
+              class="slide-item"
+            >
+            <div class="packs-grid">
+              <div 
+                *ngFor="let pack of slide.packs; let j = index" 
+                class="pack-card"
+                [class.best-value]="pack.isBestValue"
+                [class.loading]="isProcessingPayment"
+                [class.active]="true"
+              >
+                <!-- Best Value Badge -->
+                <div *ngIf="pack.isBestValue" class="best-value-badge">
+                  Meilleur Prix
+                </div>
+                
+                <!-- Promo Badge -->
+                <div *ngIf="pack.promo && !pack.isBestValue" class="promo-badge">
+                  {{ pack.promo }}
+                </div>
+                
+                <!-- Pack Icon -->
+                <div class="pack-icon-wrapper">
+                  <img [src]="(pack.icon | mediaUrl)" [alt]="'Pack ' + pack.amount">
+                </div>
+                
+                <!-- Pack Amount -->
+                <div class="pack-amount">{{ pack.amount }} <span>coins</span></div>
+                
+                <!-- Pack Price -->
+                <div class="pack-price">
+                  <span class="currency">${{ pack.price }}</span>
+                </div>
+                
+                <!-- Buy Button -->
+                <button 
+                  class="pack-btn" 
+                  (click)="purchasePack(pack)"
+                  [disabled]="isProcessingPayment"
+                >
+                  {{ isProcessingPayment ? 'Traitement...' : 'Acheter' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDER CONTROLS -->
+      <button 
+        class="slider-control next" 
+        (click)="nextSlide()" 
+        [disabled]="currentSlideIndex === slidesData.length - 1"
+      >
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </button>
+    </div>
+
+    <!-- SLIDER INDICATORS -->
+    <div class="slider-indicators">
+      <button 
+        *ngFor="let slide of slidesData; let i = index"
+        class="indicator"
+        [class.active]="i === currentSlideIndex"
+        (click)="goToSlide(i)"
+      ></button>
+    </div>
+    </div> <!-- Fin du contenu normal -->
+
+    
+  </ion-content>
+</div>

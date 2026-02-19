@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSpinner, IonIcon, IonAvatar, IonButton, IonFooter } from '@ionic/angular/standalone';
 import { Content } from 'src/models/Content';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CreationService } from 'src/services/CREATION/creation-service';
+import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
 import { Auth, AuthUser } from 'src/services/AUTH/auth';
 import { User } from 'src/models/User';
 interface Comment {
@@ -171,7 +171,7 @@ export class ContentDetailPage implements OnInit {
     // Implémentez la logique de partage
     if (this.content) {
       const shareData = {
-        title: this.content.title,
+        
         text: this.content.description,
         url: window.location.href
       };

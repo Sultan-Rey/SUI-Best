@@ -1,0 +1,147 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button click="back()" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Recherche</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Recherche</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <ion-searchbar
+      #searchBar
+      [(ngModel)]="searchQuery"
+      (ionInput)="onSearchInput($event)"
+      (ionClear)="onSearchClear()"
+      placeholder="Rechercher un profil..."
+      animated="true"
+      debounce="300"
+      class="search-bar">
+    </ion-searchbar>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="skeleton-item" *ngFor="let i of [1,2,3,4,5]">
+      <ion-skeleton-text animated class="skeleton-avatar"></ion-skeleton-text>
+      <div class="skeleton-lines">
+        <ion-skeleton-text animated class="skeleton-name"></ion-skeleton-text>
+        <ion-skeleton-text animated class="skeleton-sub"></ion-skeleton-text>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Results -->
+  <div class="results-container" *ngIf="!isLoading && searchResults.length > 0">
+    <div class="results-label">Résultats</div>
+    <div
+      class="profile-item"
+      *ngFor="let profile of searchResults; trackBy: trackByProfileId"
+      (click)="goToProfile(profile)">
+
+      <div class="avatar-wrap">
+        <img
+          [src]="profile.avatar || 'assets/avatar-default.png' | mediaUrl"
+          [alt]="profile.displayName"
+          class="profile-avatar"
+          (error)="onAvatarError($event)">
+      </div>
+
+      <div class="profile-info">
+        <div class="name-row">
+          <span class="profile-name">{{ profile.displayName }}</span>
+          <span class="verified-badge" *ngIf="profile.isVerified">
+            <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
+          </span>
+          <span class="user-type-badge" [class]="'type-' + profile.userType">
+            {{ profile.userType }}
+          </span>
+        </div>
+        <p class="profile-username">@{{ profile.username }}</p>
+        <p class="profile-bio" *ngIf="profile.bio">{{ profile.bio }}</p>
+        <div class="profile-stats">
+          <span class="stat-item">
+            <strong>{{ profile.stats.fans || 0 | shortNumber }}</strong> fans
+          </span>
+          <span class="stat-sep">·</span>
+          <span class="stat-item">
+            <strong>{{ profile.stats.posts || 0 }}</strong> posts
+          </span>
+        </div>
+      </div>
+
+      <ion-icon name="chevron-forward" class="arrow-icon"></ion-icon>
+    </div>
+  </div>
+
+  <!-- Search Suggestions (show when no query) -->
+  <div class="suggestions-container" *ngIf="!isLoading && searchResults.length === 0 && searchQuery.length === 0">
+    <div class="section-header">
+      <h3>{{suggestionString}}</h3>
+    </div>
+
+    <div
+      class="profile-item suggestion-item"
+      *ngFor="let profile of searchSuggestions; trackBy: trackByProfileId"
+      (click)="goToProfile(profile)">
+
+      <div class="avatar-wrap">
+        <img
+          [src]="profile.avatar || 'assets/avatar-default.png' | mediaUrl"
+          [alt]="profile.displayName"
+          class="profile-avatar"
+          (error)="onAvatarError($event)">
+      </div>
+
+      <div class="profile-info">
+        <div class="name-row">
+          <span class="profile-name">{{ profile.displayName }}</span>
+          <span class="verified-badge" *ngIf="profile.isVerified">
+            <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
+          </span>
+          <span class="user-type-badge" [class]="'type-' + profile.userType">
+            {{ profile.userType }}
+          </span>
+        </div>
+        <p class="profile-username">@{{ profile.username }}</p>
+        <div class="profile-stats">
+          <span class="stat-item">
+            <strong>{{ profile.stats.fans || 0 | shortNumber }}</strong> fans
+          </span>
+        </div>
+      </div>
+
+      <ion-icon name="chevron-forward" class="arrow-icon"></ion-icon>
+    </div>
+  </div>
+
+  <!-- No Results -->
+  <div class="no-results" *ngIf="!isLoading && searchResults.length === 0 && searchQuery.length >= 2">
+    <div class="state-icon-wrap">
+      <ion-icon name="person-outline"></ion-icon>
+    </div>
+    <h3>Aucun résultat</h3>
+    <p>Aucun profil trouvé pour <em>"{{ searchQuery }}"</em></p>
+    <ion-button fill="clear" (click)="onSearchClear()" class="clear-search-btn">
+      Effacer la recherche
+    </ion-button>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && searchResults.length === 0 && searchQuery.length === 0 && searchSuggestions.length === 0">
+    <div class="state-icon-wrap">
+      <ion-icon name="search-outline"></ion-icon>
+    </div>
+    <h3>Rechercher des profils</h3>
+    <p>Entrez un nom d'utilisateur ou un nom pour trouver des profils</p>
+  </div>
+
+</ion-content>

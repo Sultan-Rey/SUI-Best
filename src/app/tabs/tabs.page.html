@@ -11,7 +11,10 @@
     </ion-tab-button>
     
     <ion-tab-button tab="upload" [class.active]="activeTab === 'upload'">
-      <ion-icon name="add-circle"></ion-icon>
+      <div class="upload-tab">
+        <ion-icon name="add-circle"></ion-icon>
+        <ion-icon *ngIf="getRightToWrite()" name="star" class="write-star"></ion-icon>
+      </div>
       <ion-label>Upload</ion-label>
     </ion-tab-button>
     

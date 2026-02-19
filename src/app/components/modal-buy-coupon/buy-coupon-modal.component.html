@@ -1,0 +1,211 @@
+<div class="modal-wrapper">
+  <div class="modal-header-minimal">
+    <div class="user-balance">
+      <span>Balance : </span>
+      <span>{{ balance.coins }}</span>
+      <img src="assets/icon/coin-gold.png" alt="coins">
+    </div>
+    <button class="close-button" (click)="dismiss()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+  </div>
+
+  <ion-content>
+    <div class="modal-content">
+      <!-- État de chargement -->
+      <div class="loading-state" *ngIf="isLoading">
+        <ion-spinner name="circles"></ion-spinner>
+        <p>Chargement des packs...</p>
+      </div>
+
+      <!-- État d'erreur -->
+      <div class="error-state" *ngIf="loadingError && !isLoading">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <h3>Erreur de chargement</h3>
+        <p>{{ loadingError }}</p>
+        <button class="retry-btn" (click)="retryLoading()">
+          <ion-icon name="refresh-outline"></ion-icon>
+          Réessayer
+        </button>
+      </div>
+
+      <!-- Contenu principal -->
+      <div *ngIf="!isLoading && !loadingError">
+        <!-- BEST Academy Section -->
+        <div class="creator-section" *ngIf="bestAcademyPacks.length > 0">
+          <div class="section-header">
+            <div class="creator-info">
+              <ion-icon name="school-outline"></ion-icon>
+              <h3>BEST ACADEMY</h3>
+            </div>
+            <span class="pack-count">{{ bestAcademyPacks.length }} packs</span>
+          </div>
+          
+          <div class="packs-slider">
+            <div class="pack-card" 
+                 *ngFor="let pack of bestAcademyPacks"
+                 [attr.data-type]="pack.couponType">
+              
+              <!-- Perforations gauche -->
+              <div class="ticket-perforation left">
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+              </div>
+
+              <!-- Wrapper du ticket -->
+              <div class="ticket-wrapper">
+                <!-- Header avec bande de couleur -->
+                <div class="ticket-header">
+                  <div class="ticket-header-bg"></div>
+                  <div class="pack-type">{{ pack.couponType }}</div>
+                  <div class="pack-icon">
+                    <ion-icon [name]="getCouponIcon(pack.couponType)"></ion-icon>
+                  </div>
+                </div>
+
+                <!-- Corps du ticket -->
+                <div class="ticket-body">
+                  <div class="pack-name">{{ pack.name }}</div>
+                  <div class="pack-quantity">
+                    <ion-icon name="layers-outline"></ion-icon>
+                    {{ pack.amount }} coupons
+                  </div>
+                </div>
+
+                <!-- Pied du ticket -->
+                <div class="ticket-footer">
+                  <div class="pack-price">
+                    <span>{{ pack.price }}</span>
+                  <ion-img src="../../../assets/icon/coin-gold.png" ></ion-img>
+                      
+                  </div>
+                  <div class="pack-discount" *ngIf="pack.promo">-{{ pack.promo }}</div>
+                </div>
+              </div>
+
+              <!-- Perforations droite -->
+              <div class="ticket-perforation right">
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+              </div>
+              
+              <!-- Buy Button under each pack -->
+              <div class="pack-buy-section">
+                <button 
+                  class="pack-buy-btn" 
+                  (click)="purchasePack(pack)"
+                  [disabled]="isProcessingPayment"
+                >
+                  <span *ngIf="currentUser.id === pack.ownerId"><ion-icon name="lock-closed"></ion-icon></span>
+                  <span *ngIf="currentUser.id !== pack.ownerId">{{ isProcessingPayment ? 'Traitement...' : 'Acheter' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Others Separator -->
+        <div class="others-separator" *ngIf="otherCreatorsPacks.length > 0">
+          <div class="separator-line"></div>
+          <div class="separator-text">
+            <ion-icon name="business-outline"></ion-icon>
+            <span>Others</span>
+          </div>
+          <div class="separator-line"></div>
+        </div>
+
+        <!-- Other Creators Sections -->
+        <div class="creator-section" 
+             *ngFor="let creator of otherCreatorsPacks; let i = index">
+          <div class="section-header">
+            <div class="creator-info">
+              <ion-icon name="business-outline"></ion-icon>
+              <h3>{{ creator.creatorName }}</h3>
+            </div>
+            <span class="pack-count">{{ creator.packs.length }} packs</span>
+          </div>
+          
+          <div class="packs-slider">
+            <div class="pack-card" 
+                 *ngFor="let pack of creator.packs"
+                 [attr.data-type]="pack.couponType">
+              
+              <!-- Perforations gauche -->
+              <div class="ticket-perforation left">
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+              </div>
+
+              <!-- Wrapper du ticket -->
+              <div class="ticket-wrapper">
+                <!-- Header avec bande de couleur -->
+                <div class="ticket-header">
+                  <div class="ticket-header-bg"></div>
+                  <div class="pack-type">{{ pack.couponType }}</div>
+                  <div class="pack-icon">
+                    <ion-icon [name]="getCouponIcon(pack.couponType)"></ion-icon>
+                  </div>
+                </div>
+
+                <!-- Corps du ticket -->
+                <div class="ticket-body">
+                  <div class="pack-name">{{ pack.name }}</div>
+                  <div class="pack-quantity">
+                    <ion-icon name="layers-outline"></ion-icon>
+                    {{ pack.amount }} coupons
+                  </div>
+                </div>
+
+                <!-- Pied du ticket -->
+                <div class="ticket-footer">
+                  <div class="pack-price">
+                  <span>{{ pack.price }}</span>
+                  <ion-img src="../../../assets/icon/coin-gold.png" ></ion-img>
+                      
+                  </div>
+                  <div class="pack-discount" *ngIf="pack.promo">-{{ pack.promo }}%</div>
+                </div>
+              </div>
+
+              <!-- Perforations droite -->
+              <div class="ticket-perforation right">
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+                <span class="perf-dot"></span>
+              </div>
+              
+              <!-- Buy Button under each pack -->
+              <div class="pack-buy-section">
+                <button 
+                  class="pack-buy-btn" 
+                  (click)="purchasePack(pack)"
+                  [disabled]="isProcessingPayment"
+                >
+                  <span>{{ isProcessingPayment ? 'Traitement...' : 'Acheter' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state when no coupons -->
+        <div class="empty-state" *ngIf="bestAcademyPacks.length === 0 && otherCreatorsPacks.length === 0">
+          <ion-icon name="ticket-outline"></ion-icon>
+          <h3>Aucun coupon disponible</h3>
+          <p>Revenez plus tard pour de nouvelles offres</p>
+        </div>
+      </div>
+    </div>
+  </ion-content>
+</div>

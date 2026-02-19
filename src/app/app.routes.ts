@@ -39,9 +39,26 @@ export const routes: Routes = [
     loadComponent: () => import('./settings/settings.page').then( m => m.SettingsPage)
   },
   {
+    path: 'search',
+    loadComponent: () => import('./search/search.page').then( m => m.SearchPage)
+  },
+  {
+    path: 'blacklist',
+    loadComponent: () => import('./blacklist/blacklist.page').then( m => m.BlacklistPage)
+  },
+  {
+    path: 'profile/:id',
+    loadComponent: () => import( './tab-profile/profile.page').then(m => m.ProfilePage)
+  },
+   {
+    path: 'notification',
+    loadComponent: () => import('./notification/notification.page').then( m => m.NotificationPage)
+  },
+  {
     path: '**',
     redirectTo: 'login'
   },
+ 
   
   
   

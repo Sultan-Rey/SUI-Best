@@ -1,0 +1,524 @@
+// ─────────────────────────────────────────────
+//  Tokens
+// ─────────────────────────────────────────────
+:host {
+  --bg:              #0a0a0f;
+  --surface:         rgba(255, 255, 255, 0.035);
+  --surface-hover:   rgba(255, 255, 255, 0.065);
+  --border:          rgba(255, 255, 255, 0.07);
+  --border-strong:   rgba(255, 255, 255, 0.14);
+
+  --accent:          #c9a96e;
+  --accent-dim:      rgba(201, 169, 110, 0.15);
+  --accent-glow:     rgba(201, 169, 110, 0.35);
+
+  --red:             #e05555;
+  --red-dim:         rgba(224, 85, 85, 0.12);
+  --red-glow:        rgba(224, 85, 85, 0.35);
+
+  --blue:            #64a0ff;
+  --blue-dim:        rgba(100, 160, 255, 0.1);
+
+  --green:           #50c88c;
+  --green-dim:       rgba(80, 200, 140, 0.1);
+
+  --text-primary:    rgba(255, 255, 255, 0.92);
+  --text-secondary:  rgba(255, 255, 255, 0.45);
+  --text-tertiary:   rgba(255, 255, 255, 0.25);
+
+  --font-display:    'Cormorant Garamond', Georgia, serif;
+  --font-body:       'DM Sans', system-ui, sans-serif;
+
+  --radius-card:     16px;
+  --radius-icon:     12px;
+  --radius-seg:      14px;
+  --radius-pill:     100px;
+}
+
+// ─────────────────────────────────────────────
+//  Global host background
+// ─────────────────────────────────────────────
+:host {
+  display: block;
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  min-height: 100%;
+  position: relative;
+
+  // Ambient background orbs
+  &::before,
+  &::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &::before {
+    width: 600px;
+    height: 600px;
+    top: -200px;
+    right: -150px;
+    background: radial-gradient(circle, rgba(201, 169, 110, 0.06) 0%, transparent 70%);
+  }
+
+  &::after {
+    width: 500px;
+    height: 500px;
+    bottom: -150px;
+    left: -100px;
+    background: radial-gradient(circle, rgba(100, 100, 200, 0.05) 0%, transparent 70%);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Ionic overrides — toolbar / header
+// ─────────────────────────────────────────────
+ion-header {
+  ion-toolbar {
+    --background:       rgba(0, 0, 0, 0.676);
+    --border-color:     transparent;
+    --padding-start:    5px;
+    --padding-end:      20px;
+    --padding-top:      22px;
+    --padding-bottom:   16px;
+    --min-height:       auto;
+    align-items: flex-end;
+  }
+
+  ion-title {
+    padding-inline: 0;
+    text-align: left;
+
+    .header-eyebrow {
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .header-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 8vw, 52px);
+      font-weight: 300;
+      line-height: 1;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      display: block;
+      animation: fadeUp 0.5s ease both;
+    }
+  }
+
+  ion-buttons {
+    align-self: flex-end;
+    padding-bottom: 6px;
+  }
+}
+
+.header-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s, color 0.25s;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+
+  ion-icon {
+    font-size: 14px;
+  }
+
+  &:hover:not([disabled]) {
+    background: var(--surface-hover);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &[disabled] {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Ion content
+// ─────────────────────────────────────────────
+ion-content {
+  --background: transparent;
+  --color: var(--text-primary);
+  position: relative;
+  z-index: 1;
+}
+
+// ─────────────────────────────────────────────
+//  Segment
+// ─────────────────────────────────────────────
+.segment-wrap {
+  padding: 4px 28px 20px;
+  animation: fadeUp 0.5s 0.08s ease both;
+}
+
+.segment {
+  display: flex;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-seg);
+  padding: 5px;
+}
+
+.seg-btn {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    color: var(--text-secondary);
+  }
+
+  &.active {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+    box-shadow:
+      0 1px 8px rgba(0, 0, 0, 0.35),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+}
+
+.seg-badge {
+  background: var(--red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  line-height: 14px;
+}
+
+// ─────────────────────────────────────────────
+//  Notification list
+// ─────────────────────────────────────────────
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0 28px 60px;
+}
+
+.notif-date-group {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.date-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 8px 4px 10px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0 20px;
+}
+
+// ─────────────────────────────────────────────
+//  Notification item
+// ─────────────────────────────────────────────
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.22s, border-color 0.22s, transform 0.22s, box-shadow 0.22s;
+  position: relative;
+  margin-bottom: 6px;
+  animation: fadeUp 0.35s ease both;
+
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+    .btn-close {
+      opacity: 1;
+    }
+  }
+
+  &.unread {
+    background: rgba(201, 169, 110, 0.06);
+    border-color: rgba(201, 169, 110, 0.4);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 60%;
+      background: var(--accent);
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Icon wrap
+// ─────────────────────────────────────────────
+.notif-icon-wrap {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-icon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &.icon-gold {
+    background: var(--accent-dim);
+    ion-icon { color: var(--accent); }
+  }
+
+  &.icon-red {
+    background: var(--red-dim);
+    ion-icon { color: var(--red); }
+  }
+
+  &.icon-blue {
+    background: var(--blue-dim);
+    ion-icon { color: var(--blue); }
+  }
+
+  &.icon-green {
+    background: var(--green-dim);
+    ion-icon { color: var(--green); }
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Notification body
+// ─────────────────────────────────────────────
+.notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+  line-height: 1.4;
+
+  .notif-item:not(.unread) & {
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+}
+
+.notif-message {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .notif-item:not(.unread) & {
+    color: var(--text-tertiary);
+  }
+}
+
+.notif-time {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.03em;
+}
+
+// ─────────────────────────────────────────────
+//  Actions column
+// ─────────────────────────────────────────────
+.notif-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dot-unread {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+
+  &.dot-high,
+  &.dot-gold {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  &.dot-danger,
+  &.dot-red {
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red-glow);
+  }
+
+  &.dot-medium,
+  &.dot-blue {
+    background: var(--blue);
+    box-shadow: 0 0 8px rgba(100, 160, 255, 0.35);
+  }
+
+  // default fallback
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.btn-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: background 0.18s, color 0.18s, opacity 0.18s;
+  opacity: 0;
+
+  ion-icon {
+    font-size: 13px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-primary);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Empty state
+// ─────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 40px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+
+  ion-icon {
+    font-size: 28px;
+    color: var(--text-tertiary);
+  }
+}
+
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.empty-sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+
+// ─────────────────────────────────────────────
+//  Animations
+// ─────────────────────────────────────────────
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Responsive
+// ─────────────────────────────────────────────
+@media (max-width: 400px) {
+  ion-header ion-toolbar {
+    --padding-start: 20px;
+    --padding-end: 12px;
+  }
+
+  .segment-wrap,
+  .notif-list {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .seg-btn {
+    font-size: 11px;
+    padding: 8px 6px;
+  }
+}

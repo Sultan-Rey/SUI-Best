@@ -11,13 +11,15 @@
     <ion-title class="ion-text-center">
       <span *ngIf="currentStep === 1">Nouvelle publication</span>
       <span *ngIf="currentStep === 2">Détails</span>
-      <span *ngIf="currentStep === 3">Vérification</span>
+      <span *ngIf="currentStep === 3 && isModalMode === false">Vérification</span>
+      <span *ngIf="currentStep === 3 && isModalMode === true">Vérification</span>
+      <span *ngIf="currentStep === 4 && isModalMode === false">Vérification</span>
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="nextStep()" [disabled]="!canProceed()" *ngIf="currentStep < 4">
+      <ion-button (click)="nextStep()" [disabled]="!canProceed()" *ngIf="currentStep < totalSteps">
         <span>Suivant</span>
       </ion-button>
-      <ion-button (click)="submit()" [disabled]="!canSubmit()" *ngIf="currentStep === 4">
+      <ion-button (click)="submit()" [disabled]="!canSubmit()" *ngIf="currentStep === totalSteps">
         <span>Publier</span>
       </ion-button>
     </ion-buttons>
@@ -63,20 +65,11 @@
     <ion-list lines="full" class="ion-margin-bottom">
       <ion-item>
         <ion-textarea
-          [(ngModel)]="content.title"
-          placeholder="Titre (obligatoire)"
-          rows="1"
-          autoGrow="true"
-          required
-        ></ion-textarea>
-      </ion-item>
-      
-      <ion-item>
-        <ion-textarea
           [(ngModel)]="content.description"
-          placeholder="Ajoutez une description..."
+          placeholder="Ajoutez une description...(Obligatoire)"
           rows="3"
           autoGrow="true"
+          required="true"
         ></ion-textarea>
       </ion-item>
     </ion-list>
@@ -107,8 +100,8 @@
       </ion-item>
     </ion-list>
   </div>
-<!-- Étape 3: Sélection du défi -->
-<div *ngIf="currentStep === 3" class="challenge-step ion-padding">
+<!-- Étape 3: Sélection du défi (uniquement en mode normal) -->
+<div *ngIf="currentStep === 3 && isModalMode === false" class="challenge-step ion-padding">
   <h2>Associer à un défi</h2>
   <p class="ion-margin-bottom">Sélectionnez un défi existant (optionnel)</p>
 
@@ -136,28 +129,84 @@
   </ion-list>
 </div>
 
-<!-- Étape 4: Vérification -->
-<div *ngIf="currentStep === 4" class="preview-step">
-  <div class="preview-card">
-    <div class="preview-media">
-      <img *ngIf="isImage()" [src]="previewUrl" alt="Aperçu">
-      <video *ngIf="isVideo()" [src]="previewUrl" controls></video>
+
+<!-- Étape 3 ou 4: Vérification (mode modal) -->
+<div *ngIf="(currentStep === 3 && isModalMode === true) || (currentStep === 4 && isModalMode === false) " class="preview-step tiktok-preview">
+  <!-- Conteneur principal style TikTok -->
+  <div class="post-preview">
+    <!-- Média en arrière-plan -->
+    <div class="video-container">
+      <img *ngIf="isImage()" [src]="previewUrl" class="video-thumbnail" [class.fit-to-screen]="imageFitMode === 'fit'">
+      <video *ngIf="isVideo()" [src]="previewUrl" class="video-thumbnail" [class.fit-to-screen]="imageFitMode === 'fit'" autoplay muted loop></video>
+      <div class="video-overlay"></div>
     </div>
-    <div class="preview-details">
-      <h3>{{ content.title || 'Sans titre' }}</h3>
-      <p class="description" *ngIf="content.description">{{ content.description }}</p>
-      <div class="meta-info">
-        <span class="visibility">
-          <ion-icon name="globe" *ngIf="content.isPublic"></ion-icon>
-          <ion-icon name="lock-closed" *ngIf="!content.isPublic"></ion-icon>
-          {{ content.isPublic ? 'Publique' : 'Privé' }}
-        </span>
-        <span class="downloads" *ngIf="content.allowDownloads">
-          <ion-icon name="download"></ion-icon>
-          Téléchargement autorisé
-        </span>
+
+    <!-- Contenu principal par-dessus -->
+    <div class="main-content">
+      <div class="artist-info">
+        <div class="artist-header">
+          <img [src]="'assets/avatar-default.png'" class="artist-avatar">
+          <div class="artist-details">
+            <div class="profile-header">
+              <ion-chip *ngIf="challengeId" color="danger">Défi associé</ion-chip>
+              <h4 class="profile-name">{{ content.userId || 'Utilisateur' }}</h4>
+            </div>
+            
+            <div class="artist-name">
+              <span>{{ content.description }}</span>
+            </div>
+            
+            <p class="artist-location">
+              <span class="post-date">{{ 'Maintenant' }}</span>
+              <span class="separator">•</span>
+              <span class="post-views">0 vues</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions latérales -->
+      <div class="side-actions">
+        <button class="action-button">
+          <div class="action-icon">
+            <ion-icon name="heart-outline"></ion-icon>
+          </div>
+          <span class="action-count">0</span>
+        </button>
+        <button class="action-button">
+          <div class="action-icon">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+          </div>
+          <span class="action-count">0</span>
+        </button>
+        <button class="action-button">
+          <div class="action-icon">
+            <ion-icon name="share-outline"></ion-icon>
+          </div>
+          <span class="action-count">0</span>
+        </button>
       </div>
     </div>
+  </div>
+
+  <!-- Boutons de cadrage en bas (en dehors du preview) -->
+  <div class="crop-controls">
+    <button 
+      class="crop-btn" 
+      [class.active]="imageFitMode === 'default'"
+      (click)="setImageFitMode('default')"
+    >
+      <ion-icon name="expand"></ion-icon>
+      <span>Cadrage par défaut</span>
+    </button>
+    <button 
+      class="crop-btn" 
+      [class.active]="imageFitMode === 'fit'"
+      (click)="setImageFitMode('fit')"
+    >
+      <ion-icon name="contract"></ion-icon>
+      <span>Adapter à l'écran</span>
+    </button>
   </div>
 </div>
 </ion-content>

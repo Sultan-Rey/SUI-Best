@@ -4,7 +4,7 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000',
+  apiUrl: 'http://localhost/BEST_API',
   authToken: 'demo-client-key-123'
 };
 

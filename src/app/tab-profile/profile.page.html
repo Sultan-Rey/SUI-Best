@@ -1,15 +1,17 @@
-<ion-header [translucent]="true">
-  <ion-toolbar color="dark">
-    <ion-buttons slot="start">
-      <ion-button (click)="goBack()" class="back-circle">
+<ion-header [translucent]="true" color="dark">
+  <ion-toolbar >
+    <ion-buttons slot="start" >
+      <ion-button *ngIf="!isOwnProfile" (click)="goBack()" class="back-circle">
         <ion-icon name="chevron-back"></ion-icon>
       </ion-button>
+      <ion-button>
+        <ion-icon *ngIf="isOwnProfile" name="person-circle-outline"></ion-icon>
+      </ion-button>
+       
     </ion-buttons>
     <ion-title>{{ userProfile.displayName }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="presentShareOptions()">
-        <ion-icon slot="icon-only" name="share-social-outline"></ion-icon>
-      </ion-button>
+      
       <ion-button (click)="presentMoreOptions()">
         <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
       </ion-button>
@@ -23,15 +25,15 @@
     <div class="profile-header">
       <div class="avatar-container">
         <div class="avatar-wrapper">
-          <img [src]="getMediaUrl(userProfile.avatar)" (error)="onImageAvatarError($event)" [alt]="userProfile.displayName" class="avatar">
+          <img [src]="(userProfile.avatar | mediaUrl)" (error)="onImageAvatarError($event)" [alt]="userProfile.displayName" class="avatar">
           <div class="avatar-border"></div>
         </div>
-        <ion-button *ngIf="isRight_toWrite"
+        <ion-button
           color="light"
           shape="round"
           class="add-story-btn"
           size="small">
-          <ion-icon name="star" size="small" slot="icon-only"></ion-icon>
+          <ion-icon name="shield-half" size="small" slot="icon-only"></ion-icon>
         </ion-button>
       </div>
 
@@ -50,19 +52,19 @@
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat-item">
-          <div class="stat-value">{{ formatNumber(userProfile.stats.posts) }}</div>
+          <div class="stat-value">{{ userProfile.stats.posts | shortNumber }}</div>
           <div class="stat-label">Posts</div>
         </div>
         <div class="stat-item">
-          <div class="stat-value">{{ formatNumber(userProfile.stats.fans) }}</div>
+          <div class="stat-value">{{ userProfile.stats.fans | shortNumber }}</div>
           <div class="stat-label">Fans</div>
         </div>
         <div class="stat-item">
-          <div class="stat-value">{{ formatNumber(userProfile.stats.votes) }}</div>
+          <div class="stat-value">{{ userProfile.stats.votes | shortNumber }}</div>
           <div class="stat-label">Votes</div>
         </div>
         <div class="stat-item">
-          <div class="stat-value">{{ formatNumber(userProfile.stats.stars) }}</div>
+          <div class="stat-value">{{ userProfile.stats.stars | shortNumber }}</div>
           <div class="stat-label">Stars</div>
         </div>
       </div>
@@ -84,6 +86,10 @@
             <ion-icon name="calendar-outline" class="info-icon"></ion-icon>
             <span>Membre depuis {{ userProfile.memberSince }}</span>
           </div>
+          <div class="info-item" *ngIf="userProfile.plan">
+            <ion-icon name="rocket-outline" class="info-icon"></ion-icon>
+            <span>Abonnement {{ userProfile.memberSince }}</span>
+          </div>
         </div>
       </div>
 
@@ -104,14 +110,16 @@
         <ion-button 
           color="dark"
           expand="block"
-          (click)="sendMessage()"
+          (click)="openDM()"
           class="message-btn">
           Message
         </ion-button>
 
         <ion-button 
-          fill="clear"
-          class="external-btn"
+          (click)="presentShareOptions(userProfile)"
+          fill="outline"
+          color="light"
+          class="externalbtn"
           size="small">
           <ion-icon name="open-outline" slot="icon-only"></ion-icon>
         </ion-button>
@@ -138,10 +146,10 @@
       </div>
 
       <div class="challenges-carousel">
-        <div class="challenge-card" *ngFor="let challenge of activeChallenges$ | async" (click)="openChallenge(challenge)">
+        <div class="challenge-card" *ngFor="let challenge of activeChallenges$ | async" (click)="openChallengeModal(challenge)">
           <!-- Image de couverture -->
           <div class="challenge-cover">
-            <img [src]="getMediaUrl(challenge.cover_image_url || '')" (error)="onImageContentError($event)" [alt]="challenge.name">
+            <img [src]="(challenge.cover_image_url || '' | mediaUrl)" (error)="onImageContentError($event)" [alt]="challenge.name">
             <div class="challenge-overlay">
               <ion-badge 
                 [color]="getStatusBadgeColor(getChallengeStatus(challenge))" 
@@ -233,7 +241,7 @@
     <div *ngFor="let content of userContents" 
          class="content-item"
          (click)="openContent(content)">
-      <img [src]="getMediaUrl(content.fileUrl)" (error)="onImageContentError($event)"  [alt]="content.title" *ngIf="content.fileUrl">
+      <img [src]="(content.fileUrl | mediaUrl)" (error)="onImageContentError($event)"  [alt]="content.description" *ngIf="content.fileUrl">
       <div class="content-overlay" *ngIf="content.likeCount || content.commentCount">
         <span *ngIf="content.likeCount">
           <ion-icon name="heart"></ion-icon> {{ content.likeCount }}
@@ -283,13 +291,31 @@
     vertical="bottom" 
     horizontal="end" 
     slot="fixed"
-    *ngIf="userProfile.userType === 'creator' && isOwnProfile && isRight_toWrite">
+    *ngIf="userProfile.userType === 'creator' && isOwnProfile">
     <ion-fab-button color="warning" (click)="createChallenge()">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>
 
   <ng-template #loading>
-    <ion-spinner></ion-spinner>
+    <div class="loading-container">
+      <div class="loading-content">
+        <ion-spinner name="crescent" class="loading-spinner"></ion-spinner>
+        <h3 class="loading-text">Chargement du profil...</h3>
+        <div class="loading-skeleton">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line skeleton-name"></div>
+            <div class="skeleton-line skeleton-username"></div>
+          </div>
+        </div>
+        <div class="skeleton-stats">
+          <div class="skeleton-stat" *ngFor="let i of [1,2,3,4]">
+            <div class="skeleton-number"></div>
+            <div class="skeleton-label"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </ng-template>
 </ion-content>

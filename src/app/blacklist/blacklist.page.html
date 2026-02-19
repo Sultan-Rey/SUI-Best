@@ -1,0 +1,53 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Blacklist</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Blacklist</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-loading [isOpen]="isLoading" message="Chargement..."></ion-loading>
+
+  <div class="container" *ngIf="!isLoading">
+    <div *ngIf="blacklistedProfiles.length === 0" class="empty-state">
+      <ion-icon name="person-outline" class="empty-icon"></ion-icon>
+      <h3>Aucun profil blacklisté</h3>
+      <p>Vous n'avez aucun profil dans votre liste noire.</p>
+    </div>
+
+    <ion-list *ngIf="blacklistedProfiles.length > 0">
+      <ion-item *ngFor="let profile of blacklistedProfiles" class="profile-item">
+        <ion-avatar slot="start">
+          <img [src]="profile.avatar || 'assets/images/avatar-default.png'" [alt]="profile.displayName">
+        </ion-avatar>
+        
+        <ion-label>
+          <h2>{{ profile.displayName }}</h2>
+          <p>@{{ profile.username }}</p>
+          <p *ngIf="profile.bio" class="bio">{{ profile.bio | slice:0:50 }}{{ profile.bio.length > 50 ? '...' : '' }}</p>
+        </ion-label>
+
+        <ion-button 
+          slot="end" 
+          fill="clear" 
+          color="danger" 
+          (click)="unblacklistProfile(profile.id)"
+          class="unblacklist-btn">
+          <ion-icon name="person-remove-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <ion-alert
+    [isOpen]="showAlert"
+    header="Retirer de la blacklist"
+    message="Êtes-vous sûr de vouloir retirer ce profil de votre liste noire ?"
+    [buttons]="alertButtons">
+  </ion-alert>
+</ion-content>

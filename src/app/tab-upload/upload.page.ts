@@ -1,27 +1,35 @@
-import { Component, OnDestroy } from '@angular/core';
-import { ActionSheetController, LoadingController, ToastController } from '@ionic/angular';
+import { Component, OnDestroy, Input } from '@angular/core';
+import { ActionSheetController, AlertController, LoadingController, ToastController } from '@ionic/angular';
 import { CameraService } from '../../services/CAMERA_SERVICE/camera-service.js';
-import { CreationService } from '../../services/CREATION/creation-service.js';
+import { CreationService } from '../../services/CREATION_SERVICE/creation-service.js';
 import { Content, ContentSource, ContentType } from '../../models/Content.js';
-import { IonButton,  IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonProgressBar, IonList, IonToolbar, IonTitle, IonRadioGroup, IonButtons, IonListHeader, IonRadio } from "@ionic/angular/standalone";
+import { IonButton,IonChip,  IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonProgressBar, IonList, IonToolbar, IonTitle, IonRadioGroup, IonButtons, IonListHeader, IonRadio } from "@ionic/angular/standalone";
 import { NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
-import { camera, arrowBack, closeCircle, close, image, images, globe, lockClosed, download } from 'ionicons/icons';
+import { camera, arrowBack, closeCircle, close, image, images, globe, lockClosed, download, heartOutline, chatbubbleOutline, shareOutline, expand, contract } from 'ionicons/icons';
 import { Challenge } from '../../models/Challenge.js';
 import { Auth } from '../../services/AUTH/auth.js';
 import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service.js';
 import { Router } from '@angular/router';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
+import { ModalController } from '@ionic/angular';
+import { NotificationService } from 'src/services/NOTIFICATION_SERVICE/notification-service.js';
 
 @Component({
   selector: 'app-upload',
   templateUrl: './upload.page.html',
   styleUrls: ['./upload.page.scss'],
   standalone: true,
-  imports:[NgIf, NgFor, FormsModule,  IonButton, IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonButtons, IonProgressBar, IonList, IonToolbar, IonTitle,  IonListHeader, IonRadio, IonRadioGroup]
+  providers: [ModalController],
+  imports:[NgIf, NgFor, FormsModule,  IonButton, IonChip, IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonButtons, IonProgressBar, IonList, IonToolbar, IonTitle,  IonListHeader, IonRadio, IonRadioGroup]
 })
 export class UploadPage implements OnDestroy {
+  @Input() userId?: string;
+  @Input() challengeId?: string;
+  @Input() isAutomaticAcceptance?: boolean;
+  @Input() isModalMode: boolean = false;
+  
   private _selectedChallengeId: string | null = null;
 
   // Getter et setter pour selectedChallengeId
@@ -38,7 +46,6 @@ export class UploadPage implements OnDestroy {
 
   // État du formulaire
   content: Partial<Content> = {
-    title: '',
     description: '',
     isPublic: true,
     allowDownloads: true,
@@ -57,6 +64,7 @@ export class UploadPage implements OnDestroy {
   isUploading = false;
   currentStep = 1;
   totalSteps = 4;
+  imageFitMode: 'default' | 'fit' = 'default';
 
   constructor(
     private cameraService: CameraService,
@@ -64,14 +72,39 @@ export class UploadPage implements OnDestroy {
     private challengeService: ChallengeService,
     private authService: Auth,
     private profileService: ProfileService,
+    private notificationService: NotificationService,
     private loadingCtrl: LoadingController,
     private actionSheetCtrl: ActionSheetController,
+    private alertCtrl: AlertController,
     private toastCtrl: ToastController,
-    private routeur: Router
-  ) {this.loadChallenges();
-    addIcons({arrowBack,close,images,closeCircle,camera,image,globe,lockClosed,download});}
+    private routeur: Router,
+    private modalCtrl: ModalController
+  ) { 
+    this.initializeMode();
+    addIcons({arrowBack,close,images,closeCircle,camera,image,globe,lockClosed,download,heartOutline,chatbubbleOutline,shareOutline,expand,contract});
+  }
 
  
+  private initializeMode() {
+    // Vérifier si nous sommes en mode modal
+    
+    if (this.isModalMode) {
+      // Mode modal: utiliser les inputs fournis
+      if (this.userId) {
+        this.content.userId = this.userId;
+      }
+      if (this.challengeId) {
+        this.selectedChallengeId = this.challengeId;
+      }
+      // En mode modal, on a 3 étapes: média → description → vérification
+      this.totalSteps = 3;
+    } else {
+      // Mode normal: charger les challenges
+      this.loadChallenges();
+      this.totalSteps = 4;
+    }
+  }
+
   async loadChallenges() {
   try {
     // Supprimez le await inutile car on utilise subscribe
@@ -83,7 +116,7 @@ export class UploadPage implements OnDestroy {
       },
       error: (error) => {
         console.error('Erreur lors du chargement des challenges:', error);
-        this.showError('Impossible de charger les défis');
+        this.showError('Tableau des défis vide');
       }
     });
   } catch (error) {
@@ -124,28 +157,31 @@ export class UploadPage implements OnDestroy {
       this.content.source = ContentSource.GALLERY;
     } catch (error) {
       console.error('Erreur avec la galerie:', error);
-      this.showError('Impossible d\'accéder à la galerie');
+      this.showError('Interruption du chargement de la galerie');
     }
   }
 
   // Méthodes de navigation
 canProceed(): boolean {
-  switch (this.currentStep) {
-    case 1: return !!this.selectedFile;
-    case 2: return !!this.content.title?.trim();
-    case 3: return true;  // L'étape de sélection du challenge est optionnelle
-    default: return true;
+    switch (this.currentStep) {
+      case 1: return !!this.selectedFile;
+      case 2: return !!this.content.description?.trim();
+      case 3: return true;  // L'étape de sélection du challenge (mode normal)
+      default: return true;
+    }
   }
-}
 
 canSubmit(): boolean {
-  return !!this.selectedFile && !!this.content.title?.trim();
+  return !!this.selectedFile && !!this.content.description?.trim();
 }
 
 // Pour fermer le formulaire
-close() {
-  this.routeur.navigate(['/tabs/home']);
-  // Implémentez la logique pour fermer le modal ou revenir en arrière
+async close() {
+  if (this.isModalMode) {
+    await this.modalCtrl.dismiss();
+  } else {
+    this.routeur.navigate(['/tabs/tabs/home']);
+  }
 }
 
 // Pour afficher les options de média
@@ -176,6 +212,11 @@ async presentMediaOptions() {
   await actionSheet.present();
 }
 
+  // Méthode pour changer le mode de cadrage de l'image
+  setImageFitMode(mode: 'default' | 'fit') {
+    this.imageFitMode = mode;
+  }
+
 // Mettez à jour removeMedia
 removeMedia(event: Event) {
   event.stopPropagation();
@@ -190,7 +231,7 @@ removeMedia(event: Event) {
     return;
   }
 
-  if (!this.content.title?.trim()) {
+  if (!this.content.description?.trim()) {
     this.showError('Veuillez ajouter un titre');
     return;
   }
@@ -201,17 +242,34 @@ removeMedia(event: Event) {
   await loading.present();
  
   try {
+    let finalChallengeId: string;
+
+    // Cas 1: Mode normal - on utilise le challengeId sélectionné
+    if (!this.isModalMode) {
+      finalChallengeId = this.content.challengeId || '';
+    } 
+    // Cas 2: Mode modal
+    else {
+      if (this.isAutomaticAcceptance) {
+        // Acceptation automatique : on utilise le challengeId de l'input
+        finalChallengeId = this.challengeId || '';
+      } else {
+        // Pas d'acceptation automatique : on publie d'abord, puis on informe
+        finalChallengeId = ''; // Publier sans challenge initialement
+      }
+    }
+
     // Création du contenu
     const newContent = await this.creationService.createContentWithFile(
       this.selectedFile,
       {
-        title: this.content.title,
         userId: this.content.userId || '',
         description: this.content.description,
         isPublic: this.content.isPublic ?? true,
         allowDownloads: this.content.allowDownloads ?? true,
         allowComments: this.content.allowComments ?? false,
-        challengeId: this.content.challengeId,
+        challengeId: finalChallengeId,
+        cadrage: this.imageFitMode,
         likedIds: [],
         commentIds: [],
         source: this.content.source || ContentSource.CAMERA
@@ -251,7 +309,22 @@ if (userProfile) {
     }
 
     await loading.dismiss();
-    this.showSuccess('Contenu publié avec succès!');
+    
+    // Message de succès selon le cas
+    if (this.isModalMode && !this.isAutomaticAcceptance) {
+      
+      this.alertCtrl.create({
+          header:'Participation au défis',
+          subHeader:'Acceptation en cours de traitement',
+          message:'Attendez de recevoir votre ticket d\'acceptance.',
+          buttons: ['Merci !']
+        }).then((alert) => {
+          alert.present();
+        });
+    } else {
+      this.showSuccess('Contenu publié avec succès!');
+    }
+    
     this.resetForm();
   } catch (error) {
     console.error('Erreur lors de la publication:', error);
@@ -263,20 +336,31 @@ if (userProfile) {
   // Navigation entre les étapes
   nextStep() {
     if (this.currentStep < this.totalSteps) {
-      this.currentStep++;
+      // En mode modal, sauter l'étape 3 (challenge)
+      if (this.isModalMode && this.currentStep === 2) {
+        this.currentStep = 3; // Passer directement à la vérification
+        this.totalSteps = 3
+      } else {
+        this.currentStep++;
+      }
+    
     }
   }
 
   prevStep() {
     if (this.currentStep > 1) {
-      this.currentStep--;
+      // En mode modal, si on revient depuis l'étape 3, retourner à l'étape 2
+      if (this.isModalMode && this.currentStep === 3) {
+        this.currentStep = 2;
+      } else {
+        this.currentStep--;
+      }
     }
   }
 
   // Réinitialisation du formulaire
   private resetForm() {
     this.content = {
-      title: '',
       description: '',
       isPublic: true,
       allowDownloads: true,

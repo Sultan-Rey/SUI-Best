@@ -1,0 +1,202 @@
+<ion-content class="challenge-container">
+
+  <!-- Video / Media Preview -->
+  <div class="media-wrapper">
+    <img
+      [src]="(challenge?.cover_image_url || '' | mediaUrl)"
+      alt="Challenge preview"
+    />
+
+    <!-- Overlay info -->
+    <div class="overlay-top">
+      <div class="creator">
+        <img class="avatar" [src]="(currentUserProfile.avatar | mediaUrl)" (error)="onImageAvatarError($event)"/>
+        <span class="username">{{challenge?.name}}</span>
+      </div>
+      <ion-button fill="clear" (click)="dismiss()" class="follow-btn"><ion-icon name="close"></ion-icon></ion-button>
+    </div>
+
+    <!-- Overlay actions -->
+    <div class="overlay-actions">
+      <div class="action">
+        <ion-icon name="thumbs-up"></ion-icon>
+        <span>{{totalVotes | shortNumber}}</span>
+      </div>
+      <div class="action">
+        <ion-icon name="eyes"></ion-icon>
+        <span>{{totalViews | shortNumber}}</span>
+      </div>
+      <div class="action">
+        <ion-icon name="share"></ion-icon>
+        <span>{{totalShares | shortNumber}}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content" [class.hidden]="showParticipantsView">
+
+    <!-- Rules -->
+    <div class="card rules">
+      <h3>Challenge Rules</h3>
+
+      <ul>
+        <li *ngFor="let rule of challenge?.rules">{{rule}}</li>
+      
+      </ul>
+
+      <div class="hashtags">
+        <span>#happy</span>
+        <span>#keepsmile</span>
+        <span>#staypositive</span>
+      </div>
+    </div>
+
+    <!-- Participants -->
+    <div class="card participants">
+      <div class="participants-header">
+        <h3>Participants</h3>
+        
+        <!-- Bouton pour voir tous les participants -->
+        <ion-button 
+          *ngIf="participants.length > 0" 
+          fill="clear" 
+          size="small" 
+          class="view-all-btn"
+          (click)="goToParticipants()"
+        >
+          Voir tous
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </div>
+
+      <div class="avatars">
+        <!-- Loading state -->
+        <div *ngIf="isLoadingParticipants" class="loading-avatars">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-avatar"></div>
+        </div>
+        
+        <!-- Afficher les 3 premiers participants avec leurs avatars réels -->
+        <ng-container *ngIf="!isLoadingParticipants">
+          <img 
+            *ngFor="let participant of getDisplayParticipants()" 
+            [src]="(participant.avatar || '' | mediaUrl)" 
+            [alt]="participant.displayName || participant.username" 
+            [title]="participant.displayName || participant.username"
+            loading="lazy"
+          />
+          
+          <!-- Afficher le compteur pour les participants restants -->
+          <span 
+            *ngIf="hasMoreParticipants()" 
+            class="more"
+            [title]="getRemainingParticipantsCount() + ' participants supplémentaires'"
+          >
+            +{{getRemainingParticipantsCount()}}
+          </span>
+          
+          <!-- Message si aucun participant -->
+          <span 
+            *ngIf="participants.length === 0" 
+            class="no-participants"
+          >
+            Aucun participant
+          </span>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <ion-button expand="block" class="cta" (click)="presentParticipateOptions()">
+      Devenir participant
+    </ion-button>
+
+  </div>
+
+  <!-- Container caché pour la vue participants -->
+  <div class="participants-view" [class.active]="showParticipantsView">
+    <!-- Header -->
+    <div class="participants-header">
+      <ion-button fill="clear" size="small" (click)="hideParticipantsView()">
+        <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+        
+      </ion-button>
+      <h2>Participants au Challenge</h2>
+      <ion-button fill="clear" size="small" (click)="refreshParticipants()">
+        <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Stats header -->
+    <div class="stats-header">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <ion-icon name="trophy-outline"></ion-icon>
+          <div class="stat-value">{{totalVotes | shortNumber}}</div>
+          <div class="stat-label">Votes</div>
+        </div>
+        <div class="stat-item">
+          <ion-icon name="eye-outline"></ion-icon>
+          <div class="stat-value">{{totalViews | shortNumber}}</div>
+          <div class="stat-label">Vues</div>
+        </div>
+        <div class="stat-item">
+          <ion-icon name="share-outline"></ion-icon>
+          <div class="stat-value">{{totalShares | shortNumber}}</div>
+          <div class="stat-label">Partages</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Participants list -->
+    <div class="participants-list">
+      <!-- Indication de swipe -->
+      <div class="swipe-hint" *ngIf="sortedParticipants.length > 0">
+        <ion-icon name="chevron-back-outline"></ion-icon>
+        <span>Swipe pour plus d'options</span>
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </div>
+
+      <ion-list>
+        <ion-item-sliding 
+          *ngFor="let participant of sortedParticipants; trackBy: trackByUserId">
+          <ion-item>
+            <ion-avatar>
+              <img 
+                [src]="(participant.avatar || '' | mediaUrl)" 
+                [alt]="participant.displayName || participant.username"
+                (error)="onImageError($event)"
+              />
+            </ion-avatar>
+            <ion-label>
+              <h2>{{participant.displayName || participant.username}}</h2>
+              <p class="participant-stats">
+                <ion-icon name="trophy-outline" color="warning"></ion-icon>
+                <span>{{participant.voteCount || 0}} votes</span>
+                <ion-icon name="eye-outline" color="medium"></ion-icon>
+                <span>{{participant.viewCount || 0}} vues</span>
+              </p>
+            </ion-label>
+            <div slot="end" class="rank-badge" [ngClass]="getRankClass(participant.rank || 0)">
+              #{{participant.rank || 0}}
+            </div>
+          </ion-item>
+          <ion-item-options side="end">
+            <ion-item-option color="primary" (click)="viewParticipantContent(participant)">
+              <ion-icon name="eye-outline" slot="icon-only"></ion-icon>
+            </ion-item-option>
+            <ion-item-option color="secondary" (click)="sendGiftToParticipant(participant)">
+              <ion-icon name="gift-outline" slot="icon-only"></ion-icon>
+            </ion-item-option>
+            <ion-item-option color="danger" (click)="disqualifyParticipantAction(participant)">
+              <ion-icon name="person-remove-outline" slot="icon-only"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+    </div>
+  </div>
+
+</ion-content>

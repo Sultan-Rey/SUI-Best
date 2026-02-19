@@ -8,15 +8,17 @@ export interface Challenge {
   duration_days: number;
   vote_rule: 'one_vote_per_user' | 'unlimited_votes' | string; // Vous pouvez étendre avec d'autres règles si nécessaire
   call_to_action : 'Participer' | 'Voter' | 'Soutenir' | 'Voter l\'artiste' | 'J\'approuve' | 'Soutenir ce talent';
+  coupon_required: boolean;
   created_at?: Date; // Optionnel : date de création
   start_date?: Date; // Optionnel : date de début
   end_date?: Date; // Optionnel : date de fin
   is_active?: boolean; // Optionnel : statut actif/inactif
+  is_acceptance_automatic?:boolean;
   cover_image_url?: string; // Optionnel : URL de l'image de couverture
   prize?: string; // Optionnel : description du prix
   rules?: string[]; // Optionnel : liste des règles du défi
   participants_count?: number; // Optionnel : nombre de participants
-  entries_count?: number; // Optionnel : nombre de participations
+  entries_count?: number | string; // Optionnel : nombre de participations
 }
 
 // Exemple d'énumération pour les règles de vote

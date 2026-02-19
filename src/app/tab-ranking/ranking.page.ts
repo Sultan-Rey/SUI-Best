@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import { starOutline, cash, search, diamond, ribbon, trophy, trophyOutline, checkmarkCircle, trendingUp, gift, heart } from 'ionicons/icons';
 import { ChallengeService } from '../../services/CHALLENGE_SERVICE/challenge-service';
-import { CreationService } from '../../services/CREATION/creation-service';
+import { CreationService } from '../../services/CREATION_SERVICE/creation-service';
 import { VoteService } from '../../services/VOTE_SERVICE/vote-service';
 import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service';
 import { forkJoin, Observable, of } from 'rxjs';
@@ -21,8 +21,8 @@ import {
   IonSpinner
 } from '@ionic/angular/standalone';
 import { Artist } from 'src/models/User';
-import { VotesRankingComponent } from '../components/votes-ranking/votes-ranking.component';
-import { DonationsRankingComponent } from '../components/donations-ranking/donations-ranking.component';
+import { VotesRankingComponent } from '../components/view-votes-ranking/votes-ranking.component';
+import { DonationsRankingComponent } from '../components/view-donations-ranking/donations-ranking.component';
 
 
 
@@ -261,9 +261,10 @@ export class RankingPage implements OnInit {
   }
 
   private getChallengeRanking(challenge: any): Observable<ChallengeRanking> {
-    return this.creationService.getContentsByChallenge(challenge.id).pipe(
-      switchMap(contents => {
-        if (!contents || contents.length === 0) {
+    // Étape 1: Récupérer les participants réels du défi
+    return this.creationService.getChallengeParticipantProfiles(challenge.id).pipe(
+      switchMap((participants: any[]) => {
+        if (!participants || participants.length === 0) {
           return of({
             challengeId: challenge.id,
             challengeName: challenge.name,
@@ -271,61 +272,46 @@ export class RankingPage implements OnInit {
           });
         }
 
-        // Grouper les contenus par artiste et compter les votes
-        const artistVotesMap = new Map<string, { artist: Artist, votes: number }>();
+        // Étape 2: Récupérer tous les contenus du défi pour calculer les votes
+        return this.creationService.getContentsByChallenge(challenge.id).pipe(
+          switchMap((contents: any[]) => {
+            // Étape 3: Calculer les votes pour chaque participant
+            const participantsWithVotes$ = participants.map((participant: any) => {
+              // Filtrer les contenus de ce participant
+              const participantContents = contents.filter((content: any) => content.userId === participant.id);
+              
+              // Calculer le total des votes pour tous ses contenus
+              const votesForParticipant$ = participantContents.length > 0 
+                ? forkJoin(
+                    participantContents.map((content: any) => 
+                      this.voteService.getTotalVotesForContent(content.id || '')
+                    )
+                  ).pipe(
+                    map(votesArray => votesArray.reduce((total, votes) => total + votes, 0))
+                  )
+                : of(0); // Aucun contenu = 0 votes
 
-        const artistVotes$ = contents.map(content => 
-          this.voteService.getTotalVotesForContent(content.id|| '').pipe(
-            map(votes => ({ content, votes }))
-          )
-        );
-
-        return forkJoin(artistVotes$).pipe(
-          switchMap(votesData => {
-            // Traiter les votes
-            votesData.forEach(({ content, votes }) => {
-              if (!artistVotesMap.has(content.userId)) {
-                artistVotesMap.set(content.userId, {
-                  artist: { 
-                    id: content.userId, 
-                    name: 'Chargement...', 
-                    category: 'Artiste',
-                    votes: 0,
-                    imageUrl: 'assets/icon/avatar-default.png' // Image par défaut
-                  },
-                  votes: 0
-                });
-              }
-              const artistVotes = artistVotesMap.get(content.userId)!;
-              artistVotes.votes += votes;
-              artistVotes.artist.votes += votes;
+              return votesForParticipant$.pipe(
+                map(totalVotes => ({
+                  participant,
+                  totalVotes,
+                  contentCount: participantContents.length
+                }))
+              );
             });
 
-            // Récupérer les profils des artistes
-            const artistProfiles$ = Array.from(artistVotesMap.keys()).map(artistId => 
-              this.profileService.getProfileById(artistId).pipe(
-                catchError(() => of(null))
-              )
-            );
-
-            return forkJoin(artistProfiles$).pipe(
-              map(profiles => {
-                const artists: Artist[] = [];
-                
-                profiles.forEach(profile => {
-                  if (!profile) return;
-                  
-                  const artistVotes = artistVotesMap.get(profile.id);
-                  if (artistVotes) {
-                    artists.push({
-                      id: profile.id,
-                      name: profile.displayName || profile.username || 'Artiste inconnu',
-                      imageUrl: profile.avatar || 'assets/icon/avatar-default.png',
-                      category: 'Artiste', // À adapter selon vos catégories
-                      votes: artistVotes.votes
-                    });
-                  }
-                });
+            return forkJoin(participantsWithVotes$).pipe(
+              map((participantsData: any[]) => {
+                // Étape 4: Transformer en objets Artist et trier
+                const artists: Artist[] = participantsData.map(({ participant, totalVotes, contentCount }: any) => ({
+                  id: participant.id,
+                  name: participant.displayName || participant.username || 'Artiste inconnu',
+                  imageUrl: participant.avatar || 'assets/icon/avatar-default.png',
+                  category: 'Artiste',
+                  votes: totalVotes,
+                  contentCount: contentCount, // Utile pour le debug
+                  rank: 0 // Sera calculé après le tri
+                }));
 
                 // Trier par nombre de votes décroissant
                 artists.sort((a, b) => b.votes - a.votes);
@@ -336,12 +322,12 @@ export class RankingPage implements OnInit {
                 });
 
                 return {
-  challengeId: challenge.id,
-  challengeName: challenge.name,
-  coverImage: challenge.cover_image_url, // Ajout de la propriété coverImage
-  description: challenge.description, // Ajout de la propriété description
-  artists: artists
-};
+                  challengeId: challenge.id,
+                  challengeName: challenge.name,
+                  coverImage: challenge.cover_image_url,
+                  description: challenge.description,
+                  artists: artists
+                };
               })
             );
           })

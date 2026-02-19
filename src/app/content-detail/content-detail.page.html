@@ -34,7 +34,7 @@
     <!-- Contenu du post -->
     <div class="post-content">
       <div class="post-media" *ngIf="content.fileUrl">
-        <img [src]="getFullFileUrl(content.fileUrl)" [alt]="content.title" (click)="toggleMedia()">
+        <img [src]="getFullFileUrl(content.fileUrl)" [alt]="content.description" (click)="toggleMedia()">
       </div>
       <div class="post-caption">
         <p><strong>{{ content.allowComments }}</strong> {{ content.description }}</p>

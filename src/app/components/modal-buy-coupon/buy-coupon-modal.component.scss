@@ -1,0 +1,733 @@
+// ==========================================
+// BUY COUPON MODAL - RETAIL TICKET DESIGN
+// ==========================================
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+// ==========================================
+// IONIC MODAL OVERRIDE
+// ==========================================
+ion-modal {
+  --ion-background-color: rgba(0, 0, 0, 0.4);
+  
+  &.buy-coupon-modal {
+    --width: 100%;
+    --max-width: 100%;
+    --height: 100%;
+    --max-height: 100%;
+    --border-radius: 0;
+    --background: #ffffff;
+  }
+}
+
+// ==========================================
+// MODAL WRAPPER
+// ==========================================
+.modal-wrapper {
+  background: #ffffff;
+  border-radius: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+}
+
+// ==========================================
+// MODAL HEADER MINIMAL
+// ==========================================
+.modal-header-minimal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #ffffff;
+  
+  .close-button {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+  }
+  
+  ion-icon {
+    font-size: 1.25rem;
+  }
+  
+  .user-balance {
+    background:  rgba(255, 255, 255, 0.05);
+    padding: 6px 12px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #111827;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    flex-shrink: 0; // NE PAS rétrécir
+    min-width: fit-content; // Garder la largeur nécessaire
+    
+    img {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    span {
+      line-height: 1;
+      display: inline-block;
+    }
+  }
+}
+
+// ==========================================
+// IONIC CONTENT RESET
+// ==========================================
+ion-content {
+  --background: #f9fafb !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+// ==========================================
+// SCROLLABLE CONTENT
+// ==========================================
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// ==========================================
+// EMPTY STATE
+// ==========================================
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  
+  ion-icon {
+    font-size: 4rem;
+    color: #d1d5db;
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  p {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+// ==========================================
+// CREATOR SECTION
+// ==========================================
+.creator-section {
+  margin-bottom: 24px;
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px 12px;
+    
+    .creator-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      ion-icon {
+        font-size: 1.25rem;
+        color: #6366f1;
+      }
+      
+      h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+      }
+    }
+    
+    .pack-count {
+      font-size: 0.875rem;
+      color: #6b7280;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+    }
+  }
+}
+
+// ==========================================
+// PACKS SLIDER
+// ==========================================
+.packs-slider {
+  padding: 12px 24px;
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// ==========================================
+// PACK TICKET (RETAIL STYLE)
+// ==========================================
+.pack-card {
+  position: relative;
+  min-width: 180px;
+  height: 220px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+  
+  &:active {
+    transform: scale(0.95) translateY(2px);
+  }
+
+  &.selected {
+    transform: scale(1.05) translateY(-6px);
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.25));
+
+    .ticket-check-mark {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+
+    .ticket-wrapper {
+      box-shadow: 
+        0 0 0 3px rgba(99, 102, 241, 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+// Wrapper du ticket
+.ticket-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  // Motif de fond
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.02) 10px,
+        rgba(0, 0, 0, 0.02) 20px
+      );
+    pointer-events: none;
+  }
+
+  // Ligne de découpe
+  &::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 50%;
+    height: 1px;
+    border-top: 2px dashed rgba(0, 0, 0, 0.15);
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+}
+
+// Perforations
+.ticket-perforation {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 2;
+
+  &.left {
+    left: -6px;
+  }
+
+  &.right {
+    right: -6px;
+  }
+
+  .perf-dot {
+    width: 12px;
+    height: 12px;
+    background: #f9fafb;
+    border-radius: 50%;
+    border: 2px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Header du ticket
+.ticket-header {
+  position: relative;
+  padding: 14px;
+  padding-bottom: 18px;
+  z-index: 2;
+}
+
+.ticket-header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 10px 10px 0 0;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: inherit;
+    clip-path: polygon(
+      0 0, 5% 100%, 10% 0, 15% 100%, 20% 0, 25% 100%,
+      30% 0, 35% 100%, 40% 0, 45% 100%, 50% 0, 55% 100%,
+      60% 0, 65% 100%, 70% 0, 75% 100%, 80% 0, 85% 100%,
+      90% 0, 95% 100%, 100% 0
+    );
+  }
+}
+
+.pack-type {
+  position: relative;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #ffffff;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+}
+
+.pack-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  ion-icon {
+    font-size: 22px;
+    color: #1f2937;
+  }
+}
+
+// Corps du ticket
+.ticket-body {
+  position: relative;
+  padding: 18px 14px 14px;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pack-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.2;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pack-quantity {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  
+  ion-icon {
+    font-size: 14px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+}
+
+// Pied du ticket
+.ticket-footer {
+  position: relative;
+  padding: 0 14px 14px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: auto;
+  ion-img {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.pack-price {
+  font-size: 20px;
+  font-weight: 900;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+  color: #1f2937;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  line-height: 1;
+  span{
+    margin-right: 5px;
+  }
+}
+
+.pack-discount {
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+// Checkmark
+.ticket-check-mark {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  background: #6366f1;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0) rotate(-180deg);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  z-index: 10;
+
+  ion-icon {
+    font-size: 20px;
+    color: #ffffff;
+  }
+}
+
+// Variantes de couleurs
+.pack-card {
+  &[data-type="standard"] .ticket-wrapper {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    border-color: #6366f1;
+  }
+  
+  &[data-type="standard"] .ticket-header-bg {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  }
+  
+  &[data-type="standard"] .ticket-perforation .perf-dot {
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  &[data-type="premium"] .ticket-wrapper {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+  }
+  
+  &[data-type="premium"] .ticket-header-bg {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  }
+  
+  &[data-type="premium"] .ticket-perforation .perf-dot {
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+
+  &[data-type="legendary"] .ticket-wrapper {
+    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+    border-color: #ec4899;
+  }
+  
+  &[data-type="legendary"] .ticket-header-bg {
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  }
+  
+  &[data-type="legendary"] .ticket-perforation .perf-dot {
+    border-color: rgba(236, 72, 153, 0.4);
+  }
+
+  &[data-type="special"] .ticket-wrapper {
+    background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+    border-color: #8b5cf6;
+  }
+  
+  &[data-type="special"] .ticket-header-bg {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  }
+  
+  &[data-type="special"] .ticket-perforation .perf-dot {
+    border-color: rgba(139, 92, 246, 0.4);
+  }
+}
+
+// ==========================================
+// OTHERS SEPARATOR
+// ==========================================
+.others-separator {
+  display: flex;
+  align-items: center;
+  margin: 32px 24px 24px;
+  
+  .separator-line {
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+  }
+  
+  .separator-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+    
+    ion-icon {
+      font-size: 1rem;
+      color: #6b7280;
+    }
+  }
+}
+
+// ==========================================
+// PACK BUY BUTTON SECTION
+// ==========================================
+.pack-buy-section {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  
+  .pack-buy-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+      background: linear-gradient(135deg, #5558e3 0%, #4338ca 100%);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-price {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 700;
+      
+      ion-icon {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+// ==========================================
+// RESPONSIVE DESIGN
+// ==========================================
+@media (max-width: 480px) {
+  .creator-section .section-header {
+    padding: 12px 16px 8px;
+  }
+  
+  .packs-slider {
+    padding: 50px 16px;
+  }
+  
+  .pack-card {
+    min-width: 170px;
+    height: 210px;
+  }
+  
+  .others-separator {
+    margin: 24px 16px 16px;
+  }
+  
+  .pack-buy-section {
+    margin-top: 10px;
+    margin-bottom: 6px;
+    
+    .pack-buy-btn {
+      padding: 8px 16px;
+      min-width: 120px;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// ==========================================
+// ANIMATIONS
+// ==========================================
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ticketSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.modal-wrapper {
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pack-card {
+  animation: ticketSlideIn 0.3s ease-out backwards;
+  
+  @for $i from 1 through 10 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.05}s;
+    }
+  }
+}
+
+// ==========================================
+// ACCESSIBILITY
+// ==========================================
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}

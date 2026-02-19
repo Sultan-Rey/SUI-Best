@@ -1,0 +1,261 @@
+<ion-header class="dm-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()" fill="clear" class="back-btn">
+        <ion-icon name="chevron-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <div class="header-center" slot="start">
+      <div class="header-username">{{ currentUsername }}</div>
+      <ion-icon name="chevron-down-outline" class="username-chevron"></ion-icon>
+    </div>
+
+    <ion-buttons slot="end">
+      <ion-button fill="clear" class="icon-btn" (click)="openNewMessage()">
+        <ion-icon name="create-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barre de demandes en attente -->
+  <div class="requests-bar" *ngIf="pendingRequestsCount > 0" (click)="openRequests()">
+    <div class="requests-avatars">
+      <!-- Plus de pendingRequests dans la nouvelle architecture -->
+    </div>
+    <div class="requests-text">
+      <span class="requests-label">Demandes de messages</span>
+      <span class="requests-sub">
+        {{ pendingRequestsCount }} demande{{ pendingRequestsCount > 1 ? 's' : '' }}
+      </span>
+    </div>
+    <ion-icon name="chevron-forward" class="requests-chevron"></ion-icon>
+  </div>
+</ion-header>
+
+<ion-content class="dm-content" [scrollEvents]="true" (ionScroll)="onScroll($event)">
+
+  <ion-refresher slot="fixed" (ionRefresh)="refreshMessages($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      refreshingSpinner="crescent">
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Barre de recherche -->
+  <div class="search-wrap">
+    <div class="search-inner">
+      <ion-icon name="search-outline" class="search-icon"></ion-icon>
+      <ion-input
+        [(ngModel)]="searchQuery"
+        (ionInput)="onSearchInput($event)"
+        placeholder="Rechercher"
+        class="search-input"
+        clearInput="false">
+      </ion-input>
+    </div>
+  </div>
+
+  <!-- Skeletons de chargement -->
+  <div class="skeleton-list" *ngIf="isLoading">
+    <div class="skeleton-item" *ngFor="let i of [1,2,3,4,5,6]">
+      <ion-skeleton-text animated class="skeleton-avatar"></ion-skeleton-text>
+      <div class="skeleton-content">
+        <ion-skeleton-text animated class="skeleton-name"></ion-skeleton-text>
+        <ion-skeleton-text animated class="skeleton-preview"></ion-skeleton-text>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des conversations -->
+  <div class="dm-list" *ngIf="!isLoading">
+    <ion-item-sliding
+      *ngFor="let conversation of filteredConversations; trackBy: trackByConvId"
+      #slidingItem>
+
+      <!-- Swipe gauche → supprimer -->
+      <ion-item-options side="end">
+        <ion-item-option
+          color="danger"
+          (click)="deleteConversation(conversation.id || '', slidingItem)">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+
+      <!-- Swipe droit → sourdine -->
+      <ion-item-options side="start">
+        <ion-item-option
+          [color]="conversation.isMuted ? 'medium' : 'tertiary'"
+          (click)="toggleMute(conversation.id || '', slidingItem)">
+          <ion-icon
+            slot="icon-only"
+            [name]="conversation.isMuted ? 'volume-high-outline' : 'volume-mute-outline'">
+          </ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+
+      <ion-item
+        class="dm-item"
+        [class.unread]="conversation.unreadCount && conversation.unreadCount > 0"
+        detail="true"
+        lines="inset"
+        button
+        (click)="openConversation(conversation)">
+
+        <div class="avatar-wrap" slot="start">
+          <div
+            class="story-ring"
+            [class.has-story]="conversation.hasActiveStory"
+            [class.seen-story]="conversation.storySeen">
+            <img
+              [src]="conversation.participant?.avatar | mediaUrl"
+              [alt]="conversation.participant?.username"
+              class="dm-avatar"
+              (error)="onAvatarError($event)">
+          </div>
+          <span class="online-dot" *ngIf="conversation.participant?.isOnline"></span>
+        </div>
+
+        <!-- Corps de l'item -->
+        <div class="dm-body">
+          <div class="dm-row-top">
+            <span
+              class="dm-username"
+              [class.unread-name]="conversation.unreadCount && conversation.unreadCount > 0">
+              {{ conversation.participant?.username }}
+              <ion-icon 
+                *ngIf="conversation.participant?.isVerified" 
+                name="checkmark-circle" 
+                class="verified-badge">
+              </ion-icon>
+              <ion-icon 
+                *ngIf="conversation.participant?.plan && conversation.participant?.plan !== 'free'" 
+                name="star" 
+                class="premium-badge">
+              </ion-icon>
+              <ion-icon 
+                *ngIf="isPopularArtist(conversation)" 
+                name="diamond" 
+                class="popular-artist-badge">
+              </ion-icon>
+              <ion-chip 
+                [color]="conversation.participant?.userType === 'artist' ? 'secondary' : 'primary'"
+                class="user-type-chip">
+                {{ conversation.participant?.userType }}
+              </ion-chip>
+              <span class="fans-count" *ngIf="conversation.participant?.stats !== undefined && conversation.participant?.stats !== null">
+                <ion-icon name="people-outline"></ion-icon>
+                {{ conversation.participant?.stats | shortNumber}} fans
+              </span>
+            </span>
+            
+            <div class="dm-meta">
+              <ion-icon
+                name="volume-mute-outline"
+                class="muted-icon"
+                *ngIf="conversation.isMuted">
+              </ion-icon>
+              <span class="dm-time">{{ conversation.lastMessageTime ? (conversation.lastMessageTime | dmTime) : '' }}</span>
+            </div>
+          
+          
+          
+          </div>
+
+          <div class="dm-row-bottom">
+            <div class="dm-preview-wrap">
+              <!-- Indicateur de frappe (priorité sur le preview) -->
+              <div
+                class="typing-indicator"
+                *ngIf="conversation.participant?.isTyping; else previewTpl">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+
+              <ng-template #previewTpl>
+                <!-- Icône de type média -->
+                <ion-icon
+                  *ngIf="conversation.lastMessageType === 'image'"
+                  name="image-outline"
+                  class="media-icon">
+                </ion-icon>
+                <ion-icon
+                  *ngIf="conversation.lastMessageType === 'video'"
+                  name="videocam-outline"
+                  class="media-icon">
+                </ion-icon>
+                <ion-icon
+                  *ngIf="conversation.lastMessageType === 'voice'"
+                  name="mic-outline"
+                  class="media-icon">
+                </ion-icon>
+
+                <!-- Préfixe "Vous :" si c'est moi qui ai envoyé le dernier message -->
+                <p class="dm-preview" [class.unread-preview]="conversation.unreadCount && conversation.unreadCount > 0">
+                  <span *ngIf="isLastMessageFromMe(conversation)" class="preview-me">Vous : </span>
+                  {{ conversation.lastMessage }}
+                </p>
+              </ng-template>
+            </div>
+
+            <!-- Badge non lus / accusé de réception -->
+            <div class="dm-right-indicator">
+              <!-- Badge non lus (conversation non mise en sourdine) -->
+              <span
+                class="unread-badge"
+                *ngIf="conversation.unreadCount && conversation.unreadCount > 0 && !conversation.isMuted">
+                {{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}
+              </span>
+
+              <!-- Point sourdine non lus -->
+              <span
+                class="muted-unread-dot"
+                *ngIf="conversation.unreadCount && conversation.unreadCount > 0 && conversation.isMuted">
+              </span>
+
+              <!-- Accusé de réception (uniquement si c'est moi qui ai envoyé et tout est lu) -->
+              <div
+                class="read-receipt"
+                *ngIf="isLastMessageFromMe(conversation) && (!conversation.unreadCount || conversation.unreadCount === 0)">
+                <img
+                  [src]="conversation.participant?.avatar | mediaUrl"
+                  class="receipt-avatar"
+                  (error)="onAvatarError($event)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </ion-item>
+    </ion-item-sliding>
+  </div>
+
+  <!-- État vide -->
+  <div
+    class="empty-state"
+    *ngIf="!isLoading && filteredConversations.length === 0">
+    <div class="empty-icon-wrap">
+      <ion-icon name="paper-plane-outline"></ion-icon>
+    </div>
+    <h3 class="empty-title">Vos messages</h3>
+    <p class="empty-sub">
+      {{ searchQuery
+          ? 'Aucun résultat pour "' + searchQuery + '"'
+          : 'Envoyez des photos et des messages privés à un(e) ami(e) ou à un groupe.' }}
+    </p>
+    <ion-button
+      *ngIf="!searchQuery"
+      (click)="openNewMessage()"
+      fill="solid"
+      class="send-first-btn">
+      Envoyer un message
+    </ion-button>
+  </div>
+
+  <!-- Infinite scroll -->
+  <ion-infinite-scroll threshold="100px" (ionInfinite)="loadMore($event)">
+    <ion-infinite-scroll-content loadingSpinner="crescent"></ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+
+</ion-content>

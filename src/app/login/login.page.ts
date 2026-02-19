@@ -1,8 +1,9 @@
 import { Auth } from '../../services/AUTH/auth';
+import { PreferenceService } from '../../services/PREFERENCES/preference-service';
 import { Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LoadingController, } from '@ionic/angular';
+import { LoadingController, AlertController } from '@ionic/angular';
 import { Dialog } from '@capacitor/dialog';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
@@ -46,6 +47,8 @@ export class LoginPage implements OnInit {
     private auth: Auth,
     private router: Router,
     private loadingController: LoadingController,
+    private alertController: AlertController,
+    private preferenceService: PreferenceService
   ) {
     addIcons({mailOutline,lockClosedOutline,arrowForward,logoGoogle,logoFacebook,trophyOutline,sparkles,personCircleOutline,keyOutline,helpCircleOutline,star,shieldCheckmark,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,createOutline,settingsOutline});
   }
@@ -69,8 +72,14 @@ loginWithEmail(): void {
   }).then(loading => {
     loading.present();
      this.auth.login(this.email, this.password).subscribe({
-    next: async () => {
+    next: async (authUser) => {
       try {
+        // Initialiser les préférences si elles n'existent pas
+        const existingSettings = this.preferenceService.getSettingsForUser(authUser.id.toString());
+        if (!existingSettings) {
+          this.preferenceService.initializeSettings(authUser.id.toString());
+        }
+        
         await this.router.navigateByUrl('/tabs/tabs/home');
       } catch (error) {
         console.error('Navigation error:', error);
@@ -88,7 +97,7 @@ loginWithEmail(): void {
         message = 'Ce compte est désactivé. Contactez le support.';
       }
 
-      this.showError('Erreur de connexion', message);
+      this.showError('Echec de la connexion', message);
       this.password = '';
       loading.dismiss();
     }
@@ -104,11 +113,13 @@ loginWithEmail(): void {
 
   // ✅ Méthode showError robuste pour Web + Android + iOS
   private async showError(header: string, message: string): Promise<void> {
-  await Dialog.alert({
-    title: header,
+  this.alertController.create({
+    header:header,
     message: message,
-    buttonTitle: 'OK'
-  });
+    buttons: ['OK'],
+    animated: true
+  }).then((alert)=> alert.present());
+   
 }
 
   loginWithGoogle() {

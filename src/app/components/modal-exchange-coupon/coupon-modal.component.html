@@ -1,0 +1,274 @@
+<div class="modal-wrapper">
+  <!-- Header Minimaliste avec Artist Info -->
+  <div class="modal-header-minimal">
+    <button class="close-button" (click)="dismiss()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+    
+    <div class="artist-mini">
+      <img [src]="(artistAvatar | mediaUrl)" class="artist-avatar-mini" alt="Artist">
+      <div class="artist-info-mini">
+        <h3 class="artist-name-mini">{{ artistName }}</h3>
+        <p class="challenge-badge-mini">🎯 {{ challengeName }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu principal -->
+  <div class="modal-content">
+    <!-- Titre et Sous-titre -->
+    <div class="modal-intro">
+      <h2 class="modal-title">Votez avec un coupon</h2>
+      <p class="modal-subtitle">Sélectionnez un coupon pour voter</p>
+    </div>
+
+    <!-- Slider de Coupons -->
+    <div class="coupons-slider-section">
+      <div class="section-header-compact">
+        <h3 class="section-title-compact">Vos coupons</h3>
+        <span class="coupons-count">{{ availableCoupons.length }}</span>
+      </div>
+
+      <!-- Slider Horizontal -->
+      <div class="coupons-slider-container" *ngIf="availableCoupons.length > 0; else loadingOrEmpty">
+        <div class="coupons-slider">
+          <div 
+            class="coupon-ticket" 
+            *ngFor="let coupon of availableCoupons"
+            [class.selected]="selectedCoupon?.id === coupon.id"
+            [class]="'ticket-' + coupon.type"
+            (click)="selectCoupon(coupon)">
+            
+            <!-- Perforations gauche -->
+            <div class="ticket-perforations left">
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+            </div>
+
+            <!-- Contenu du ticket -->
+            <div class="ticket-content">
+              <div class="ticket-header">
+                <div class="ticket-header-bg"></div>
+                <div class="ticket-icon-wrapper">
+                  <ion-icon [name]="getCouponIcon(coupon.type)"></ion-icon>
+                </div>
+                <span class="ticket-type">{{ coupon.type }}</span>
+              </div>
+              
+              <div class="ticket-body">
+                <h4 class="ticket-name">{{ coupon.name }}</h4>
+                <div class="ticket-value-badge">
+                  <ion-icon name="flash"></ion-icon>
+                  <span>{{ coupon.usageValue }}</span>
+                </div>
+              </div>
+
+              <div class="ticket-footer">
+                <span class="ticket-expiry" *ngIf="coupon.expiresAt">
+                  <ion-icon name="time-outline"></ion-icon>
+                  Expire: {{ coupon.expiresAt | date:'dd/MM' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Perforations droite -->
+            <div class="ticket-perforations right">
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+            </div>
+
+            <!-- Check mark pour sélection -->
+            <div class="ticket-check" *ngIf="selectedCoupon?.id === coupon.id">
+              <ion-icon name="checkmark-circle"></ion-icon>
+            </div>
+          </div>
+
+          <!-- Coupon spécial "Charger plus" -->
+          <div 
+            class="coupon-ticket load-more-coupon" 
+            *ngIf="hasMoreCoupons"
+            (click)="onSliderReachEnd()"
+            [class.loading]="isLoadingMore">
+            
+            <!-- Perforations gauche -->
+            <div class="ticket-perforations left">
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+            </div>
+
+            <!-- Contenu du ticket de chargement -->
+            <div class="ticket-content">
+              <div class="ticket-header">
+                <div class="ticket-header-bg load-more-bg"></div>
+                <div class="ticket-icon-wrapper">
+                  <ion-spinner *ngIf="isLoadingMore" name="circles" size="small"></ion-spinner>
+                  <ion-icon *ngIf="!isLoadingMore" name="add-circle-outline"></ion-icon>
+                </div>
+                <span class="ticket-type">{{ isLoadingMore ? 'Chargement...' : 'Plus' }}</span>
+              </div>
+
+              <div class="ticket-body">
+                <div class="coupon-name">{{ isLoadingMore ? 'Chargement' : 'Charger plus' }}</div>
+                <div class="coupon-description">
+                  {{ isLoadingMore ? 'Récupération des coupons...' : 'Afficher plus de coupons' }}
+                </div>
+              </div>
+
+              <div class="ticket-footer">
+                <div class="coupon-stats">
+                  <ion-icon name="layers-outline"></ion-icon>
+                  <span>{{ availableCoupons.length }} affichés</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Perforations droite -->
+            <div class="ticket-perforations right">
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+              <span class="perf"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Indicateur de fin -->
+      <div class="end-indicator" *ngIf="!hasMoreCoupons && availableCoupons.length > 0">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <span>Tous les coupons sont affichés ({{ availableCoupons.length }})</span>
+      </div>
+
+      <!-- Aucun coupon disponible -->
+      <ng-template #loadingOrEmpty>
+  <div class="loading-container" *ngIf="isLoading; else noCoupons">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement des coupons...</p>
+  </div>
+
+  <ng-template #noCoupons>
+    <div class="no-coupons-compact">
+      <div class="no-coupons-icon-compact">
+        <ion-icon name="ticket-outline"></ion-icon>
+      </div>
+      <h3 class="no-coupons-title-compact">Aucun coupon</h3>
+      <p class="no-coupons-text-compact" *ngIf="!showOptions">Participez aux défis pour en gagner</p>
+    <!-- Bouton principal -->
+  <ion-button 
+    *ngIf="!showOptions"
+    fill="outline" 
+    class="get-coupons-btn-compact" 
+    (click)="toggleOptions()">
+    Gagner des coupons
+    <ion-icon name="chevron-down" slot="end"></ion-icon>
+  </ion-button>
+
+  <!-- Options avec animation -->
+  <div class="options-container" [class.show]="showOptions">
+    <ion-list lines="none" class="options-list">
+      <ion-item 
+  *ngFor="let option of couponOptions; let i = index" 
+  button 
+  (click)="selectOption(option.id)"
+  class="option-item"
+  [style.animation-delay]="'0.' + i + 's'">
+  <ion-icon 
+    slot="start" 
+    [name]="option.icon" 
+    [color]="option.color">
+  </ion-icon>
+  <ion-label>{{ option.label }}</ion-label>
+</ion-item>
+    </ion-list>
+    
+    <ion-button 
+      fill="clear" 
+      color="medium" 
+      (click)="toggleOptions()"
+      class="cancel-btn">
+      <ion-icon name="close" slot="start"></ion-icon>
+      Annuler
+    </ion-button>
+  </div>
+    </div>
+  </ng-template>
+</ng-template>
+    </div>
+
+    <!-- Vote Summary -->
+    <div class="vote-summary-card" *ngIf="selectedCoupon">
+      <div class="summary-item">
+        <span class="summary-label">Coupon</span>
+        <span class="summary-value">{{ selectedCoupon.name }}</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item highlight">
+        <span class="summary-label">Valeur</span>
+        <span class="summary-value-highlight">
+          <ion-icon name="flash"></ion-icon>
+          {{ selectedCoupon.usageValue }} vote{{ selectedCoupon.usageValue > 1 ? 's' : '' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Après la section Vote Summary -->
+<div class="burn-coupon-container" *ngIf="selectedCoupon && isBurnable">
+  <ion-item class="burn-coupon-item" lines="none">
+    <ion-icon name="flame" slot="start" color="warning"></ion-icon>
+    <ion-label>Brûler le coupon</ion-label>
+    <ion-toggle slot="end"
+      [(ngModel)]="burnCoupon"
+      color="warning">
+    </ion-toggle>
+  </ion-item>
+</div>
+
+    <!-- Info footer -->
+    <div class="info-hint" *ngIf="!selectedCoupon">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <p>Sélectionnez un coupon pour continuer</p>
+    </div>
+  </div>
+
+  <!-- Slide to Vote avec effet Liquid Glass -->
+  <div class="slide-section-fixed" *ngIf="selectedCoupon">
+    <div  class="slide-wrapper">
+      <div class="slide-track-glass" #slideTrack>
+        <!-- Effet liquid glass background -->
+        <div class="glass-gradient"></div>
+        
+        <div 
+          class="slide-button-glass" 
+          #slideButton
+          (touchstart)="onTouchStart($event)"
+          (touchmove)="onTouchMove($event)"
+          (touchend)="onTouchEnd()"
+          (mousedown)="onMouseDown($event)"
+          [style.transform]="'translateX(' + slidePosition + 'px)'">
+          <div class="glass-shine"></div>
+          <div class="button-content">
+            <ion-icon name="chevron-forward"></ion-icon>
+          </div>
+        </div>
+        
+        <div class="slide-text-glass" [class.fading]="isSliding">
+          <ion-icon name="arrow-forward"></ion-icon>
+          Glissez pour voter
+        </div>
+      </div>
+      
+     
+    </div>
+  </div>
+
+</div>

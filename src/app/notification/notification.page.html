@@ -1,0 +1,95 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+     <ion-buttons slot="start">
+      <ion-back-button defaultHref="tabs/tabs/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <div class="header-eyebrow">Centre de messagerie</div>
+      <span class="header-title">Notifications</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <button class="header-action" (click)="markAllAsRead()" [disabled]="unreadCount === 0">
+        <ion-icon name="checkmark-done-outline"></ion-icon>
+        Tout lire
+      </button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Segment -->
+  <div class="segment-wrap">
+    <div class="segment">
+      <button
+        *ngFor="let seg of segments"
+        class="seg-btn"
+        [class.active]="selectedSegment === seg.value"
+        (click)="onSegmentChange(seg.value)">
+        {{ seg.label }}
+        <span class="seg-badge" *ngIf="seg.value === 'unread' && unreadCount > 0">{{ unreadCount }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification list -->
+  <div class="notif-list" *ngIf="groupedNotifications.length > 0; else emptyState">
+    <div class="notif-date-group" *ngFor="let group of groupedNotifications; let gi = index">
+
+      <div class="date-label">{{ group.label }}</div>
+
+      <div
+        *ngFor="let notification of group.items; let i = index"
+        class="notif-item"
+        [class.unread]="notification.status === 'unread'"
+        [style.animation-delay]="(gi * group.items.length + i) * 0.05 + 's'"
+        (click)="markAsRead(notification.id)">
+
+        <!-- Icon -->
+        <div class="notif-icon-wrap" [ngClass]="'icon-' + getIconColor(notification.priority, notification.category)">
+          <ion-icon [name]="getIconForCategory(notification.category)"></ion-icon>
+        </div>
+
+        <!-- Body -->
+        <div class="notif-body">
+          <div class="notif-title">{{ notification.title }}</div>
+          <div class="notif-message">{{ notification.message }}</div>
+          <div class="notif-time">{{ formatRelativeTime(notification.createdAt) }}</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="notif-actions">
+          <div
+            class="dot-unread"
+            *ngIf="notification.status === 'unread'"
+            [ngClass]="'dot-' + getPriorityColor(notification.priority)">
+          </div>
+          <button
+            class="btn-close"
+            (click)="deleteNotification(notification.id); $event.stopPropagation()">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="divider" *ngIf="gi < groupedNotifications.length - 1"></div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <div class="empty-icon">
+        <ion-icon name="notifications-outline"></ion-icon>
+      </div>
+      <div class="empty-title">Aucune notification</div>
+      <p class="empty-sub">Vous n'avez pas de notifications pour le moment.</p>
+    </div>
+  </ng-template>
+
+</ion-content>

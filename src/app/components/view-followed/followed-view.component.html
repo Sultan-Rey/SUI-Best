@@ -1,0 +1,130 @@
+<ion-content class="tiktok-content">
+  <!-- Close button for modal mode -->
+  <ion-button *ngIf="challengeName" fill="clear" size="icon-only" (click)="dismiss()" class="close-modal-btn">
+    <ion-icon name="chevron-back"></ion-icon>
+  </ion-button>
+
+  <ion-refresher slot="fixed" (ionRefresh)="refreshFeed($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="posts-container">
+    <ng-container *ngIf="posts.length > 0; else noPostsTemplate">
+      <div 
+        class="post" 
+        *ngFor="let post of posts; trackBy: trackByPostId; let i = index"
+        [attr.data-content-id]="post.id"
+      >
+        
+        <div class="video-container">
+          <img *ngIf="!isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl" (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail">
+          <video *ngIf="isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl" [class]="getCadrageClass(post)" class="video-thumbnail" autoplay muted loop></video>
+          <div class="video-overlay"></div>
+        </div>
+
+      <div class="main-content">
+        <div class="artist-info">
+          <div class="artist-header">
+            <img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
+            <div class="artist-details">
+              <div class="profile-header">
+                <ion-chip *ngIf="hasActiveChallenge(post)" color="danger">{{ currentChallenge[post.challengeId]?.name }}</ion-chip>
+                <h4 class="profile-name">{{ post.username || 'Utilisateur' }}
+                   <ion-icon 
+            *ngIf="post?.userId && userVerified[post.userId]" 
+            name="checkmark-circle" 
+            class="verified-badge">
+          </ion-icon>
+           <ion-button 
+                  (click)="subscribeTo(post.userId)" 
+                  *ngIf="currentUserProfile.id !== post?.userId && !currentUserProfile.myFollows.includes(post.userId) && challengeName=='-'" 
+                  fill="clear" 
+                  size="small" 
+                  style="margin-left: 10px;"
+                  class="subscribe-btn">
+                  S'abonner
+                </ion-button>
+                </h4>
+               
+              </div>
+              
+              <div class="artist-name">
+                 <span>{{ post.description }}</span>
+                              </div>
+              
+              <p class="artist-location">
+                <span class="post-date">{{ post.createdAt | date:'dd MMM yyyy' }}</span>
+                <span class="separator">•</span>
+                <span class="post-views">{{ post.viewCount | shortNumber }} vues</span>
+              </p>
+             
+            </div>
+          </div>
+          
+       
+        </div>
+
+        <div class="side-actions">
+          <button class="action-button" *ngFor="let action of getActionsForPost(post)" (click)="action.action()">
+            <div class="action-icon" [class.liked]="action.icon === 'heart'">
+              <ion-icon [name]="action.icon" *ngIf="!action.gifIcon"></ion-icon>
+              <img [src]="getButtonImage(post, action)" *ngIf="action.gifIcon">
+            </div>
+            <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    </ng-container>
+
+  <!-- Instagram-like comment footer for modal mode -->
+  <div *ngIf="challengeName" class="comment-footer">
+    <div class="comment-input-container">
+      <ion-icon name="happy-outline" class="emoji-icon" (click)="toggleEmojiPicker()"></ion-icon>
+      <ion-input 
+        placeholder="Ajouter un commentaire..." 
+        class="comment-input"
+        [(ngModel)]="newComment"
+        (keydown.enter)="postComment()"
+        (ionFocus)="onCommentFocus()">
+      </ion-input>
+      <ion-button 
+        fill="clear" 
+        class="post-btn"
+        [disabled]="!newComment.trim()"
+        (click)="postComment()">
+        <ion-icon name="send"></ion-icon>
+      </ion-button>
+    </div>
+    
+    <!-- Emoji picker -->
+    <div *ngIf="showEmojiPicker" class="emoji-picker">
+      <span class="emoji" *ngFor="let emoji of emojis" (click)="addEmoji(emoji)">{{ emoji }}</span>
+    </div>
+  </div>
+  </div>
+
+  <ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)" *ngIf="!challengeName">
+    <ion-infinite-scroll-content
+      loadingSpinner="bubbles"
+      loadingText="Chargement de la suite...">
+    </ion-infinite-scroll-content>
+  </ion-infinite-scroll>
+
+  <!-- Template pour quand il n'y a pas de posts -->
+  <ng-template #noPostsTemplate>
+    <div class="empty-state-container">
+      <div class="empty-state-content">
+        <img src="assets/icon/skateboard.gif" alt="Skateboard" class="empty-state-gif">
+        <h2 class="empty-state-title">🛹 Lancez votre vibe !</h2>
+        <p class="empty-state-text">
+          Votre feed est aussi vide qu'un skate park un lundi matin.<br>
+          <strong>Follow des créateurs</strong> pour déchaîner le flux et<br>
+          découvrir des contenus qui vont vous faire flipper !
+        </p>
+       
+      </div>
+    </div>
+  </ng-template>
+
+</ion-content>

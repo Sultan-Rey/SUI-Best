@@ -1,0 +1,13 @@
+.lottie-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999; /* Toujours au-dessus de tout le contenu */
+  pointer-events: none; /* L'utilisateur peut continuer à cliquer derrière */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2); // Optionnel : assombrit légèrement le fond
+}

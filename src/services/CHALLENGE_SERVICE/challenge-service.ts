@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { Challenge } from '../../models/Challenge';
 
@@ -114,4 +114,31 @@ export class ChallengeService {
       })
     );
   }
+
+
+
+  /**
+   * Calcule le nombre total de vues pour un challenge donné
+   * @param challengeId ID du challenge
+   * @returns Observable<number> Nombre total de vues
+   */
+  getTotalViewsForChallenge(challengeId: string): Observable<number> {
+    return this.api.getAll<any>('contents', { challengeId }).pipe(
+      map(contents => {
+        if (!contents || contents.length === 0) {
+          return 0;
+        }
+        
+        // Sommer tous les viewCount des contenus associés au challenge
+        return contents.reduce((total: number, content: any) => {
+          return total + (content.viewCount || 0);
+        }, 0);
+      }),
+      catchError(error => {
+        console.error('Erreur lors du calcul des vues pour le challenge:', error);
+        return of(0);
+      })
+    );
+  }
+
 }
