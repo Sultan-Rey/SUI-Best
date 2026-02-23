@@ -98,6 +98,7 @@
         <ion-button 
           *ngIf="currentUserId !== userProfile.id"
           [color]="userProfile.isFollowing ? 'medium' : 'warning'"
+          [disabled]="isBlocked"
           expand="block"
           (click)="toggleFollow()"
           class="follow-btn"
@@ -105,6 +106,9 @@
            <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
           <span *ngIf="!userProfile.isFollowing">S'abonner</span>
           <span *ngIf="userProfile.isFollowing">Abonné</span>
+          <span>
+            <ion-icon name="warning" *ngIf="isBlocked"></ion-icon>
+          </span>
         </ion-button>
         
         <ion-button 
@@ -129,11 +133,11 @@
     <!-- ======================================= -->
     <!-- SECTION CHALLENGES (Nouveauté) -->
     <!-- ======================================= -->
-    <div class="challenges-section" *ngIf="userProfile.userType === 'creator' && activeChallengesCount > 0">
+    <div class="challenges-section" *ngIf="(userProfile.userType === 'creator' || userProfile.userType === 'admin')  && activeChallengesCount > 0">
       <div class="challenges-header">
         <div class="challenges-title">
           <ion-icon name="trophy-outline" class="challenges-icon"></ion-icon>
-          <h2>Challenges Actifs</h2>
+          <h2>Challenges</h2>
           <ion-badge color="danger" class="challenges-count">{{ activeChallengesCount }}</ion-badge>
         </div>
         <ion-button 

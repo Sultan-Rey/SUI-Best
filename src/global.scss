@@ -9,7 +9,38 @@
  * https://ionicframework.com/docs/layout/global-stylesheets
  */
 
- 
+/* Polices alternatives à Google Fonts */
+:root {
+  /* Inter alternatives */
+  --font-family-inter: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  /* Crimson Pro alternatives */
+  --font-family-crimson: Georgia, "Times New Roman", serif;
+  
+  /* DM Sans alternatives */
+  --font-family-dm-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Playfair Display alternatives */
+  --font-family-playfair: Georgia, "Times New Roman", serif;
+}
+
+/* Classes utilitaires pour les polices */
+.font-inter {
+  font-family: var(--font-family-inter);
+}
+
+.font-crimson {
+  font-family: var(--font-family-crimson);
+}
+
+.font-dm-sans {
+  font-family: var(--font-family-dm-sans);
+}
+
+.font-playfair {
+  font-family: var(--font-family-playfair);
+}
+
 /* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
 

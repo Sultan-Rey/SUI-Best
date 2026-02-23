@@ -99,7 +99,7 @@
               <div class="pack-buy-section">
                 <button 
                   class="pack-buy-btn" 
-                  (click)="purchasePack(pack)"
+                  (click)="showPaymentMethods(pack)"
                   [disabled]="isProcessingPayment"
                 >
                   <span *ngIf="currentUser.id === pack.ownerId"><ion-icon name="lock-closed"></ion-icon></span>
@@ -189,7 +189,7 @@
               <div class="pack-buy-section">
                 <button 
                   class="pack-buy-btn" 
-                  (click)="purchasePack(pack)"
+                  (click)="showPaymentMethods(pack)"
                   [disabled]="isProcessingPayment"
                 >
                   <span>{{ isProcessingPayment ? 'Traitement...' : 'Acheter' }}</span>

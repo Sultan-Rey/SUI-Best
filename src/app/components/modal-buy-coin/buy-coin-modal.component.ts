@@ -192,7 +192,7 @@ export class BuyCoinModalComponent implements OnInit {
       });
       await loading.present();
       
-      const updatedWallet = await firstValueFrom(this.walletService.purchasePack(pack, 'coins', paymentMethod));
+      const updatedWallet = await firstValueFrom(this.walletService.purchasePackCoins(pack, 'coins', paymentMethod));
       
       if (updatedWallet) {
         this.paymentStatus = 'success';

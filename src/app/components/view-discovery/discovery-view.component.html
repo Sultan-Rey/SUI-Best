@@ -101,7 +101,7 @@
       <a class="section-more">Tout voir</a>
     </div>
     <div class="stories-scroll">
-      <div class="story-item" *ngFor="let story of stories">
+      <div class="story-item" (click)="showAccount(story.id)" *ngFor="let story of stories">
         <div class="story-ring" [class.active]="story.isLive">
           <img class="story-avatar" [src]="story.avatar | mediaUrl" [alt]="story.name"/>
           <span class="live-badge" *ngIf="story.isLive">LIVE</span>

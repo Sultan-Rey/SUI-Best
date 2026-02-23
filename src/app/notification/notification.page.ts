@@ -8,6 +8,7 @@ import {
   checkmarkDoneOutline, closeOutline, notificationsOutline,
   trophyOutline, heartOutline, chatbubbleOutline, shareOutline,
   statsChartOutline, personOutline, alertCircleOutline, starOutline, checkmarkDoneCircle } from 'ionicons/icons';
+import { Auth } from 'src/services/AUTH/auth';
 
 interface SegmentOption {
   value: string;
@@ -41,7 +42,7 @@ export class NotificationPage implements OnInit {
     { value: 'interaction', label: 'Interactions' },
   ];
 
-  constructor(private notificationService: NotificationService) {
+  constructor(private notificationService: NotificationService, private auth:Auth) {
     addIcons({checkmarkDoneCircle,closeOutline,notificationsOutline,checkmarkDoneOutline,trophyOutline,heartOutline,chatbubbleOutline,shareOutline,statsChartOutline,personOutline,alertCircleOutline,starOutline});
   }
 
@@ -51,9 +52,9 @@ export class NotificationPage implements OnInit {
 
   loadNotifications() {
     // TODO: Récupérer l'ID utilisateur actuel (peut venir d'un service d'auth)
-    const currentUserId = 'current-user'; // Remplacer par l'ID réel de l'utilisateur
+    const currentUserId = this.auth.getCurrentUser()?.id; 
     
-    this.notificationService.loadNotificationsForUser(currentUserId).subscribe({
+    this.notificationService.loadNotificationsForUser(currentUserId as string).subscribe({
       next: (notifications) => {
         this.notifications = notifications;
         this.unreadCount = this.notificationService.getUnreadCount();
@@ -71,23 +72,23 @@ export class NotificationPage implements OnInit {
   }
 
   private applyFilter() {
-    const currentUserId = 'current-user'; // Remplacer par l'ID réel de l'utilisateur
-    
+    const currentUserId = this.auth.getCurrentUser()?.id;; // Remplacer par l'ID réel de l'utilisateur
+     
     switch (this.selectedSegment) {
       case 'unread':
-        this.notificationService.getUnreadNotifications(currentUserId).subscribe(notifications => {
+        this.notificationService.getUnreadNotifications(currentUserId as string).subscribe(notifications => {
           this.filteredNotifications = notifications;
           this.groupedNotifications = this.buildGroups(this.filteredNotifications);
         });
         break;
       case 'engagement':
-        this.notificationService.getNotificationsByCategory('engagement', currentUserId).subscribe(notifications => {
+        this.notificationService.getNotificationsByCategory('engagement', currentUserId as string).subscribe(notifications => {
           this.filteredNotifications = notifications;
           this.groupedNotifications = this.buildGroups(this.filteredNotifications);
         });
         break;
       case 'interaction':
-        this.notificationService.getNotificationsByCategory('interaction', currentUserId).subscribe(notifications => {
+        this.notificationService.getNotificationsByCategory('interaction', currentUserId as string).subscribe(notifications => {
           this.filteredNotifications = notifications;
           this.groupedNotifications = this.buildGroups(this.filteredNotifications);
         });
@@ -179,9 +180,9 @@ export class NotificationPage implements OnInit {
   }
 
   handleRefresh(event: any) {
-    const currentUserId = 'current-user'; // Remplacer par l'ID réel de l'utilisateur
+    const currentUserId = this.auth.getCurrentUser()?.id; // Remplacer par l'ID réel de l'utilisateur
     
-    this.notificationService.refreshNotifications(currentUserId).subscribe({
+    this.notificationService.refreshNotifications(currentUserId as string).subscribe({
       next: (notifications) => {
         this.notifications = notifications;
         this.unreadCount = this.notificationService.getUnreadCount();

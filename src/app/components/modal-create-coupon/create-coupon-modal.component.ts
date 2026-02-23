@@ -223,6 +223,9 @@ export class CreateCouponModalComponent implements OnInit {
         price: requiredCoins,
         icon: this.selectedTypeMetadata?.icon || '⚡',
         itemType: 'coupons',
+        holder: [],
+        qtySold: 0,
+        expiryDate: new Date(Date.now() + (this.packConfig.expiryDays * 24 * 60 * 60 * 1000)),
         promo: this.packConfig.discount ? this.packConfig.discount + "%" : undefined
       }).subscribe({
         next: (createdPack) => {

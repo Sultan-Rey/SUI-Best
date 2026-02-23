@@ -27,14 +27,6 @@ export const routes: Routes = [
     loadComponent: () => import('./register/register.page').then( m => m.RegisterPage)
   },
   {
-    path: 'content-detail/:id',
-    loadComponent: () => import('./content-detail/content-detail.page').then( m => m.ContentDetailPage)
-  },
-  {
-    path: 'content-comments/:id',
-    loadComponent: () => import('./content-comments/content-comments.page').then( m => m.ContentCommentsPage)
-  },
-  {
     path: 'settings',
     loadComponent: () => import('./settings/settings.page').then( m => m.SettingsPage)
   },

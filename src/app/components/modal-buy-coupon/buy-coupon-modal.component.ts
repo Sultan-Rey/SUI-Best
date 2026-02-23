@@ -62,6 +62,7 @@ export class BuyCouponModalComponent implements OnInit {
   ngOnInit() {
     this.currentUser = this.authService.getCurrentUser() as AuthUser;
     this.loadCouponPacksFromAPI();
+   
   }
 
   loadCouponPacksFromAPI() {
@@ -177,71 +178,7 @@ export class BuyCouponModalComponent implements OnInit {
     }));
   }
 
-  async purchasePack(pack: CouponPackWithOwner) {
-    if (this.isProcessingPayment || this.currentUser.id == pack.ownerId) return;
-
-    try {
-      this.isProcessingPayment = true;
-      
-      // Vérifier si l'utilisateur a assez de coins
-      const currentBalance = this.walletService.getBalance();
-      if (currentBalance.coins < pack.price) {
-        this.showToast('Solde de coins insuffisant', 'warning');
-        return;
-      }
-      
-      // D'abord déduire les coins
-      this.walletService.deductCoins(pack.price).subscribe({
-        next: (updatedWallet) => {
-         // console.log('✅ Coins déduits:', pack.price);
-          
-          // Créer un pack compatible avec performPurchase
-          const packForPurchase: Pack = {
-            id: pack.id,
-            amount: pack.amount,
-            name: pack.name,
-            price: pack.price,
-            couponType: pack.couponType,
-            itemType: 'coupons',
-            ownerId: pack.ownerId,
-            icon: pack.icon,
-            isBestAcademy: pack.isBestAcademy
-          };
-          
-          // Ensuite utiliser performPurchase pour créer les coupons et la transaction
-          this.walletService.purchasePack(packForPurchase, 'coupons', 'gpay').subscribe({
-            next: (finalWallet) => {
-              //console.log('✅ Achat effectué avec succès:', finalWallet);
-              this.showToast(`Achat de ${pack.amount} coupons effectué!`, 'success');
-              
-              // Fermer le modal après l'achat réussi
-              this.modalController.dismiss({ success: true, pack });
-            },
-            error: (error) => {
-              console.error('❌ Erreur lors de la création des coupons:', error);
-              this.showToast('Erreur lors de l\'ajout des coupons', 'error');
-              
-              // Rembourser les coins en cas d'erreur
-              this.walletService.addCoins(pack.price).subscribe();
-            },
-            complete: () => {
-              this.isProcessingPayment = false;
-            }
-          });
-        },
-        error: (error) => {
-          console.error('❌ Erreur lors de la déduction des coins:', error);
-          this.showToast('Erreur lors du paiement', 'error');
-          this.isProcessingPayment = false;
-        }
-      });
-      
-    } catch (error) {
-      console.error('❌ Erreur inattendue lors de l\'achat:', error);
-      this.showToast('Erreur lors de l\'achat', 'error');
-      this.isProcessingPayment = false;
-    }
-  }
+ 
 
   async showPaymentMethods(pack: CouponPackWithOwner) {
     const actionSheet = await this.actionSheetController.create({
@@ -274,7 +211,8 @@ export class BuyCouponModalComponent implements OnInit {
   }
 
   async processPayment(pack: CouponPackWithOwner, paymentMethod: string) {
-    if (this.isProcessingPayment) return;
+       if (this.isProcessingPayment || this.currentUser.id == pack.ownerId) return;
+
 
     // Vérifier si l'utilisateur a assez de coins
     const currentBalance = this.walletService.getBalance();
@@ -298,8 +236,8 @@ export class BuyCouponModalComponent implements OnInit {
       // Mise à jour du message de chargement pour plus de feedback
       loading.message = 'Communication avec le serveur...';
       
-      // Appel réel au walletService pour traiter l'achat
-      this.walletService.purchasePack(pack, pack.itemType, paymentMethod).subscribe({
+      // Utiliser walletService pour l'achat (il gère maintenant la mise à jour du pack)
+      this.walletService.purchasePack(pack, 'coupons', paymentMethod, String(this.currentUser.id)).subscribe({
         next: (updatedWallet) => {
           // Succès de l'achat
           loading.message = 'Achat réussi! Mise à jour du solde...';
@@ -324,7 +262,7 @@ export class BuyCouponModalComponent implements OnInit {
           loading.dismiss();
           
           // Messages d'erreur spécifiques
-          let errorMessage = 'Erreur lors du paiement. Veuillez réessayer.';
+          let errorMessage = 'Erreur lors de l\'achat. Veuillez réessayer.';
           if (error.message?.includes('insufficient')) {
             errorMessage = 'Solde insuffisant pour cet achat.';
           } else if (error.message?.includes('network')) {

@@ -1,0 +1,635 @@
+// ─────────────────────────────────────────────
+// tab-exclusive.page.scss
+// Design system tokens
+// ─────────────────────────────────────────────
+
+:host {
+  --orange:        #FF8C00;
+  --orange-glow:   rgba(255, 140, 0, 0.32);
+  --bg:            #0D0D0F;
+  --surface:       #141418;
+  --surface2:      #1C1C22;
+  --surface3:      #242430;
+  --text:          #F0EEF8;
+  --text-muted:    #7A788A;
+  --border:        rgba(255, 255, 255, 0.06);
+}
+
+// ─────────────────────────────────────────────
+// Ion-content override
+// ─────────────────────────────────────────────
+
+.exclusive-content {
+  --background: var(--bg);
+  --color: var(--text);
+
+  font-family: 'DM Sans', sans-serif;
+}
+
+// ─────────────────────────────────────────────
+// Header
+// ─────────────────────────────────────────────
+
+.ex-header {
+  padding: 56px 24px 12px;
+
+  .ex-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin: 0 0 4px;
+    line-height: 1.1;
+  }
+
+  .ex-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Search
+// ─────────────────────────────────────────────
+
+.ex-search-wrap {
+  padding: 16px 24px;
+}
+
+.ex-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: rgba(255, 140, 0, 0.3);
+  }
+
+  .search-icon {
+    font-size: 17px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    background: none;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    width: 100%;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Premium banner
+// ─────────────────────────────────────────────
+
+.premium-banner {
+  margin: 4px 24px 24px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #1A1420 0%, #1C1628 50%, #14121C 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(138, 92, 246, 0.2);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(138, 92, 246, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .premium-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .premium-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .premium-gem {
+    font-size: 18px;
+  }
+
+  .premium-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+
+  .btn-subscribe {
+    width: 100%;
+    background: var(--surface3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 13px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:active {
+      opacity: 0.75;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Filter tabs
+// ─────────────────────────────────────────────
+
+.filter-tabs-wrap {
+  padding: 0 24px 24px;
+  overflow: hidden;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 50px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  background: var(--surface2);
+  color: var(--text-muted);
+  border-color: var(--border);
+
+  ion-icon {
+    font-size: 14px;
+  }
+
+  .tab-prefix {
+    font-size: 13px;
+  }
+
+  &.active {
+    background: var(--orange);
+    color: white;
+    font-weight: 700;
+    border-color: transparent;
+    box-shadow: 0 4px 20px var(--orange-glow);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section title
+// ─────────────────────────────────────────────
+
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 0 24px 16px;
+  letter-spacing: -0.2px;
+}
+
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 24px 24px;
+}
+
+// ─────────────────────────────────────────────
+// Featured horizontal scroll
+// ─────────────────────────────────────────────
+
+.featured-scroll-wrap {
+  padding: 0 0 28px;
+  overflow: hidden;
+}
+
+.featured-scroll {
+  display: flex;
+  gap: 16px;
+  padding: 0 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.featured-card {
+  flex-shrink: 0;
+  width: 220px;
+  background: var(--surface);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.18s;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Card thumbnail (shared)
+// ─────────────────────────────────────────────
+
+.card-thumb {
+  width: 100%;
+  height: 150px;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface2);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.65;
+  }
+
+  &.is-locked {
+    background: linear-gradient(135deg, #1a1a22 0%, #222230 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lock-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .lock-icon-wrap {
+    width: 52px;
+    height: 52px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 22px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  .lock-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+}
+
+.card-duration-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+
+  ion-icon {
+    font-size: 12px;
+  }
+
+  &.top-right {
+    bottom: auto;
+    left: auto;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Card info (shared)
+// ─────────────────────────────────────────────
+
+.card-info,
+.content-info {
+  padding: 14px 16px;
+}
+
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+  margin: 0 0 10px;
+
+  // full-width cards get larger title
+  .content-card & {
+    font-size: 15px;
+  }
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.author-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #FF8C00, #E05000);
+}
+
+.author-name {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.views-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+
+  ion-icon {
+    font-size: 13px;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Buttons
+// ─────────────────────────────────────────────
+
+.btn-buy {
+  width: 100%;
+  background: var(--orange);
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px var(--orange-glow);
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+
+  &:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px var(--orange-glow);
+  }
+}
+
+.btn-watch {
+  @extend .btn-buy;
+  background: var(--surface3);
+  color: var(--text);
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+.btn-buy-full {
+  @extend .btn-buy;
+  width: calc(100% - 32px);
+  margin: 0 16px 16px;
+  padding: 15px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px var(--orange-glow);
+}
+
+// ─────────────────────────────────────────────
+// All content list
+// ─────────────────────────────────────────────
+
+.all-content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px 32px;
+}
+
+.content-card {
+  background: var(--surface);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.18s;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Live card specific
+// ─────────────────────────────────────────────
+
+.live-thumb {
+  width: 100%;
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+  background: #111;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.75);
+  }
+}
+
+.live-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #E8364A;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.8px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+  animation: livePulse 1.2s infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.75); }
+}
+
+.play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+
+  ion-icon {
+    font-size: 22px;
+    color: white;
+    margin-left: 2px;
+  }
+}
+
+.thumb-type-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+// ─────────────────────────────────────────────
+// Locked full-width thumb
+// ─────────────────────────────────────────────
+
+.content-thumb {
+  width: 100%;
+  height: 180px;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface2);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+  }
+
+  &.locked-thumb {
+    background: linear-gradient(135deg, #1e1e2a 0%, #2a2040 50%, #1a1828 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .locked-thumb-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lock-circle {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 28px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+  }
+
+  .lock-big-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+  }
+}

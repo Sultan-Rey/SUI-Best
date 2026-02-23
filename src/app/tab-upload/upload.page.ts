@@ -1,8 +1,8 @@
-import { Component, OnDestroy, Input } from '@angular/core';
+import { Component, OnDestroy, Input, OnInit } from '@angular/core';
 import { ActionSheetController, AlertController, LoadingController, ToastController } from '@ionic/angular';
 import { CameraService } from '../../services/CAMERA_SERVICE/camera-service.js';
 import { CreationService } from '../../services/CREATION_SERVICE/creation-service.js';
-import { Content, ContentSource, ContentType } from '../../models/Content.js';
+import { Content, ContentSource, ContentStatus, ContentType } from '../../models/Content.js';
 import { IonButton,IonChip,  IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonProgressBar, IonList, IonToolbar, IonTitle, IonRadioGroup, IonButtons, IonListHeader, IonRadio } from "@ionic/angular/standalone";
 import { NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,11 +24,11 @@ import { NotificationService } from 'src/services/NOTIFICATION_SERVICE/notificat
   providers: [ModalController],
   imports:[NgIf, NgFor, FormsModule,  IonButton, IonChip, IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonButtons, IonProgressBar, IonList, IonToolbar, IonTitle,  IonListHeader, IonRadio, IonRadioGroup]
 })
-export class UploadPage implements OnDestroy {
-  @Input() userId?: string;
+export class UploadPage implements OnInit, OnDestroy {
+  @Input() creatorId?: string;
   @Input() challengeId?: string;
   @Input() isAutomaticAcceptance?: boolean;
-  @Input() isModalMode: boolean = false;
+  @Input() isModalMode!: boolean;
   
   private _selectedChallengeId: string | null = null;
 
@@ -53,6 +53,7 @@ export class UploadPage implements OnDestroy {
     likedIds: [],
     commentIds: [],
     challengeId: '', // Sera mis à jour par le setter
+    status: ContentStatus.PUBLISHED,
     userId: this.authService.getCurrentUser()?.id?.toString() || '',
     source: ContentSource.CAMERA
   };
@@ -80,22 +81,27 @@ export class UploadPage implements OnDestroy {
     private routeur: Router,
     private modalCtrl: ModalController
   ) { 
-    this.initializeMode();
+    
     addIcons({arrowBack,close,images,closeCircle,camera,image,globe,lockClosed,download,heartOutline,chatbubbleOutline,shareOutline,expand,contract});
   }
 
- 
-  private initializeMode() {
+  ngOnInit(){
+    this.initializeMode();
+  }
+
+   private async initializeMode() {
     // Vérifier si nous sommes en mode modal
-    
+   
     if (this.isModalMode) {
-      // Mode modal: utiliser les inputs fournis
-      if (this.userId) {
-        this.content.userId = this.userId;
-      }
-      if (this.challengeId) {
-        this.selectedChallengeId = this.challengeId;
-      }
+        const theChallenge = await this.challengeService.getChallengeById(this.challengeId as string).toPromise();
+        if(!theChallenge) return;
+
+        this.content.challengeId = theChallenge.id;
+    
+      theChallenge.is_acceptance_automatic ?
+        this.content.status = ContentStatus.PUBLISHED:
+          this.content.status = ContentStatus.DRAFT;
+      
       // En mode modal, on a 3 étapes: média → description → vérification
       this.totalSteps = 3;
     } else {
@@ -103,6 +109,8 @@ export class UploadPage implements OnDestroy {
       this.loadChallenges();
       this.totalSteps = 4;
     }
+    
+   
   }
 
   async loadChallenges() {
@@ -112,7 +120,8 @@ export class UploadPage implements OnDestroy {
       this.authService.getCurrentUser()?.id as string || ''
     ).subscribe({
       next: (challenges: Challenge[]) => {
-        this.challenges = challenges;
+        const activeChallenges = challenges.filter((challenge)=> challenge.end_date && challenge.end_date <= new Date(Date.now()))
+        this.challenges = activeChallenges;
       },
       error: (error) => {
         console.error('Erreur lors du chargement des challenges:', error);
@@ -124,6 +133,7 @@ export class UploadPage implements OnDestroy {
     this.showError('Une erreur inattendue est survenue');
   }
 }
+
 
   isImage(): boolean {
   if (!this.selectedFile) return false;
@@ -242,23 +252,11 @@ removeMedia(event: Event) {
   await loading.present();
  
   try {
-    let finalChallengeId: string;
-
-    // Cas 1: Mode normal - on utilise le challengeId sélectionné
-    if (!this.isModalMode) {
-      finalChallengeId = this.content.challengeId || '';
-    } 
-    // Cas 2: Mode modal
-    else {
-      if (this.isAutomaticAcceptance) {
-        // Acceptation automatique : on utilise le challengeId de l'input
-        finalChallengeId = this.challengeId || '';
-      } else {
-        // Pas d'acceptation automatique : on publie d'abord, puis on informe
-        finalChallengeId = ''; // Publier sans challenge initialement
-      }
-    }
-
+  
+    
+    const userType = this.authService.getCurrentUser()?.user_type;
+    if(this.isModalMode && userType !== 'admin') this.content.isPublic = false;
+    
     // Création du contenu
     const newContent = await this.creationService.createContentWithFile(
       this.selectedFile,
@@ -268,8 +266,9 @@ removeMedia(event: Event) {
         isPublic: this.content.isPublic ?? true,
         allowDownloads: this.content.allowDownloads ?? true,
         allowComments: this.content.allowComments ?? false,
-        challengeId: finalChallengeId,
+        challengeId: this.content.challengeId,
         cadrage: this.imageFitMode,
+        status: this.content.status as ContentStatus,
         likedIds: [],
         commentIds: [],
         source: this.content.source || ContentSource.CAMERA
@@ -279,6 +278,7 @@ removeMedia(event: Event) {
     // Mise à jour des statistiques du profil utilisateur
     if (newContent && this.content.userId) {
       try {
+        this.notificationFor(newContent);
         // Récupérer le profil utilisateur
 const userProfile = await this.profileService.getProfileById(this.content.userId).toPromise();
 
@@ -332,6 +332,34 @@ if (userProfile) {
     this.showError('Erreur lors de la publication');
   }
 }
+
+  private async notificationFor(uploadedPost: any){
+    if(this.isModalMode && !this.isAutomaticAcceptance){
+      const notified = await this.notificationService.createNotification({
+            title: 'Participation au défi',
+            message: 'Nouvelle demande de participation a votre défi en cours',
+            category: 'interaction',
+            priority: 'medium',
+            status: 'read',
+            recipients: {
+            type: 'request',
+            userIds: [this.creatorId || '']},
+            action: {
+            type: 'response',
+            label: 'Aprouvé le candidat',
+            meta: {postId:uploadedPost.id, reason:'acceptation'},
+            },
+            effects: {
+            sound: 'default',
+            vibration: true,
+            badge: true
+            }
+          }).toPromise();
+          if(notified){
+          this.showSuccess("Votre demande participation est en cours de traitement...");
+          }
+    }
+  }
 
   // Navigation entre les étapes
   nextStep() {

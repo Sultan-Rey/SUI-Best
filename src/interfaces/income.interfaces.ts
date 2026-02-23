@@ -11,9 +11,12 @@ export interface Pack {
   icon: string;
   couponType: CouponType;
   itemType: 'coins' | 'coupons' | 'gift';
+  holder?: string[]; //contient les Ids des users ayant un achat valide en cours
+  qtySold?: number;
   isBestValue?: boolean;
   isBestAcademy: boolean;
   promo?: string;
+  expiryDate: Date;
 }
 
 export interface PaymentMethod {

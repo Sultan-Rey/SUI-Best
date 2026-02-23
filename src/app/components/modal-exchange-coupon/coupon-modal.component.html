@@ -30,7 +30,7 @@
       </div>
 
       <!-- Slider Horizontal -->
-      <div class="coupons-slider-container" *ngIf="availableCoupons.length > 0; else loadingOrEmpty">
+      <div class="coupons-slider-container" *ngIf="availableCoupons.length > 0 ; else loadingOrEmpty">
         <div class="coupons-slider">
           <div 
             class="coupon-ticket" 
@@ -150,14 +150,14 @@
       </div>
 
       <!-- Aucun coupon disponible -->
-      <ng-template #loadingOrEmpty>
+      <ng-template  #loadingOrEmpty>
   <div class="loading-container" *ngIf="isLoading; else noCoupons">
     <ion-spinner name="crescent" color="primary"></ion-spinner>
     <p>Chargement des coupons...</p>
   </div>
 
   <ng-template #noCoupons>
-    <div class="no-coupons-compact">
+    <div *ngIf="!selectedCoupon" class="no-coupons-compact">
       <div class="no-coupons-icon-compact">
         <ion-icon name="ticket-outline"></ion-icon>
       </div>

@@ -109,7 +109,7 @@
     </div>
 
     <!-- CTA -->
-    <ion-button expand="block" class="cta" (click)="presentParticipateOptions()">
+    <ion-button expand="block" *ngIf="!isParticiping && !isCreator" class="cta" (click)="presentParticipateOptions()">
       Devenir participant
     </ion-button>
 

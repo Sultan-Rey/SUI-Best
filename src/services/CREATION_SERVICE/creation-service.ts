@@ -41,6 +41,7 @@ createContentWithFile(
     allowComments: boolean;
     commentIds:[],
     likedIds:[],
+    status: ContentStatus,
     challengeId?: string;
     cadrage: 'default'| 'fit';
     source: ContentSource;
@@ -75,7 +76,7 @@ createContentWithFile(
     fileUrl: uploadResponse.file.path,
     mimeType: file.type,
     fileSize: file.size,
-    status: ContentStatus.PUBLISHED,
+    status: metadata.status,
     challengeId: metadata.challengeId || '',
     cadrage: metadata.cadrage,  
     viewCount: 0,
@@ -260,107 +261,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
     );
   }
 
-  /**
-   * Ajoute un vote au tableau votersList d'un contenu
-   * @param vote Le vote à ajouter
-   * @param voteRule La règle de vote (par défaut UNLIMITED_VOTES)
-   * @returns Observable<Content> Le contenu mis à jour
-   */
-  addVoteToContent(vote: Vote, voteRule: VoteRule = VoteRule.UNLIMITED_VOTES): Observable<Content> {
-    return this.api.getById<Content>(this.contentResource, vote.contentId).pipe(
-      switchMap(content => {
-        const currentVotersList = [...(content.votersList || [])];
-        
-        if (voteRule === VoteRule.UNLIMITED_VOTES) {
-          // Mode UNLIMITED_VOTES: on cherche si l'utilisateur a déjà voté POUR CE CONTENU
-          // currentVotersList contient uniquement les votes du contenu actuel (vote.contentId)
-          const existingVoteIndex = currentVotersList.findIndex(v => v.userId === vote.userId && v.challengeId === vote.challengeId);
-          
-          if (existingVoteIndex !== -1) {
-            // L'utilisateur a déjà voté, on incrémente le vote existant
-            currentVotersList[existingVoteIndex] = {
-              ...currentVotersList[existingVoteIndex],
-              nbVotes: currentVotersList[existingVoteIndex].nbVotes + vote.nbVotes
-            };
-          } else {
-            // L'utilisateur n'a pas encore voté, on crée un nouveau vote
-            const newVote: Vote = {
-              ...vote,
-              createdAt: vote.createdAt || new Date().toISOString()
-            };
-            currentVotersList.push(newVote);
-          }
-        } else {
-          // Autres règles de vote ONE_VOTE_PER_USER
-          // Pour l'instant, on ajoute simplement le vote
-          const newVote: Vote = {
-            ...vote,
-            createdAt: vote.createdAt || new Date().toISOString()
-          };
-          currentVotersList.push(newVote);
-        }
-        
-        // Calcul du nombre total de votes
-        const totalVotes = currentVotersList.reduce((sum, v) => sum + v.nbVotes, 0);
-        
-        return this.api.patch<Content>(this.contentResource, vote.contentId, {
-          votersList: currentVotersList,
-          voteCount: totalVotes
-        });
-      }),
-      catchError(error => {
-        console.error('Erreur lors de l\'ajout du vote:', error);
-        return throwError(() => new Error('Impossible d\'ajouter le vote. Veuillez réessayer.'));
-      })
-    );
-  }
-
-  /**
-   * Vérifie si un utilisateur peut voter pour un contenu dans un challenge spécifique
-   * @param userId ID de l'utilisateur
-   * @param contentId ID du contenu
-   * @param challengeId ID du challenge
-   * @returns Observable<{canVote: boolean, voteRule: VoteRule, existingVote?: Vote}>
-   */
-  canUserVoteForChallenge(userId: string, contentId: string, challengeId: string): Observable<{
-    canVote: boolean;
-    voteRule: VoteRule;
-    existingVote?: Vote;
-  }> {
-    // Récupérer le challenge pour connaître la règle de vote
-    return this.challengeService.getChallengeById(challengeId).pipe(
-      switchMap(challenge => {
-        const voteRule = challenge.vote_rule as VoteRule;
-        
-        // Si la règle est UNLIMITED_VOTES, l'utilisateur peut toujours voter
-        if (voteRule === VoteRule.UNLIMITED_VOTES) {
-          return of({ canVote: true, voteRule });
-        }
-        
-        // Pour ONE_VOTE_PER_USER, on vérifie si l'utilisateur a déjà voté
-        return this.api.getById<Content>(this.contentResource, contentId).pipe(
-          map(content => {
-            const existingVote = (content.votersList || []).find(v => 
-              v.userId === userId && v.challengeId === challengeId
-            );
-            
-            return {
-              canVote: !existingVote,
-              voteRule,
-              existingVote
-            };
-          })
-        );
-      }),
-      catchError(error => {
-        console.error('Erreur lors de la vérification du droit de vote:', error);
-        return of({ 
-          canVote: false, 
-          voteRule: VoteRule.ONE_VOTE_PER_USER 
-        });
-      })
-    );
-  }
+ 
 
   /**
    * Met à jour le viewCount d'un contenu avec une valeur spécifique
@@ -389,7 +290,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<number> Nombre total de vues
    */
   getTotalViewsForChallenge(challengeId: string): Observable<number> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
+    return this.api.get<Content[]>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;
@@ -414,7 +315,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<number> Nombre total de votes
    */
   getTotalVotesForChallenge(challengeId: string): Observable<number> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
+    return this.api.get<Content[]>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;
@@ -439,7 +340,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<number> Nombre total de partages
    */
   getTotalSharesForChallenge(challengeId: string): Observable<number> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
+    return this.api.get<Content[]>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;
@@ -464,12 +365,15 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<{content: Content, profile: UserProfile}[]> Liste des participants avec leurs contenus et profils
    */
   getChallengeParticipants(challengeId: string): Observable<{content: Content, profile: UserProfile}[]> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
+    return this.api.filter<Content>(this.contentResource, { challengeId }, true).pipe(
       switchMap(contents => {
         if (!contents || contents.length === 0) {
           return of([]);
         }
-        
+         if (!Array.isArray(contents) && typeof contents === 'object') {
+          // Convertir l'objet avec clés numériques en tableau
+          contents = Object.values(contents);
+        }
         // Extraire les userId uniques pour éviter les doublons
         const uniqueUserIds = [...new Set(contents.map(content => content.userId))];
         
@@ -515,12 +419,16 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<UserProfile[]> Liste des profils des participants
    */
   getChallengeParticipantProfiles(challengeId: string): Observable<UserProfile[]> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
+    return this.api.filter<Content>(this.contentResource, { challengeId }, true).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return [];
         }
-        
+        // Si contents n'est pas un tableau, essayer de l'extraire d'un objet
+        if (!Array.isArray(contents) && typeof contents === 'object') {
+          // Convertir l'objet avec clés numériques en tableau
+          contents = Object.values(contents);
+        }
         // Extraire les userId uniques
         return [...new Set(contents.map(content => content.userId))];
       }),
@@ -586,7 +494,8 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
     return this.getFeedContents(page, limit).pipe(
       map(contents => contents.filter(content => 
         content.userId !== currentUserProfile.id &&
-        !currentUserProfile.myFollows.includes(content.userId)
+        !currentUserProfile.myFollows.includes(content.userId) &&
+        content.status == ContentStatus.PUBLISHED
       )),
       map(contents => {
         // Trier par pertinence : combinaison pondérée des métriques d'engagement
@@ -632,7 +541,10 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
     return this.getFeedContents(page, limit).pipe(
       map(contents => contents.filter(content => 
         content.userId === currentUserProfile.id ||
-        currentUserProfile.myFollows.includes(content.userId)
+        currentUserProfile.myFollows.includes(content.userId)||
+        content.status == ContentStatus.PUBLISHED ||
+        content.isPublic
+
       )),
       map(contents => {
             

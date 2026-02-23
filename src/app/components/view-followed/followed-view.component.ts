@@ -38,6 +38,7 @@ import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-servi
 import { CouponModalComponent } from '../modal-exchange-coupon/coupon-modal.component.js';
 import { GiftModalComponent } from '../modal-gift/gift-modal.component.js';
 import { VoteService } from 'src/services/VOTE_SERVICE/vote-service.js';
+import { ModalCommentComponent } from '../modal-comment/modal-comment.component';
 
 @Component({
   selector: 'app-followed-view',
@@ -459,6 +460,23 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   async voteForArtist(post: any) {
+    this.voteService.canUserVoteForChallenge(this.currentUserProfile?.id, post.id, post.challengeId).subscribe({
+      next: (result) => {
+        if (result.canVote) {
+          this.openVoteModal(post);
+        } else {
+          this.showToast('Vous avez déjà voté pour ce contenu dans ce défi');
+        }
+      },
+      error: (error) => {
+        console.error('Erreur lors de la vérification du vote:', error);
+        this.showToast('Erreur lors de la vérification du vote');
+      }
+    });
+  }
+  
+
+  private async openVoteModal(post: any) {
     const modal = await this.modalController.create({
       component: CouponModalComponent,
       cssClass: 'vote-modal',
@@ -518,11 +536,23 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    this.router.navigate(['/content-comments', post.id], {
-      state: { 
-        currentUser: this.currentUserProfile 
-      }
+    const modal = await this.modalController.create({
+      component: ModalCommentComponent,
+      componentProps:{
+        currentUser: this.currentUserProfile,
+        contentId: post.id
+      },
+      cssClass: 'auto-height',
+        initialBreakpoint: 0.95,
+        breakpoints: [0, 0.95, 1],
+        handle: true
+    })
+    await modal.present();
+
+    modal.onDidDismiss().then((data)=>{
+        
     });
+    
   }
 
   async sharePost(post: Content) {
@@ -623,16 +653,11 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   //#region View Tracking
   onViewChange(content: Content) {
     if (!content?.id) return;
-    
-    //console.log('onViewChange called for content:', content.id);
-    //console.log('Already viewed:', this.viewedContent.has(content.id));
-    
     this.clearViewTimer(content.id);
-    
     if (!this.viewedContent.has(content.id)) {
-      //console.log('Starting 30-second timer for content:', content.id);
-      this.viewTimers[content.id] = setTimeout(() => {
-        this.incrementContentView(content);
+       this.viewTimers[content.id] = setTimeout(() => {
+        const currentViewCount = content.viewCount || 0;
+        this.incrementContentView(content.id!, currentViewCount + 1);
       }, 30000);
     }
   }
@@ -650,25 +675,20 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private incrementContentView(content: Content) {
+  private incrementContentView(contentId: string, viewCount: number) {
    
-    if (!content?.id || this.viewedContent.has(content.id)) return;
+    if (!contentId || this.viewedContent.has(contentId)) return;
      
-    // Calculer le nouveau viewCount
-    const currentViewCount = content.viewCount || 0;
-    const newViewCount = currentViewCount + 1;
-     
-    this.creationService.incrementViewCount(content.id!, newViewCount).subscribe({
+    this.creationService.incrementViewCount(contentId, viewCount).subscribe({
       next: (updatedContent) => {
         this.viewedContent.add(updatedContent.id!);
-        content.viewCount = updatedContent.viewCount;
         this.clearViewTimer(updatedContent.id!);
         this.cdr.markForCheck();
         //console.log(`Vue comptée pour le contenu ${updatedContent.id}`);
       },
       error: (error) => {
         console.error('Erreur lors de la mise à jour des vues:', error);
-        this.clearViewTimer(content.id!);
+        this.clearViewTimer(contentId);
       }
     });
   }

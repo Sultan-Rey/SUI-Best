@@ -48,6 +48,13 @@ export class IncomeService {
     return this.api.create<Pack>(this.PACKS_RESOURCE, pack);
   }
 
+  /**
+   * Met à jour un pack (utilisé pour les propriétés holder et qtySold)
+   */
+  updatePack(packId: number, updates: Partial<Pack>): Observable<Pack> {
+    return this.api.patch<Pack>(this.PACKS_RESOURCE, packId, updates);
+  }
+
   // ============================================
   // STATIC DATA (fallback si API indisponible)
   // ============================================

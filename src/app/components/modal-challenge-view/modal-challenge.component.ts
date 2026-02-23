@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ShortNumberPipe } from '../../utils/pipes/shortNumberPipe/short-number-pipe.js';
 import { Challenge } from 'src/models/Challenge.js';  
-import { ActionSheetController, ModalController, AlertController, ToastController } from '@ionic/angular';
+import { ActionSheetController, ModalController, LoadingController, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { 
   thumbsUp, eye, share, close, arrowForwardOutline, 
@@ -17,7 +17,7 @@ import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { GiftModalComponent } from '../modal-gift/gift-modal.component';
 import { FollowedViewComponent } from '../view-followed/followed-view.component';
-import { Content } from 'src/models/Content';
+import { Content, ContentStatus } from 'src/models/Content';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { ModalSelectPostComponent } from '../modal-select-post/modal-select-post.component';
 import { UploadPage } from 'src/app/tab-upload/upload.page';
@@ -41,6 +41,7 @@ interface ParticipantWithStats extends UserProfile {
 export class ModalChallengeComponent  implements OnInit {
   @Input() challenge!: Challenge | null;
   @Input() currentUserProfile!: UserProfile;
+   @Input() currentUserId!: string | null;
   totalVotes: number = 0;
   totalViews: number = 0;
   totalShares: number = 0;
@@ -49,11 +50,14 @@ export class ModalChallengeComponent  implements OnInit {
   showParticipantsView = false;
   isLoadingParticipants = false;
   isParticiping:boolean = false;
+  isCreator:boolean = false;
   constructor(private actionSheetController: ActionSheetController, 
               private modalController : ModalController,
               private alertController: AlertController,
               private toastController: ToastController,
+              private loadingController: LoadingController,
               private creationService: CreationService,
+              private profileService: ProfileService,
               private notificationService: NotificationService,
               private router: Router) { addIcons({
                 'link': link,
@@ -78,6 +82,8 @@ export class ModalChallengeComponent  implements OnInit {
     // Charger les participants en parallèle avec les statistiques
     this.loadParticipants();
     
+    this.isCreator = this.challenge?.creator_id === this.currentUserId;
+    
     // Récupérer le total des votes pour ce challenge
     if (this.challenge?.id) {
       this.creationService.getTotalVotesForChallenge(this.challenge.id).subscribe(
@@ -98,6 +104,7 @@ export class ModalChallengeComponent  implements OnInit {
     }
   }
 
+  
   private loadParticipants() {
     const challengeId = this.challenge?.id;
     if (!challengeId) return;
@@ -109,6 +116,7 @@ export class ModalChallengeComponent  implements OnInit {
         this.isParticiping = profiles.some(profile => profile.id === this.currentUserProfile.id);
         this.participants = profiles;
         this.isLoadingParticipants = false;
+         
       },
       error: (error) => {
         console.error('Erreur lors du chargement des participants:', error);
@@ -438,18 +446,27 @@ export class ModalChallengeComponent  implements OnInit {
     await toast.present();
   }
   async addPost() {
-   const modal = await this.modalController.create({
-      component:ModalSelectPostComponent,
-      componentProps:{currentUserProfile: this.currentUserProfile},
-      handle:true
-    })
+    const currentUser = await this.profileService.getProfileById(this.currentUserId as string).toPromise();
+    const modal = await this.modalController.create({
+      component: ModalSelectPostComponent,
+      componentProps: { currentUserProfile: currentUser },
+      handle: true
+    });
 
-      await modal.present();
-      const {data} = await modal.onDidDismiss();
-      if(data && data.selected){
-       if(this.challenge?.is_acceptance_automatic){
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    
+    if (data && data.selected) {
+      // Afficher le loading seulement si des données sont sélectionnées
+      const loading = await this.loadingController.create({
+        message: 'Chargement...',
+        spinner: 'crescent'
+      });
+      await loading.present();
+
+      try {
         // Vérifier si le défi est complet
-        if (this.challenge.entries_count && typeof this.challenge.entries_count === 'number') {
+        if (this.challenge?.entries_count && typeof this.challenge.entries_count === 'number') {
           // Compter les participants actuels
           const currentEntriesCount = this.participants.length;
           
@@ -458,54 +475,71 @@ export class ModalChallengeComponent  implements OnInit {
             return;
           }
         }
+        
         const choosenPost = data.post as Content;
-          choosenPost.challengeId = this.challenge?.id || '';
-          this.creationService.updateContentChallengeId(choosenPost);
-        this.alertController.create({
-          header:'Ouhah! '+this.currentUserProfile.displayName,
-          subHeader:'Vous participer desormais au défi.',
-          message:'Votre participation a été acceptée automatiquement',
-          buttons: ['Félicitation !']
-        }).then((alert) => {
-          alert.present();
-          
-        });
-       }else{
-        this.alertController.create({
-          header:'Participation au défis',
-          subHeader:'Acceptation en cours de traitement',
-          message:'Attendez de recevoir votre ticket d\'acceptance.',
-          buttons: ['Merci !']
-        }).then((alert) => {
-          alert.present();
-          this.notificationService.createNotification({
-            title: 'Participation au défi',
-            message: 'Votre participation est en cours de traitement',
-            category: 'engagement',
-            priority: 'medium',
-            status: 'read',
-            recipients: {
-            type: 'creator',
-            userIds: [this.challenge?.creator_id || '']},
-            action: {
-            type: 'response',
-            label: 'Aprouvé le candidat',
-            route: ['/profile', this.challenge?.id || '']},
-            effects: {
-            sound: 'default',
-            vibration: true,
-            badge: true
-            }
+        choosenPost.challengeId = this.challenge?.id || '';
+        choosenPost.status = this.challenge?.is_acceptance_automatic ? ContentStatus.DRAFT : ContentStatus.PUBLISHED;
+        this.creationService.updateContentChallengeId(choosenPost);
+        
+        if (this.challenge?.is_acceptance_automatic) {
+          this.alertController.create({
+            header: 'Ouhah! ' + this.currentUserProfile.displayName,
+            subHeader: 'Vous participer desormais au défi.',
+            message: 'Votre participation a été acceptée automatiquement',
+            buttons: ['Félicitation !']
+          }).then((alert) => {
+            alert.present();
           });
-        });
-       }
+        } else {
+          // Mise à jour du loading pendant la création de la notification
+          loading.message = 'Envoi de la notification...';
+          
+          const notify = await this.notificationService.createNotification({
+            title: 'Participation au défi',
+            message: 'Nouvelle demande de participation a votre défi en cours',
+            category: 'interaction',
+            priority: 'medium',
+            status: 'unread',
+            recipients: {
+              type: 'request',
+              userIds: [this.challenge?.creator_id || '']
+            },
+            action: {
+              type: 'response',
+              label: 'Aprouvé le candidat',
+              meta: { postId: choosenPost.id,  reason: 'acceptation' }
+            },
+            effects: {
+              sound: 'default',
+              vibration: true,
+              badge: true
+            }
+          }).toPromise();
+          
+          if (notify) {
+            this.alertController.create({
+              header: 'Participation a ' + this.challenge?.name,
+              subHeader: 'Traitement d\'acceptation au défi.',
+              message: 'Attendez de recevoir votre ticket d\'entrée',
+              buttons: ['Merci !']
+            }).then((alert) => {
+              alert.present();
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du post:', error);
+        this.showToast('Une erreur est survenue', 'danger');
+      } finally {
+        // Masquer le loading dans tous les cas
+        await loading.dismiss();
       }
-
+    }
   }
   createPost(){
       this.modalController.create({
         component:UploadPage,
-        componentProps:{isModalMode:true, challengeId:this.challenge?.id, isAutomaticAcceptance:this.challenge?.is_acceptance_automatic, userId:this.currentUserProfile.id},
+        componentProps:{isModalMode:true, challengeId:this.challenge?.id, isAutomaticAcceptance:this.challenge?.is_acceptance_automatic, creatorId:this.challenge?.creator_id},
         handle:true
       }).then((modal) => {
         modal.present();

@@ -101,6 +101,7 @@ import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-servi
 })
 export class ChallengeFormComponent implements OnInit, OnDestroy {
   @Input() challenge?: Challenge;
+  @Input() profileId?: string;
   @Output() challengeSaved = new EventEmitter<Challenge>();
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   
@@ -447,6 +448,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
 
   // Créer l'objet de données avec tous les champs
   const formData: any = {
+    creator_id: this.profileId,
     name: formValue.name?.trim(),
     description: formValue.description?.trim(),
     duration_days: formValue.duration_days,
@@ -456,6 +458,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
     end_date: endDate,
     is_active: formValue.is_active,
     coupon_required: formValue.coupon_required,
+    is_acceptance_automatic: formValue.is_acceptance_automatique,
     entries_count:  formValue.entries_count == null ? 'illimite' : formValue.entries_count,
       };
 

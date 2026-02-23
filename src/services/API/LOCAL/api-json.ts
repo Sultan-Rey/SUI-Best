@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment.prod';
 import { HttpClient, HttpEvent, HttpHeaders, HttpParams } from '@angular/common/http';
-import { catchError, Observable, of } from 'rxjs';
+import { catchError, Observable, of, tap } from 'rxjs';
 
 
 @Injectable({
@@ -84,64 +84,81 @@ export class ApiJSON {
     );
   }
 
-  /**
-   * Filtre les éléments d'une collection selon les critères fournis
-   * Utilise la route /filter du backend avec support des opérateurs avancés
-   * 
-   * @param resource Nom de la collection
-   * @param filters Critères de filtrage. Supporte:
-   *   - Valeurs simples: { name: "John", status: "active" }
-   *   - Opérateurs: { age: [">", 18], name: ["like", "jo"] }
-   *   - Listes: { status: ["in", ["active", "pending"]] }
-   * @param usePost Si true, utilise POST au lieu de GET (recommandé pour les filtres complexes)
-   * @returns Observable avec les résultats filtrés
-   */
-  filter<T>(
-    resource: string,
-    filters?: Record<string, any>,
-    usePost: boolean = false
-  ): Observable<T[]> {
-    
-    if (!filters || Object.keys(filters).length === 0) {
-      // Si aucun filtre, retourne tous les éléments
-      return this.getAll(resource);
-    }
+ /**
+ * Filtre les éléments d'une collection selon les critères fournis
+ * Utilise la route /filter du backend avec support des opérateurs avancés
+ * 
+ * @param resource Nom de la collection
+ * @param filters Critères de filtrage
+ * @param usePost Si true, utilise POST au lieu de GET
+ * @returns Observable avec les résultats filtrés
+ */
+filter<T>(
+  resource: string,
+  filters?: Record<string, any>,
+  usePost: boolean = false
+): Observable<T[]> {
+  
+  console.log('🔍 FILTER CALL - Resource:', resource);
+  console.log('Filters:', filters);
+  console.log('usePost:', usePost);
+  
+  if (!filters || Object.keys(filters).length === 0) {
+    return this.getAll(resource);
+  }
 
-    if (usePost) {
-      // Utilise POST avec body JSON pour les filtres complexes
-      return this.http.post<T[]>(
-        `${this.BASE_URL}/${resource}/filter`,
-        filters,
-        { headers: this.getAuthHeaders() }
-      );
-    } else {
-      // Utilise GET avec query params pour les filtres simples
-      let httpParams = new HttpParams();
-      
-      Object.entries(filters).forEach(([key, value]) => {
-        if (Array.isArray(value) && value.length === 2) {
-          // Format: [opérateur, valeur] -> key[op]=value
+  // IMPORTANT: Créer une nouvelle instance de HttpHeaders à chaque requête
+  const headers = new HttpHeaders({
+    'Authorization': `Bearer ${this.AUTH_TOKEN}`,
+    'Content-Type': 'application/json'
+  });
+
+  if (usePost) {
+    // POST avec body JSON - exactement comme curl
+    return this.http.post<T[]>(
+      `${this.BASE_URL}/${resource}/filter`,
+      filters,  // Angular convertira automatiquement en JSON
+      { 
+        headers: headers,
+        // Ne pas définir 'responseType' pour laisser Angular détecter
+      }
+    ).pipe(
+      tap(result => console.log('✅ Filter success:', result)),
+      catchError(error => {
+        console.error('❌ Filter error:', error);
+        if (error.status === 401) {
+          console.error('Problème d\'authentification - Vérifie le token');
+        }
+        return of([]);
+      })
+    );
+  } else {
+    // Version GET - à utiliser seulement pour des filtres simples
+    let httpParams = new HttpParams();
+    
+    const buildParams = (obj: any, prefix: string = '') => {
+      Object.entries(obj).forEach(([key, value]) => {
+        const paramKey = prefix ? `${prefix}.${key}` : key;
+        
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          buildParams(value, paramKey);
+        } else if (Array.isArray(value) && value.length === 2) {
           const [operator, operatorValue] = value;
-          const paramKey = `${key}[${operator}]`;
-          
-          if (Array.isArray(operatorValue)) {
-            // Pour les listes (opérateur "in" ou "not_in")
-            httpParams = httpParams.set(paramKey, operatorValue.join(','));
-          } else {
-            httpParams = httpParams.set(paramKey, String(operatorValue));
-          }
+          httpParams = httpParams.set(`${paramKey}[${operator}]`, String(operatorValue));
         } else {
-          // Valeur simple
-          httpParams = httpParams.set(key, String(value));
+          httpParams = httpParams.set(paramKey, String(value));
         }
       });
-
-      return this.http.get<T[]>(
-        `${this.BASE_URL}/${resource}/filter`,
-        { headers: this.getAuthHeaders(), params: httpParams }
-      );
-    }
+    };
+    
+    buildParams(filters);
+    
+    return this.http.get<T[]>(
+      `${this.BASE_URL}/${resource}/filter`,
+      { headers: headers, params: httpParams }
+    );
   }
+}
 
   getById<T>(resource: string, id: number | string): Observable<T> {
     return this.http.get<T>(

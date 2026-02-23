@@ -35,6 +35,7 @@ import {
 } from 'ionicons/icons';
 import { Vote, VoteStatusResponse } from 'src/models/Vote';
 import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
 
 // Interface pour les coupons
 
@@ -101,7 +102,8 @@ export class CouponModalComponent implements OnInit {
   constructor(private modalController: ModalController,
     private auth: Auth,
     private walletService: WalletService,
-    private creationService: CreationService,
+    private voteService: VoteService,
+    private challengeService: ChallengeService,
     private toastController: ToastController,
     private cdr: ChangeDetectorRef,
   ) {
@@ -125,13 +127,24 @@ export class CouponModalComponent implements OnInit {
       walletOutline
     });
   }
-  ngOnInit(): void {
+ async ngOnInit() {
     // Forcer la réinitialisation des états
     this.burnCoupon = false;
     this.selectedCoupon = null;
     this.isBurnable = false;
-
+    const theChallenge = await this.challengeService.getChallengeById(this.challengeId).toPromise();
+    if(theChallenge?.coupon_required){
+      this.selectedCoupon = {
+        id: 'default'+Date.now().toString(),
+        name: 'Aucun',
+        usageValue: 1,
+        description: 'Coupon non requis pour ce challenge',
+        type: 'standard',
+        expiresAt: new Date(Date.now())
+      }
+    }else{
     this.loadAvailableCoupons();
+    }
   }
 
   // Getters pour le template
@@ -154,7 +167,7 @@ export class CouponModalComponent implements OnInit {
     this.walletService.wallet$.pipe(
       filter(wallet => wallet !== null), // Attendre que le wallet soit non null
       take(1), // Prendre seulement le premier wallet non null
-      switchMap(wallet => {
+      switchMap(wallet => {  
         return this.walletService.getUserCoupons();
       })
     ).subscribe({
@@ -295,7 +308,7 @@ export class CouponModalComponent implements OnInit {
       }),
       switchMap(() =>
         // Si le décrément a réussi, on ajoute le vote
-        this.creationService.addVoteToContent(
+        this.voteService.addVoteToContent(
           voteData,
           this.usageRule
         ).pipe(

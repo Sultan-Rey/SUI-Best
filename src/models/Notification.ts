@@ -13,7 +13,7 @@ export interface Notification {
   action: {
     type: string,
     label: string,
-    route: string[]
+    meta: any;
   },
   effects: {
     sound: string,

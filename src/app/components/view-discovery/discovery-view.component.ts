@@ -11,6 +11,7 @@ import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { assignDiscoveryLayout } from 'src/app/utils/discovery-layout.utils';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { FollowedViewComponent } from '../view-followed/followed-view.component';
+import { Router } from '@angular/router';
 export interface DiscoveryAuthor {
   name: string;
   avatar: string;
@@ -40,6 +41,7 @@ export interface Category {
 }
 
 export interface Story {
+  id:string;
   name: string;
   avatar: string;
   isLive: boolean;
@@ -104,6 +106,7 @@ export class DiscoveryViewComponent implements OnInit {
   constructor(private creationService: CreationService, 
     private profile: ProfileService, 
     private cdr: ChangeDetectorRef ,
+    private router: Router,
     private modalController: ModalController,
     private toastController: ToastController){}
 
@@ -159,6 +162,7 @@ export class DiscoveryViewComponent implements OnInit {
     this.profile.getTopArtists().subscribe((artists) => {
       // Transform creators into story objects
       const creatorStories: Story[] = artists.map(creator => ({
+        id: creator.id,
         name: creator.displayName || creator.username || `User ${creator.id.slice(-4)}`,
         avatar: creator.avatar || `https://picsum.photos/seed/${creator.id}/100/100.jpg`,
         isLive: false// Randomly set some as live for demo
@@ -201,14 +205,14 @@ export class DiscoveryViewComponent implements OnInit {
   async openItem(item: DiscoveryItem): Promise<void> {
     try {
       // Ajouter un état de chargement
-      item.loading = true;
+     // item.loading = true;
       
       const content = await this.creationService.getContentById(item.id).pipe(
         take(1)
       ).toPromise();
       
       // Retirer l'état de chargement
-      item.loading = false;
+      //item.loading = false;
       
       if (!content) {
         console.error('Content not found for item:', item.id);
@@ -238,6 +242,14 @@ export class DiscoveryViewComponent implements OnInit {
     }
   }
 
+   showAccount(userId:string){
+    this.router.navigate(['/profile', userId]);
+    this.modalController.dismiss({
+      animation: {
+        leaveAnimation: 'modal-slide-out'
+      }
+    });
+  }
   private async showErrorToast(message: string): Promise<void> {
     const toast = await this.toastController.create({
       message,

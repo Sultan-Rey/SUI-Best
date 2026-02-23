@@ -26,7 +26,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('../tab-profile/profile.page').then((m) => m.ProfilePage),
       },
-    
+    {
+        path: 'exclusive',
+        loadComponent: () =>
+          import('../tab-exclusive/exclusive.page').then((m) => m.ExclusivePage),
+      },
       {
         path: '',
         redirectTo: '/tabs/home',

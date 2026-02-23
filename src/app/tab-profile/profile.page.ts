@@ -23,6 +23,7 @@ import {
   ban,
   close,
   heart,
+  warning,
   createOutline,
   settingsOutline,
   trophyOutline,
@@ -92,6 +93,7 @@ export class ProfilePage implements OnInit {
   isLoading : boolean =false;
   userProfile!:UserProfile; 
   currentUserId: string | null = null;
+  isBlocked:boolean = false;
   activeChallenges$!: Observable<Challenge[]>;
   hasActiveChallenges = true;
   activeChallengesCount : number = 0;
@@ -121,7 +123,7 @@ export class ProfilePage implements OnInit {
       stars: 0;
     };
     
-    addIcons({shieldHalf, rocketOutline, banOutline, flagOutline, close, createOutline, settingsOutline, chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble, personCircleOutline});
+    addIcons({shieldHalf, rocketOutline, banOutline, flagOutline, close, createOutline, warning, settingsOutline, chevronBack,shareSocialOutline,star, ellipsisVertical,addCircle,checkmarkCircle,schoolOutline,linkOutline,calendarOutline,openOutline,trophyOutline,flameOutline,peopleOutline,musicalNotesOutline,timeOutline,add,heart,chatbubble, personCircleOutline});
   }
 ngOnInit() {
 
@@ -131,7 +133,7 @@ ngOnInit() {
   if(!isNullOrUndefined(param_id)){
     this.isOwnProfile = false;
     this.loadUserProfile(param_id as string).then(()=>{
-
+      
     })
   }else{
     this.loadUserProfile(this.currentUserId as string)
@@ -207,6 +209,7 @@ async toggleFollow() {
     if(this.currentUserId!== profile.id){
      const myUserProfile =  await this.profileService.getProfileById(this.currentUserId as string).toPromise();
       profile.isFollowing = myUserProfile?.myFollows.some((id)=> id == profile.id ) || false;
+      this.isBlocked = myUserProfile?.myBlackList.some((id)=> id == profile.id) || profile.myBlackList.some((id)=> id == myUserProfile?.id) || false;
     }
     this.userProfile = profile;
     this.isOwnProfile = this.currentUserId === userId;
@@ -261,7 +264,8 @@ async toggleFollow() {
      const modal = await this.modalCtrl.create({
       component: ChallengeFormComponent,
       componentProps: {
-        challenge: null // Permet d'éditer un challenge existant ou d'en créer un nouveau
+        challenge: null, // Permet d'éditer un challenge existant ou d'en créer un nouveau
+        profileId: this.currentUserId
       },
       cssClass: 'auto-height',
       backdropDismiss: false
@@ -319,7 +323,7 @@ async toggleFollow() {
 
   getStatusText(status: string): string {
     switch(status) {
-      case 'active': return 'EN COURS';
+      case 'active': return 'EN COURS'; 
       case 'ending-soon': return 'BIENTÔT TERMINÉ';
       case 'ended': return 'TERMINÉ';
       default: return 'ACTIF';
@@ -400,6 +404,7 @@ async toggleFollow() {
     
     
   } else {
+    
     // Options pour le profil d'un autre utilisateur
     buttons.push(
       {
@@ -411,11 +416,11 @@ async toggleFollow() {
         }
       },
       {
-        text: 'Bloquer',
+        text: this.isBlocked ? 'Debloquer' : 'Bloquer',
         icon: 'ban-outline',
         role: 'destructive',
         handler: () => {
-          this.blockUser();
+          this.blockUser(this.isBlocked);
         }
       }
     );
@@ -460,7 +465,7 @@ async openChallengeModal(challenge: Challenge){
   const modal = await this.modalCtrl.create({
     component: ModalChallengeComponent,
     cssClass: 'auto-height',
-    componentProps: {challenge: challenge, currentUserProfile:this.userProfile},
+    componentProps: {challenge: challenge, currentUserProfile:this.userProfile, currentUserId:this.currentUserId},
   })
 
   await modal.present();
@@ -549,7 +554,7 @@ private async reportUser() {
   });
   await alert.present();
 }
-private async blockUser() {
+private async blockUser(status:boolean) {
   const alert = await this.alertController.create({
     header: 'Confirmer',
     message: 'Voulez-vous vraiment bloquer cet utilisateur ?',
@@ -559,14 +564,24 @@ private async blockUser() {
         role: 'cancel'
       },
       {
-        text: 'Bloquer',
+        text: status ? 'Bloquer' : 'Debloquer',
         role: 'destructive',
         handler: () => {
-          // Implémentez la logique de blocage
-          console.log('Utilisateur bloqué');
-          this.presentToast('Utilisateur bloqué avec succès', 'success');
-          // Revenir en arrière ou rafraîchir la page
-          this.router.navigate(['/tabs/tab-home']);
+          if(isNullOrUndefined(this.userProfile)) return;
+          if(!status)
+          this.profileService.unfollowProfile(String(this.currentUserId), String(this.userProfile.id)).then(()=>{
+            this.profileService.blackListProfile(String(this.currentUserId), String(this.userProfile.id)).then(()=>{
+                this.presentToast('Utilisateur bloqué avec succès', 'success').then(()=>{
+                  this.loadUserProfile(String(this.userProfile.id));
+                });
+            });
+          });
+          else
+            this.profileService.unblackListProfile(String(this.currentUserId), String(this.userProfile.id)).then(()=>{
+                  this.presentToast('Utilisateur debloqué avec succès', 'success').then(()=>{
+                  this.loadUserProfile(String(this.userProfile.id));
+                });
+            })
         }
       }
     ]

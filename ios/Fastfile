@@ -1,0 +1,32 @@
+fastlane_version "2.230.0"
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build iOS app (like Android APK)"
+  lane :build_ipa do
+    # Similaire à "ionic build android" qui produit un APK direct
+    build_app(
+      workspace: "App/App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      output_directory: "./build",
+      output_name: "BestAcademy.ipa",
+      export_method: "ad-hoc",
+      skip_package_ipa: false,
+      skip_archive: false
+    )
+  end
+  
+  desc "Quick build for testing"
+  lane :quick_build do
+    # Build le plus direct possible
+    build_app(
+      workspace: "App/App.xcworkspace",
+      scheme: "App",
+      configuration: "Release",
+      output_directory: "./build",
+      export_method: "development"
+    )
+  end
+end

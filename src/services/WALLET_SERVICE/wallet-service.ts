@@ -303,7 +303,7 @@ export class WalletService {
   /**
    * Traite l'achat d'un pack via l'API
    */
-  purchasePack(pack: Pack, itemType: 'coins' | 'coupons' | 'gift', paymentMethod: string): Observable<Wallet> {
+  purchasePack(pack: Pack, itemType: 'coins' | 'coupons', paymentMethod: string, buyerId = ''): Observable<Wallet> {
     const currentWallet = this.walletSubject.value;
     
     // État 1: Wallet non trouvé - création automatique
@@ -314,7 +314,7 @@ export class WalletService {
             return throwError(() => new Error('Impossible de créer votre wallet. Veuillez réessayer.'));
           }
           // Notification: Wallet créé avec succès
-          return this.performPurchase(loadedWallet, pack, itemType, paymentMethod).pipe(
+          return this.processPurchaseByType(loadedWallet, pack, itemType, paymentMethod, buyerId).pipe(
             tap(() => {
               console.log('🎉 Wallet créé et achat effectué avec succès!');
             })
@@ -328,7 +328,120 @@ export class WalletService {
     }
     
     // État 2: Wallet existant - achat direct
-    return this.performPurchase(currentWallet, pack, itemType, paymentMethod);
+    return this.processPurchaseByType(currentWallet, pack, itemType, paymentMethod, buyerId);
+  }
+
+  /**
+   * Méthode publique pour l'achat de packs de coins
+   */
+  purchasePackCoins(pack: Pack, itemType: 'coins', paymentMethod: string): Observable<Wallet> {
+    return this.purchasePack(pack, itemType, paymentMethod);
+  }
+
+  /**
+   * Factorisation - Traite l'achat selon le type d'item
+   */
+  private processPurchaseByType(currentWallet: Wallet, pack: Pack, itemType: 'coins' | 'coupons', paymentMethod: string, buyerId = ''): Observable<Wallet> {
+    if (itemType === 'coins') {
+      return this.purchaseCoinsPack(currentWallet, pack, paymentMethod);
+    } else if (itemType === 'coupons') {
+      return this.purchaseCouponsPack(currentWallet, pack, paymentMethod, buyerId);
+    } else {
+      return throwError(() => new Error(`Type d'item non supporté: ${itemType}`));
+    }
+  }
+
+  /**
+   * Factorisation - Traite l'achat d'un pack de coins
+   */
+  private purchaseCoinsPack(currentWallet: Wallet, pack: Pack, paymentMethod: string): Observable<Wallet> {
+    // Créer la transaction pour l'achat de coins
+    const transaction: Transaction = {
+      id: this.generateTransactionId(),
+      walletId: currentWallet.id,
+      type: 'purchase',
+      amount: pack.amount,
+      itemType: 'coins',
+      description: `Achat de ${pack.amount} coins`,
+      date: new Date().toISOString(),
+      price: pack.price,
+      paymentMethod,
+      metadata: { packId: pack.id }
+    };
+
+    // Mettre à jour le wallet avec la nouvelle transaction et balance
+    const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
+    const updatedTransactions = [transaction, ...currentTransactions];
+    
+    const updatedBalance = {
+      coins: (currentWallet.balance.coins || 0) + pack.amount,
+      coupons: currentWallet.balance.coupons || 0
+    };
+
+    return this.updateWallet({
+      transactions: updatedTransactions,
+      balance: updatedBalance,
+      coupons: currentWallet.coupons || []
+    });
+  }
+
+  /**
+   * Factorisation - Traite l'achat d'un pack de coupons
+   */
+  private purchaseCouponsPack(currentWallet: Wallet, pack: Pack, paymentMethod: string, buyerId: string): Observable<Wallet> {
+    // Préparer les mises à jour pour le pack
+    const currentHolders: string[] = (pack.holder || []).map(h => String(h));
+    const currentQtySold = pack.qtySold || 0;
+    
+    const newHolders: string[] = [...currentHolders, String(buyerId)];
+    
+    const packUpdates: Partial<Pack> = {
+      holder: newHolders,
+      qtySold: currentQtySold + 1
+    };
+
+    // Créer la transaction pour l'achat de coupons
+    const transaction: Transaction = {
+      id: this.generateTransactionId(),
+      walletId: currentWallet.id,
+      type: 'purchase',
+      amount: pack.amount,
+      itemType: 'coupons',
+      description: `Achat de ${pack.amount} coupons`,
+      date: new Date().toISOString(),
+      price: pack.price,
+      paymentMethod,
+      metadata: { packId: pack.id }
+    };
+
+    // Mettre à jour le wallet avec la nouvelle transaction et balance
+    const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
+    const updatedTransactions = [transaction, ...currentTransactions];
+    
+    // Plus de génération de coupons individuels - on adopte la logique de buy-coupon-modal
+    // Les coupons sont gérés via les propriétés holder et qtySold du pack
+    const updatedBalance = {
+      coins: currentWallet.balance.coins || 0,
+      coupons: (currentWallet.balance.coupons || 0) + pack.amount
+    };
+
+    // D'abord mettre à jour le pack, puis le wallet
+    return this.incomeService.updatePack(pack.id, packUpdates).pipe(
+      switchMap((updatedPack) => {
+        // Succès de la mise à jour du pack, maintenant mettre à jour le wallet
+        return this.updateWallet({
+          transactions: updatedTransactions,
+          balance: updatedBalance,
+          coupons: currentWallet.coupons || [] // On garde les coupons existants sans en ajouter de nouveaux
+        });
+      }),
+      catchError((error) => {
+        console.error('❌ Erreur lors de la mise à jour du pack:', error);
+        // Rembourser les coins en cas d'erreur
+        this.addCoins(pack.price).subscribe();
+        return throwError(() => new Error('Erreur lors de la mise à jour du pack'));
+      })
+    );
   }
 
   private loadUserWalletAndGet(userId: string): Observable<Wallet | null> {
@@ -373,59 +486,6 @@ export class WalletService {
         return of(null);
       })
     );
-  }
-
-  private performPurchase(currentWallet: Wallet, pack: Pack, itemType: 'coins' | 'coupons' | 'gift', paymentMethod: string): Observable<Wallet> {
-    // Créer la transaction
-    const transaction: Transaction = {
-      id: this.generateTransactionId(),
-      walletId: currentWallet.id,
-      type: 'purchase',
-      amount: pack.amount,
-      itemType: itemType,
-      description: `Achat de ${pack.amount} ${itemType}`,
-      date: new Date().toISOString(),
-      price: pack.price,
-      paymentMethod,
-      metadata: { packId: pack.id }
-    };
-
-    // Mettre à jour le wallet avec la nouvelle transaction et balance
-    const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
-    const updatedTransactions = [transaction, ...currentTransactions];
-    
-    // Créer les coupons individuels si on achète des coupons
-    let updatedCoupons = Array.isArray(currentWallet.coupons) ? currentWallet.coupons : [];
-    
-    if (itemType === 'coupons') {
-      // Générer les coupons individuels pour le pack acheté
-      const newCoupons = Array.from({ length: pack.amount }, (_, index) => ({
-        id: this.generateCouponId(),
-        name: `${pack.name} - Coupon #${index + 1}`,
-        description: `Coupon ${pack.couponType} acheté dans le pack "${pack.name}"`,
-        referencePrice: pack.price / pack.amount, // Prix par coupon
-        type: pack.couponType,
-        usageValue: this.getCouponUsageValue(pack.couponType), // Valeur d'usage selon le type
-        expiresAt: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) // Expire dans 1 an
-      }));
-      
-      updatedCoupons = [...newCoupons, ...updatedCoupons];
-    }
-    
-    const updatedBalance = {
-      coins: itemType === 'coins' 
-        ? (currentWallet.balance.coins || 0) + pack.amount
-        : (currentWallet.balance.coins || 0),
-      coupons: itemType === 'coupons' 
-        ? (currentWallet.balance.coupons || 0) + pack.amount
-        : (currentWallet.balance.coupons || 0)
-    };
-
-    return this.updateWallet({
-      transactions: updatedTransactions,
-      balance: updatedBalance,
-      coupons: updatedCoupons
-    });
   }
 
   /**

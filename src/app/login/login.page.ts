@@ -50,6 +50,9 @@ export class LoginPage implements OnInit {
     private alertController: AlertController,
     private preferenceService: PreferenceService
   ) {
+    if(auth.isAuthenticated()){
+       this.router.navigateByUrl('/tabs/tabs/home');
+    }
     addIcons({mailOutline,lockClosedOutline,arrowForward,logoGoogle,logoFacebook,trophyOutline,sparkles,personCircleOutline,keyOutline,helpCircleOutline,star,shieldCheckmark,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,createOutline,settingsOutline});
   }
 

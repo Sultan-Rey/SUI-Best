@@ -24,10 +24,10 @@ export class NotificationService {
    * Utilise la méthode filter d'ApiJSON pour récupérer les notifications où l'utilisateur est destinataire
    */
   loadNotificationsForUser(userId: string): Observable<Notification[]> {
-    return this.api.filter<Notification>(this.NOTIFICATION_RESSOURCE, {
-      'recipients.type': 'user',
-      'recipients.userIds': ['like', userId]
-    }).pipe(
+    const filters = {
+    'recipients.userIds': ['like', userId]
+  };
+    return this.api.filter<Notification>(this.NOTIFICATION_RESSOURCE, filters, true).pipe(
       tap(notifications => {
         this.notifications = notifications;
         this.notificationsSubject.next(notifications);
@@ -109,10 +109,9 @@ export class NotificationService {
    */
   getUnreadNotifications(userId: string): Observable<Notification[]> {
     return this.api.filter<Notification>(this.NOTIFICATION_RESSOURCE, {
-      'recipients.type': 'user',
       'recipients.userIds': ['like', userId],
       status: 'unread'
-    }).pipe(
+    }, true).pipe(
       catchError(error => {
         console.error('[NotificationService] Error getting unread notifications:', error);
         return of([]);
@@ -121,14 +120,13 @@ export class NotificationService {
   }
 
   getNotificationsByCategory(category: string, userId?: string): Observable<Notification[]> {
-    const filters: any = { category };
-    
-    if (userId) {
-      filters['recipients.type'] = 'user';
-      filters['recipients.userIds'] = ['like', userId];
-    }
-
-    return this.api.filter<Notification>(this.NOTIFICATION_RESSOURCE, filters).pipe(
+   const filters: any = { category };
+   
+   if (userId) {
+     filters['recipients.userIds'] = ['like', userId];
+   }
+    return this.api.filter<Notification>(this.NOTIFICATION_RESSOURCE, filters, true).pipe(
+      tap((notif)=> console.log(notif) ),
       catchError(error => {
         console.error('[NotificationService] Error getting notifications by category:', error);
         // Fallback sur les données locales si disponibles
