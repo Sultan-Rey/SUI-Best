@@ -14,7 +14,8 @@ import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service.j
 import { Router } from '@angular/router';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
 import { ModalController } from '@ionic/angular';
-import { NotificationService } from 'src/services/NOTIFICATION_SERVICE/notification-service.js';
+import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service.js';
+import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller.js';
 
 @Component({
   selector: 'app-upload',
@@ -74,6 +75,7 @@ export class UploadPage implements OnInit, OnDestroy {
     private authService: Auth,
     private profileService: ProfileService,
     private notificationService: NotificationService,
+    private notificationController: NotificationController,
     private loadingCtrl: LoadingController,
     private actionSheetCtrl: ActionSheetController,
     private alertCtrl: AlertController,
@@ -335,26 +337,8 @@ if (userProfile) {
 
   private async notificationFor(uploadedPost: any){
     if(this.isModalMode && !this.isAutomaticAcceptance){
-      const notified = await this.notificationService.createNotification({
-            title: 'Participation au défi',
-            message: 'Nouvelle demande de participation a votre défi en cours',
-            category: 'interaction',
-            priority: 'medium',
-            status: 'read',
-            recipients: {
-            type: 'request',
-            userIds: [this.creatorId || '']},
-            action: {
-            type: 'response',
-            label: 'Aprouvé le candidat',
-            meta: {postId:uploadedPost.id, reason:'acceptation'},
-            },
-            effects: {
-            sound: 'default',
-            vibration: true,
-            badge: true
-            }
-          }).toPromise();
+       const notified = await this.notificationService.createNotification(this.notificationController.notifyChallengeCreator(this.creatorId as string ,uploadedPost.id as string)).toPromise();
+         
           if(notified){
           this.showSuccess("Votre demande participation est en cours de traitement...");
           }
@@ -363,6 +347,7 @@ if (userProfile) {
 
   // Navigation entre les étapes
   nextStep() {
+    
     if (this.currentStep < this.totalSteps) {
       // En mode modal, sauter l'étape 3 (challenge)
       if (this.isModalMode && this.currentStep === 2) {
@@ -371,7 +356,7 @@ if (userProfile) {
       } else {
         this.currentStep++;
       }
-    
+    console.log("step"+this.currentStep);
     }
   }
 

@@ -10,7 +10,7 @@
     <!-- Overlay info -->
     <div class="overlay-top">
       <div class="creator">
-        <img class="avatar" [src]="(currentUserProfile.avatar | mediaUrl)" (error)="onImageAvatarError($event)"/>
+        <img class="avatar" [src]="(currentUserProfile.avatar || '' | mediaUrl)" (error)="onImageAvatarError($event)"/>
         <span class="username">{{challenge?.name}}</span>
       </div>
       <ion-button fill="clear" (click)="dismiss()" class="follow-btn"><ion-icon name="close"></ion-icon></ion-button>

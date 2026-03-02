@@ -101,7 +101,7 @@
     </ion-list>
   </div>
 <!-- Étape 3: Sélection du défi (uniquement en mode normal) -->
-<div *ngIf="currentStep === 3 && isModalMode === false" class="challenge-step ion-padding">
+<div *ngIf="currentStep === 3 " class="challenge-step ion-padding">
   <h2>Associer à un défi</h2>
   <p class="ion-margin-bottom">Sélectionnez un défi existant (optionnel)</p>
 
@@ -131,7 +131,7 @@
 
 
 <!-- Étape 3 ou 4: Vérification (mode modal) -->
-<div *ngIf="(currentStep === 3 && isModalMode === true) || (currentStep === 4 && isModalMode === false) " class="preview-step tiktok-preview">
+<div *ngIf="(currentStep === 4) " class="preview-step tiktok-preview">
   <!-- Conteneur principal style TikTok -->
   <div class="post-preview">
     <!-- Média en arrière-plan -->

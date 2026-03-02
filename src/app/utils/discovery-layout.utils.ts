@@ -17,7 +17,7 @@
 //   [sm, sm]       = 1+1/2 ✓
 // ─────────────────────────────────────────────────────────────────
 
-import { DiscoveryItem } from '../components/view-discovery/discovery-view.component';
+import { DiscoveryItem } from '../tab-home/containers/discovery-panel/discovery-view.component';
 
 type ItemSize = 'lg' | 'md' | 'sm';
 

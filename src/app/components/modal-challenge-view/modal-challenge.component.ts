@@ -16,12 +16,13 @@ import { CreationService } from 'src/services/CREATION_SERVICE/creation-service'
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { GiftModalComponent } from '../modal-gift/gift-modal.component';
-import { FollowedViewComponent } from '../view-followed/followed-view.component';
+import { FollowedViewComponent } from '../../tab-home/containers/followed-panel/followed-view.component';
 import { Content, ContentStatus } from 'src/models/Content';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { ModalSelectPostComponent } from '../modal-select-post/modal-select-post.component';
 import { UploadPage } from 'src/app/tab-upload/upload.page';
-import { NotificationService } from 'src/services/NOTIFICATION_SERVICE/notification-service';
+import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service';
+import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller';
 
 interface ParticipantWithStats extends UserProfile {
   voteCount?: number;
@@ -56,6 +57,7 @@ export class ModalChallengeComponent  implements OnInit {
               private alertController: AlertController,
               private toastController: ToastController,
               private loadingController: LoadingController,
+              private notificationController: NotificationController,
               private creationService: CreationService,
               private profileService: ProfileService,
               private notificationService: NotificationService,
@@ -494,27 +496,7 @@ export class ModalChallengeComponent  implements OnInit {
           // Mise à jour du loading pendant la création de la notification
           loading.message = 'Envoi de la notification...';
           
-          const notify = await this.notificationService.createNotification({
-            title: 'Participation au défi',
-            message: 'Nouvelle demande de participation a votre défi en cours',
-            category: 'interaction',
-            priority: 'medium',
-            status: 'unread',
-            recipients: {
-              type: 'request',
-              userIds: [this.challenge?.creator_id || '']
-            },
-            action: {
-              type: 'response',
-              label: 'Aprouvé le candidat',
-              meta: { postId: choosenPost.id,  reason: 'acceptation' }
-            },
-            effects: {
-              sound: 'default',
-              vibration: true,
-              badge: true
-            }
-          }).toPromise();
+          const notify = await this.notificationService.createNotification(this.notificationController.notifyChallengeCreator(this.challenge?.creator_id as string ,choosenPost.id as string)).toPromise();
           
           if (notify) {
             this.alertController.create({

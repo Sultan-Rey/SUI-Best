@@ -10,8 +10,9 @@ import { map, filter, switchMap, forkJoin, of, take } from 'rxjs';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { assignDiscoveryLayout } from 'src/app/utils/discovery-layout.utils';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
-import { FollowedViewComponent } from '../view-followed/followed-view.component';
+import { FollowedViewComponent } from '../followed-panel/followed-view.component';
 import { Router } from '@angular/router';
+import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service';
 export interface DiscoveryAuthor {
   name: string;
   avatar: string;
@@ -107,6 +108,7 @@ export class DiscoveryViewComponent implements OnInit {
     private profile: ProfileService, 
     private cdr: ChangeDetectorRef ,
     private router: Router,
+    private commentService: CommentService,
     private modalController: ModalController,
     private toastController: ToastController){}
 
@@ -131,8 +133,23 @@ export class DiscoveryViewComponent implements OnInit {
         // Attendre toutes les réponses des profils
         return forkJoin(profileRequests);
       }),
-      map((contentsWithProfiles) => 
-        contentsWithProfiles.map(({ content, profile }) => ({
+      switchMap((contentsWithProfiles) => {
+        // Créer les requêtes de commentaires pour chaque contenu
+        const commentRequests = contentsWithProfiles.map(({ content, profile }) => 
+          this.commentService.getCommentCount(content.id as string).pipe(
+            map(commentCount => ({
+              content,
+              profile,
+              commentCount
+            }))
+          )
+        );
+        
+        // Attendre tous les comptes de commentaires
+        return forkJoin(commentRequests);
+      }),
+      map((contentsWithProfilesAndComments) => 
+        contentsWithProfilesAndComments.map(({ content, profile, commentCount }) => ({
           id: content.id || '',
           title: content.description || 'Contenu sans titre',
           thumbnail: content.thumbnailUrl || content.fileUrl || '',
@@ -142,7 +159,7 @@ export class DiscoveryViewComponent implements OnInit {
           category: content.tags || ['general'],
           trending: Math.random() > 0.7,
           likes: content.voteCount?.toString() || '0',
-          comments: content.commentCount?.toString() || '0',
+          comments: commentCount.toString(),
           views: content.viewCount?.toString() || '0',
           timeAgo: this.formatTimeAgo(content.createdAt),
           author: {

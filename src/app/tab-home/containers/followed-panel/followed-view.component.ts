@@ -1,9 +1,8 @@
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy, Input, Output, EventEmitter, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy, Input, Output, EventEmitter, OnDestroy, OnChanges, SimpleChanges, ViewChildren, QueryList } from '@angular/core';
 import { NgFor, NgIf, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FilterPipe } from '../../utils/pipes/filterPipe/filter-pipe';
-import { ShortNumberPipe } from '../../utils/pipes/shortNumberPipe/short-number-pipe.js';
-import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
+import { ShortNumberPipe } from '../../../utils/pipes/shortNumberPipe/short-number-pipe.js';
+import { MediaUrlPipe } from '../../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ToastController, ModalController } from '@ionic/angular';
 import { 
   IonChip,
@@ -28,18 +27,14 @@ import {
 import { Content } from 'src/models/Content.js';
 import { CreationService } from 'src/services/CREATION_SERVICE/creation-service.js';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
-import { Challenge } from 'src/models/Challenge.js';
-import { Auth } from 'src/services/AUTH/auth.js';
-import { UserProfile } from 'src/models/User.js';
+import { Challenge } from 'src/models/Challenge';
+import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service.js';
 import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize, count, take } from 'rxjs';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
-import { CouponModalComponent } from '../modal-exchange-coupon/coupon-modal.component.js';
-import { GiftModalComponent } from '../modal-gift/gift-modal.component.js';
-import { VoteService } from 'src/services/VOTE_SERVICE/vote-service.js';
-import { ModalCommentComponent } from '../modal-comment/modal-comment.component';
-
+import { SideActionsComponent } from './components/side-actions/side-actions.component';
+import { QuickCommentComponent } from './components/quick-comment/quick-comment.component.js';
 @Component({
   selector: 'app-followed-view',
   templateUrl: './followed-view.component.html',
@@ -47,12 +42,13 @@ import { ModalCommentComponent } from '../modal-comment/modal-comment.component'
   standalone: true,
   providers: [ModalController],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonContent, IonInput, DatePipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
-    IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, IonChip, FormsModule]
+  imports: [IonContent, DatePipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
+    IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, IonChip, FormsModule, SideActionsComponent, QuickCommentComponent]
 })
 export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   //#region Component Configuration
   @ViewChild(IonContent) content!: IonContent;
+  @ViewChildren(SideActionsComponent) sideActionsComponents!: QueryList<SideActionsComponent>;
   @Input() currentUserProfile: UserProfile = {} as UserProfile;
   @Input() posts: Content[] = [];
   @Input() challengeName: string = "";
@@ -65,7 +61,6 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   private loadingProfiles = new Set<string>();
   private viewTimers: { [contentId: string]: any } = {};
   private viewedContent: Set<string> = new Set();
-  private currentPostIndex: number = 0;
   private intersectionObserver?: IntersectionObserver;
   //#endregion
 
@@ -77,17 +72,10 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   userAvatars: { [userId: string]: string } = {};
   userVerified: { [userId: string]: boolean } = {};
   isFollowingUser: { [key: string]: boolean } = {};
-  buttonAction: { [key: string]: string } = {};
   currentChallenge: { [challengeId: string]: Challenge } = {};
   
-  // Comment functionality
-  newComment: string = '';
-  showEmojiPicker: boolean = false;
-  emojis: string[] = ['❤️', '🔥', '😂', '😍', '👏', '🎉', '😢', '😡', '👍', '👎', '🔥', '💯', '✨', '🌟', '💪', '🙏', '😊', '😎', '🤔', '👀'];
-  
-  // Button actions
-  isGifted: { [postId: string]: boolean } = {};
-  //#endregion
+ 
+  commentCount!:number;
 
   //#region Constructor
   constructor(
@@ -99,7 +87,6 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     private challengeService: ChallengeService,
     private commentService: CommentService,
     private profileService: ProfileService,
-    private voteService: VoteService
   ) {
     //this.initializeUserProfile();
     this.setupIcons();
@@ -293,9 +280,11 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
       if (post.challengeId && this.currentChallenge[post.challengeId] === undefined) {
         this.getCurrentChallenge(post);
       }
-
+      const commentCount = await this.commentService.getCommentCount(post.id as string).toPromise() || 0;
+      
       return {
         ...post,
+        commentCount: commentCount,
         username: username,
         isVotedByUser: this.currentUserProfile?.id 
           ? post.votersList?.some(vote => 
@@ -426,230 +415,7 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   }
   //#endregion
 
-  //#region User Actions & Modal Management
-  async dismiss() {
-    if (this.challengeName) {
-      await this.modalController.dismiss();
-    }
-  }
-
-  async subscribeTo(profileIdTofollow: string) {
-    if (!profileIdTofollow || !this.currentUserProfile?.id) return;
-    
-    try {
-      const result = await this.profileService.followProfile(this.currentUserProfile.id, profileIdTofollow);
-      
-      // Mettre à jour le currentUserProfile avec les nouvelles données
-      if (result?.user) {
-        this.currentUserProfile = result.user;
-        
-        // Forcer la détection de changement
-        this.cdr.markForCheck();
-      }
-      
-      const toast = await this.toastController.create({
-        message: 'Bravo vous suivez une nouvelle personne!',
-        duration: 2000,
-        color: 'dark'
-      });
-      await toast.present();
-      
-    } catch (error) {
-      console.error('Erreur lors de l\'abonnement:', error);
-    }
-  }
-
-  async voteForArtist(post: any) {
-    this.voteService.canUserVoteForChallenge(this.currentUserProfile?.id, post.id, post.challengeId).subscribe({
-      next: (result) => {
-        if (result.canVote) {
-          this.openVoteModal(post);
-        } else {
-          this.showToast('Vous avez déjà voté pour ce contenu dans ce défi');
-        }
-      },
-      error: (error) => {
-        console.error('Erreur lors de la vérification du vote:', error);
-        this.showToast('Erreur lors de la vérification du vote');
-      }
-    });
-  }
   
-
-  private async openVoteModal(post: any) {
-    const modal = await this.modalController.create({
-      component: CouponModalComponent,
-      cssClass: 'vote-modal',
-      breakpoints: [0, 0.7, 0.85],
-      initialBreakpoint: 0.85,
-      backdropDismiss: true,
-      componentProps: {
-        artistName: post.username || 'Utilisateur',
-        artistAvatar: this.userAvatars[post.userId] || 'assets/avatar-default.png',
-        challengeName: this.currentChallenge[post.challengeId]?.name || 'Challenge',
-        postId: post.id,
-        userId: this.currentUserProfile?.id,
-        challengeId: post.challengeId,
-        usageRule: this.currentChallenge[post.challengeId]?.vote_rule 
-      }
-    });
-
-    await modal.present();
-    const { data } = await modal.onWillDismiss();
-    
-    if (data && data.success) {
-      this.showToast('Vote enregistré!', 'success');
-    }
-  }
-
-  showAccount(userId:string){
-    this.router.navigate(['/profile', userId]);
-    this.modalController.dismiss({
-      animation: {
-        leaveAnimation: 'modal-slide-out'
-      }
-    });
-  }
-
-  async giftPost(post: Content) {
-    const modal = await this.modalController.create({
-      component: GiftModalComponent,
-      componentProps: { post },
-      cssClass: 'auto-height',
-      initialBreakpoint: 0.5,
-      breakpoints: [0, 0.5, 1],
-      handle: true
-    });
-
-    await modal.present();
-
-    const { data } = await modal.onWillDismiss();
-    if (data?.gift) {
-      if (this.isGifted[post.id!]) return;
-      this.isGifted[post.id!] = true;
-    }
-  }
-
-  async openComments(post: Content) {
-    if (!this.currentUserProfile) {
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    const modal = await this.modalController.create({
-      component: ModalCommentComponent,
-      componentProps:{
-        currentUser: this.currentUserProfile,
-        contentId: post.id
-      },
-      cssClass: 'auto-height',
-        initialBreakpoint: 0.95,
-        breakpoints: [0, 0.95, 1],
-        handle: true
-    })
-    await modal.present();
-
-    modal.onDidDismiss().then((data)=>{
-        
-    });
-    
-  }
-
-  async sharePost(post: Content) {
-    try {
-      const shareData = {
-      
-        text: post.description || 'Regardez ce contenu intéressant',
-        url: post.fileUrl
-      };
-
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await this.copyToClipboard(shareData.url);
-        const toast = await this.toastController.create({
-          message: 'Lien copié dans le presse-papier',
-          duration: 2000,
-          position: 'bottom'
-        });
-        await toast.present();
-      }
-    } catch (error) {
-      console.error('Erreur lors du partage:', error);
-    }
-  }
-
-  private async copyToClipboard(text: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      console.error('Erreur lors de la copie dans le presse-papier:', err);
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-      } catch (err) {
-        console.error('Fallback copy method failed:', err);
-      }
-      document.body.removeChild(textArea);
-    }
-  }
-  //#endregion
-
-  //#region Comment System
-  toggleEmojiPicker() {
-    this.showEmojiPicker = !this.showEmojiPicker;
-  }
-
-  addEmoji(emoji: string) {
-    this.newComment += emoji;
-    this.showEmojiPicker = false;
-    this.cdr.markForCheck();
-  }
-
-  onCommentFocus() {
-    this.showEmojiPicker = false;
-  }
-
-  async postComment() {
-    if (!this.newComment?.trim() || !this.currentUserProfile?.id) return;
-    
-    const currentPost = this.posts[this.currentIndex];
-    if (!currentPost) return;
-
-    try {
-      await this.commentService.addComment({
-        contentId: currentPost.id!,
-        userId: this.currentUserProfile.id,
-        username: this.currentUserProfile.username || 'Utilisateur',
-        text: this.newComment.trim()
-      }).toPromise();
-      
-      this.newComment = '';
-      this.showEmojiPicker = false;
-      currentPost.commentCount = (currentPost.commentCount || 0) + 1;
-      this.cdr.markForCheck();
-      
-      const toast = await this.toastController.create({
-        message: 'Commentaire ajouté!',
-        duration: 2000,
-        color: 'success'
-      });
-      await toast.present();
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout du commentaire:', error);
-      const toast = await this.toastController.create({
-        message: 'Erreur lors de l\'ajout du commentaire',
-        duration: 3000,
-        color: 'danger'
-      });
-      await toast.present();
-    }
-  }
-  //#endregion
-
   //#region View Tracking
   onViewChange(content: Content) {
     if (!content?.id) return;
@@ -713,9 +479,12 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  hasActiveChallenge(post: Content): boolean {
-    return !!(post.challengeId && this.currentChallenge[post.challengeId]);
-  }
+  async dismiss() {
+        if (this.challengeName) {
+          await this.modalController.dismiss();
+        }
+      }
+
   //#endregion
 
   //#region Utility Methods
@@ -746,47 +515,22 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     return this.userAvatars[userId] || 'assets/avatar-default.png';
   }
 
-  getActionsForPost(post: Content) {
-    const voteIcon = post.isVotedByUser ? '../assets/icon/checked.gif' : '../assets/icon/like.gif';
-    const giftColor = post.isGiftedByUser ? 'danger' : '';
-    let actionButtons = [];
-    
-    if(this.hasActiveChallenge(post)){
-      actionButtons.push({ 
-        icon: 'thumbs-up', 
-        count: post.voteCount,
-        gifIcon: voteIcon,
-        action: () => this.voteForArtist(post) 
-      },
-      { 
-        icon: 'gift', 
-        count: post.giftCount,
-        color: giftColor,
-        action: () => this.giftPost(post) 
-      });
-    }
-    
-    actionButtons.push(
-      { 
-        icon: 'chatbubble', 
-        count: post.commentCount, 
-        action: () => this.openComments(post) 
-      },
-      { 
-        icon: 'share', 
-        count: post.shareCount,
-        action: () => this.sharePost(post) 
-      });
-
-    return actionButtons;
+  onCommentAdded(count: number){
+    this.commentCount = count;
+    // Forcer la détection de changement pour mettre à jour tous les SideActionsComponents
+    this.cdr.markForCheck();
   }
-
-  getButtonImage(post: Content, action: any): string {
-    if (action.icon === 'thumbs-up') {
-      const buttonKey = `${post.id}-thumbs-up`;
-      return this.buttonAction[buttonKey] || action.gifIcon;
-    }
-    return action.gifIcon;
+  
+showAccount(userId:string){
+        this.router.navigate(['/profile', userId]);
+        this.modalController.dismiss({
+          animation: {
+            leaveAnimation: 'modal-slide-out'
+          }
+        });
+      }
+ hasActiveChallenge(post: Content): boolean {
+    return !!(post.challengeId && this.currentChallenge[post.challengeId]);
   }
 
   onImageAvatarError(event: any) {
@@ -803,14 +547,7 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     imgElement.classList.add('is-default');
   }
 
-  private async showToast(message: string, color: string = 'primary') {
-    const toast = await this.toastController.create({
-      message,
-      duration: 2000,
-      color
-    });
-    await toast.present();
-  }
+ 
 
   // Méthode pour déterminer si le contenu est une vidéo
   isVideo(post: Content): boolean {
@@ -837,4 +574,30 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     this.destroy$.complete();
   }
   //#endregion
+
+  async subscribeTo(profileIdTofollow: string) {
+        if (!profileIdTofollow || !this.currentUserProfile?.id) return;
+        
+        try {
+          const result = await this.profileService.followProfile(this.currentUserProfile.id, profileIdTofollow);
+          
+          // Mettre à jour le currentUserProfile avec les nouvelles données
+          if (result?.user) {
+            this.currentUserProfile = result.user;
+            
+            // Forcer la détection de changement
+            this.cdr.markForCheck();
+          }
+          
+          const toast = await this.toastController.create({
+            message: 'Bravo vous suivez une nouvelle personne!',
+            duration: 2000,
+            color: 'dark'
+          });
+          await toast.present();
+          
+        } catch (error) {
+          console.error('Erreur lors de l\'abonnement:', error);
+        }
+      }
 }

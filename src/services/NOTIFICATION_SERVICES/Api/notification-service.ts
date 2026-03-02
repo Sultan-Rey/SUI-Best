@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
-import { Notification } from '../../models/Notification';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { Notification } from '../../../models/Notification';
+import { ApiJSON } from '../../API/LOCAL/api-json';
 
 @Injectable({
   providedIn: 'root'

@@ -1,0 +1,24 @@
+
+ <div *ngIf="isLoadingContents" class="loading-container">
+      <ion-spinner></ion-spinner>
+    </div>
+
+    <div *ngIf="!isLoadingContents && userContents.length === 0" class="no-contents">
+      <p>Aucun contenu partagé pour le moment</p>
+    </div>
+
+    <div class="posts-grid" *ngIf="!isLoadingContents && userContents.length > 0">
+      <div *ngFor="let content of userContents" 
+           class="content-item"
+           (click)="openContent(content)">
+        <img [src]="(content.fileUrl | mediaUrl)" (error)="onImageContentError($event)"  [alt]="content.description" *ngIf="content.fileUrl">
+        <div class="content-overlay" *ngIf="content.likeCount || content.commentCount">
+          <span *ngIf="content.likeCount">
+            <ion-icon name="heart"></ion-icon> {{ content.likeCount }}
+          </span>
+          <span *ngIf="content.commentCount">
+            <ion-icon name="chatbubble"></ion-icon> {{ content.commentCount }}
+          </span>
+        </div>
+      </div>
+    </div>

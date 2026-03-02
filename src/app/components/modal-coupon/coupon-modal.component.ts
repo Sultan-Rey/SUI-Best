@@ -36,6 +36,7 @@ import {
 import { Vote, VoteStatusResponse } from 'src/models/Vote';
 import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
+import { BuyCouponModalComponent } from '../modal-buy-coupon/buy-coupon-modal.component';
 
 // Interface pour les coupons
 
@@ -133,10 +134,10 @@ export class CouponModalComponent implements OnInit {
     this.selectedCoupon = null;
     this.isBurnable = false;
     const theChallenge = await this.challengeService.getChallengeById(this.challengeId).toPromise();
-    if(theChallenge?.coupon_required){
+    if(!theChallenge?.coupon_required){
       this.selectedCoupon = {
         id: 'default'+Date.now().toString(),
-        name: 'Aucun',
+        name: 'Aucun requis',
         usageValue: 1,
         description: 'Coupon non requis pour ce challenge',
         type: 'standard',
@@ -439,8 +440,11 @@ export class CouponModalComponent implements OnInit {
 
   handleCouponOption(optionId: string) {
     if (optionId === 'buy') {
-      // Rediriger vers le wallet pour acheter des coupons
-      window.location.href = '/wallet';
+      this.modalController.dismiss();
+      this.modalController.create({
+        component: BuyCouponModalComponent,
+        handle: true
+      }).then((modal)=> modal.present())
       return;
     }
 

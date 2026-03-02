@@ -1,0 +1,256 @@
+import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { IonIcon } from "@ionic/angular/standalone";
+import { ToastController, ModalController, LoadingController } from '@ionic/angular';
+import { Content } from 'src/models/Content';
+import { Challenge } from 'src/models/Challenge';
+import { VoteService } from 'src/services/VOTE_SERVICE/vote-service';
+import { CouponModalComponent } from 'src/app/components/modal-coupon/coupon-modal.component';
+import { GiftModalComponent } from 'src/app/components/modal-gift/gift-modal.component';
+import { ModalCommentComponent } from 'src/app/components/modal-comment/modal-comment.component';
+import { UserProfile } from 'src/models/User';
+import { Router } from '@angular/router';
+import { NgIf, NgFor } from '@angular/common';
+
+@Component({
+  selector: 'app-side-actions',
+  templateUrl: './side-actions.component.html',
+  styleUrls: ['./side-actions.component.scss'],
+  providers: [ModalController],
+  imports: [IonIcon, NgIf, NgFor]
+})
+export class SideActionsComponent  implements OnInit, OnChanges {
+  @Input() Post!: Content;
+  @Input() CurrentUserProfile!: UserProfile;
+  @Input() UserAvatars: { [userId: string]: string } = {};
+  @Input() CurrentChallenge: { [challengeId: string]: Challenge } = {};
+  @Input() HasActiveChallenge!: boolean;
+  @Input() CommentCount!: number;
+  buttonAction: { [key: string]: string } = {};
+  constructor(private toastController: ToastController, private modalController: ModalController, 
+    private voteService: VoteService, private router: Router, private loadingController: LoadingController) { }
+
+  ngOnInit() {}
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Détecter quand le commentCount change
+    if (changes['CommentCount']) {
+      this.Post.commentCount = changes['CommentCount'].currentValue;
+    }
+  }
+
+  // Méthode publique pour incrémenter le compteur de commentaires
+  incrementCommentCount() {
+    if (this.Post) {
+      this.Post.commentCount = (this.Post.commentCount || 0) + 1;
+    }
+  }
+
+    
+  
+  getActionsForPost() {
+      const voteIcon = this.Post.isVotedByUser ? '../assets/icon/checked.gif' : '../assets/icon/like.gif';
+      const giftColor = this.Post.isGiftedByUser ? 'danger' : '';
+      let actionButtons = [];
+      
+      if(this.HasActiveChallenge){
+        actionButtons.push({ 
+          icon: 'thumbs-up', 
+          count: this.Post.voteCount,
+          gifIcon: voteIcon,
+          action: () => this.voteForArtist(this.Post) 
+        },
+        { 
+          icon: 'gift', 
+          count: this.Post.giftCount,
+          color: giftColor,
+          action: () => this.giftPost(this.Post) 
+        });
+      }
+      
+      actionButtons.push(
+        { 
+          icon: 'chatbubble', 
+          count: this.Post.commentCount, 
+          action: () => this.openComments(this.Post) 
+        },
+        { 
+          icon: 'share', 
+          count: this.Post.shareCount,
+          action: () => this.sharePost(this.Post) 
+        });
+  
+      return actionButtons;
+    }
+
+
+    
+      //#region User Actions & Modal Management
+      
+    
+      
+    
+      async voteForArtist(post: any) {
+        const loading = await this.loadingController.create({
+          message: 'Vérification en cours...',
+          spinner: 'crescent'
+        });
+        
+        await loading.present();
+        
+        this.voteService.canUserVoteForChallenge(this.CurrentUserProfile?.id, post.id, post.challengeId).subscribe({
+          next: async (result) => {
+            await loading.dismiss();
+            
+            if (result.canVote) {
+              this.openVoteModal(post);
+            } else {
+              this.showToast('Vous avez déjà voté pour ce contenu dans ce défi');
+            }
+          },
+          error: async (error) => {
+            await loading.dismiss();
+            console.error('Erreur lors de la vérification du vote:', error);
+            this.showToast('Erreur lors de la vérification du vote');
+          }
+        });
+      }
+      
+    
+      private async openVoteModal(post: Content) {
+        const modal = await this.modalController.create({
+          component: CouponModalComponent,
+          cssClass: 'vote-modal',
+          breakpoints: [0, 0.7, 0.85],
+          initialBreakpoint: 0.85,
+          backdropDismiss: true,
+          componentProps: {
+            artistName: post.username || 'Utilisateur',
+            artistAvatar: this.UserAvatars[post.userId] || 'assets/avatar-default.png',
+            challengeName: this.CurrentChallenge[post.challengeId]?.name || 'Challenge',
+            postId: post.id,
+            userId: this.CurrentUserProfile?.id,
+            challengeId: post.challengeId,
+            usageRule: this.CurrentChallenge[post.challengeId]?.vote_rule 
+          }
+        });
+    
+        await modal.present();
+        const { data } = await modal.onWillDismiss();
+        
+        if (data && data.success) {
+           await this.voteService.getTotalVotesForContent(post.id as string).toPromise().then((votecount)=>{
+            this.Post.voteCount = Number(votecount);
+            post.isVotedByUser = true;
+            this.getActionsForPost();
+          })
+          this.showToast('Vote enregistré!', 'dark');
+        }
+      }
+    
+      
+    
+      async giftPost(post: Content) {
+        const modal = await this.modalController.create({
+          component: GiftModalComponent,
+          componentProps: { post },
+          cssClass: 'auto-height',
+          initialBreakpoint: 0.5,
+          breakpoints: [0, 0.5, 1],
+          handle: true
+        });
+    
+        await modal.present();
+    
+        const { data } = await modal.onWillDismiss();
+        if (data?.gift) {
+          this.getActionsForPost();
+        }
+      }
+    
+      async openComments(post: Content) {
+        if (!this.CurrentUserProfile) {
+          this.router.navigate(['/login']);
+          return;
+        }
+    
+        
+const modal = await this.modalController.create({
+  component: ModalCommentComponent,
+  componentProps: {
+    currentUser: this.CurrentUserProfile,
+    contentId: post.id
+  },
+  cssClass: 'comment-modal',   
+  handle: true
+});
+        await modal.present();
+    
+        modal.onDidDismiss().then((data)=>{
+            if(data && data.data.isPost){
+              this.Post.commentCount++;
+            }
+        });
+        
+      }
+    
+      async sharePost(post: Content) {
+        try {
+          const shareData = {
+          
+            text: post.description || 'Regardez ce contenu intéressant',
+            url: post.fileUrl
+          };
+    
+          if (navigator.share) {
+            await navigator.share(shareData);
+          } else {
+            await this.copyToClipboard(shareData.url);
+            const toast = await this.toastController.create({
+              message: 'Lien copié dans le presse-papier',
+              duration: 2000,
+              position: 'bottom'
+            });
+            await toast.present();
+          }
+        } catch (error) {
+          console.error('Erreur lors du partage:', error);
+        }
+      }
+    
+      private async copyToClipboard(text: string): Promise<void> {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (err) {
+          console.error('Erreur lors de la copie dans le presse-papier:', err);
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            document.execCommand('copy');
+          } catch (err) {
+            console.error('Fallback copy method failed:', err);
+          }
+          document.body.removeChild(textArea);
+        }
+      }
+
+       getButtonImage(post: Content, action: any): string {
+    if (action.icon === 'thumbs-up') {
+      const buttonKey = `${post.id}-thumbs-up`;
+      return this.buttonAction[buttonKey] || action.gifIcon;
+    }
+    return action.gifIcon;
+  }
+      //#endregion
+    
+       private async showToast(message: string, color: string = 'primary') {
+    const toast = await this.toastController.create({
+      message,
+      duration: 2000,
+      color: color
+    });
+    await toast.present();
+  }
+
+}

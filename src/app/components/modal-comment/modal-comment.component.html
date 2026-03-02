@@ -1,64 +1,244 @@
-<ion-header>
+<ion-header class="modal-header">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/home"></ion-back-button>
+      <ion-button fill="clear" class="dismiss-btn" (click)="dismiss()">
+        <ion-icon name="chevron-down-outline"></ion-icon>
+      </ion-button>
     </ion-buttons>
-    <ion-title>Commentaires</ion-title>
+    <ion-title class="modal-title">
+      <span class="title-text">Commentaires</span>
+      <span class="comment-count" *ngIf="comments.length > 0">{{ comments.length }}</span>
+    </ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <!-- Liste des commentaires -->
-  <div *ngIf="!isLoading; else loading">
-    <div *ngIf="!comments || comments.length === 0" class="no-comments">
-      <ion-icon name="chatbubble-outline"></ion-icon>
-      <p>Aucun commentaire pour le moment</p>
-      <p class="hint">Soyez le premier à commenter !</p>
-    </div>
-    
-    <ion-list>
-      <ion-item *ngFor="let comment of comments" lines="full">
-        <ion-avatar slot="start">
-          <img [src]="comment.userAvatar || 'assets/avatar-default.png'" (error)="onImageError($event)">
-        </ion-avatar>
-        
-        <ion-label>
-          <h3>{{ comment.username }}</h3>
-          <p>{{ comment.text }}</p>
-          <div class="comment-actions">
-            <ion-button fill="clear" size="small" (click)="toggleLike(comment)">
-              <ion-icon 
-                [name]="comment.isLiked ? 'heart' : 'heart-outline'" 
-                [color]="comment.isLiked ? 'danger' : 'medium'">
-              </ion-icon>
-              <span *ngIf="comment.likes > 0">{{ comment.likes }}</span>
-            </ion-button>
-          </div>
-        </ion-label>
-      </ion-item>
-    </ion-list>
+<ion-content class="comments-content">
 
-    <!-- Champ de saisie du commentaire -->
-    <ion-footer class="comment-input">
-      <ion-item>
-        <ion-textarea 
-          [(ngModel)]="newComment" 
-          placeholder="Ajouter un commentaire..."
-          rows="1"
-          autoGrow="true">
-        </ion-textarea>
-        <ion-buttons slot="end">
-          <ion-button (click)="addComment()" [disabled]="!newComment.trim() || isPosting">
-            <ion-icon name="send" [color]="newComment.trim() ? 'primary' : 'medium'"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-item>
-    </ion-footer>
+  <!-- État vide -->
+  <div *ngIf="!isLoading && (!comments || comments.length === 0)" class="empty-state">
+    <div class="empty-icon-wrap">
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+    </div>
+    <p class="empty-title">Aucun commentaire</p>
+    <p class="empty-hint">Soyez le premier à laisser un message</p>
   </div>
 
-  <ng-template #loading>
-    <div class="loading-container">
-      <ion-spinner></ion-spinner>
+  <!-- Skeleton loader -->
+  <div *ngIf="isLoading" class="skeleton-list">
+    <div class="skeleton-item" *ngFor="let i of [1,2,3,4]">
+      <div class="skeleton-avatar"></div>
+      <div class="skeleton-lines">
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line long"></div>
+      </div>
     </div>
-  </ng-template>
+  </div>
+
+  <!-- Liste des commentaires -->
+  <div class="comments-list" *ngIf="!isLoading && comments.length > 0">
+    
+    <div class="comment-item" *ngFor="let comment of comments">
+      
+      <!-- Ligne principale : avatar + contenu -->
+      <div class="comment-row">
+        <div class="avatar-col">
+          <div class="avatar-wrap">
+            <img 
+              class="avatar-img"
+              [src]="comment.userAvatar | mediaUrl" 
+              (error)="onImageError($event)">
+          </div>
+          <!-- Fil vertical si replies visibles -->
+          <div class="thread-line" 
+               *ngIf="comment.replyCount && comment.replyCount > 0 && expandedReplies.has(comment.id!)">
+          </div>
+        </div>
+        
+        <div class="comment-body">
+          <div class="comment-header-row">
+            <span class="comment-username">{{ comment.username }}</span>
+            <div class="comment-meta">
+              <span class="comment-time" *ngIf="comment.createdAt">{{ comment.createdAt | date:'shortTime' }}</span>
+              <span class="aggregated-badge" *ngIf="comment.isAggregated">
+                <ion-icon name="layers-outline"></ion-icon>
+                {{ comment.userCommentCount }}
+              </span>
+            </div>
+          </div>
+          
+          <!-- Commentaire agrégé : affiche le premier, puis toggle les autres -->
+          <ng-container *ngIf="comment.isAggregated && comment.aggregatedComments">
+            <p class="comment-text">{{ comment.aggregatedComments[0].text }}</p>
+            
+            <!-- Sous-commentaires agrégés (cachés par défaut) -->
+            <div class="aggregated-sub-comments" 
+                 [class.expanded]="expandedAggregatedComments.has(comment.id!)">
+              <div class="sub-comment" 
+                   *ngFor="let sub of comment.aggregatedComments | slice:1">
+                <span class="sub-comment-time">{{ sub.createdAt | date:'shortTime' }}</span>
+                <p class="sub-comment-text">{{ sub.text }}</p>
+              </div>
+            </div>
+            
+            <button class="toggle-aggregated" 
+                    *ngIf="comment.aggregatedComments.length > 1"
+                    (click)="toggleAggregatedComments(comment.id!)">
+              <span *ngIf="!expandedAggregatedComments.has(comment.id!)">
+                +{{ comment.aggregatedComments.length - 1 }} autres messages
+              </span>
+              <span *ngIf="expandedAggregatedComments.has(comment.id!)">Réduire</span>
+              <ion-icon name="chevron-down-outline" 
+                        [class.rotated]="expandedAggregatedComments.has(comment.id!)">
+              </ion-icon>
+            </button>
+          </ng-container>
+          
+          <!-- Commentaire normal -->
+          <p *ngIf="!comment.isAggregated" class="comment-text">{{ comment.text }}</p>
+          
+          <!-- Actions du commentaire -->
+          <div class="comment-actions">
+            <button class="like-btn" [class.liked]="comment.isLiked" (click)="toggleLike(comment)">
+              <ion-icon [name]="comment.isLiked ? 'heart' : 'heart-outline'"></ion-icon>
+              <span *ngIf="comment.likes > 0" class="like-count">{{ comment.likes }}</span>
+            </button>
+            
+            <button class="reply-btn" (click)="startReply(comment)">
+              <ion-icon name="chatbubble-outline"></ion-icon>
+              Répondre
+            </button>
+            
+            <!-- Toggle affichage des réponses -->
+            <button class="show-replies-btn" 
+                    *ngIf="comment.replyCount && comment.replyCount > 0"
+                    (click)="toggleReplies(comment.id!)">
+              <div class="reply-avatars" *ngIf="comment.replies && comment.replies.length > 0 && !expandedReplies.has(comment.id!)">
+                <img *ngFor="let r of comment.replies | slice:0:2" 
+                     class="mini-avatar" 
+                     [src]="r.userAvatar | mediaUrl" 
+                     (error)="onImageError($event)">
+              </div>
+              <span *ngIf="!expandedReplies.has(comment.id!)">
+                Voir {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'réponse' : 'réponses' }}
+              </span>
+              <span *ngIf="expandedReplies.has(comment.id!)">Masquer</span>
+              <ion-icon name="chevron-down-outline" 
+                        [class.rotated]="expandedReplies.has(comment.id!)">
+              </ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Réponses (section indentée, sous le commentaire parent) -->
+      <div class="replies-section" 
+           *ngIf="comment.replies && comment.replies.length > 0 && expandedReplies.has(comment.id!)">
+        
+        <div class="reply-item" *ngFor="let reply of comment.replies">
+          <div class="avatar-col">
+            <div class="avatar-wrap small">
+              <img 
+                class="avatar-img small"
+                [src]="reply.userAvatar | mediaUrl" 
+                (error)="onImageError($event)">
+            </div>
+          </div>
+          
+          <div class="reply-body">
+            <div class="reply-header-row">
+              <span class="reply-username">{{ reply.username }}</span>
+              <span class="reply-time">{{ reply.createdAt | date:'shortTime' }}</span>
+            </div>
+            <p class="reply-text">{{ reply.text }}</p>
+            <div class="reply-actions">
+              <button class="like-btn small" [class.liked]="reply.isLiked" (click)="toggleLike(reply)">
+                <ion-icon [name]="reply.isLiked ? 'heart' : 'heart-outline'"></ion-icon>
+                <span *ngIf="reply.likes > 0">{{ reply.likes }}</span>
+              </button>
+              <button class="reply-btn small" (click)="startReply(reply)">
+                Répondre
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <!-- Bouton "Voir plus" -->
+    <div class="load-more-section" *ngIf="hasMoreComments">
+      <button class="load-more-btn" (click)="loadMoreComments()" [disabled]="isLoadingMore">
+        <div class="loading-dots" *ngIf="isLoadingMore">
+          <span></span><span></span><span></span>
+        </div>
+        <span *ngIf="!isLoadingMore">Voir plus de commentaires</span>
+        <span *ngIf="isLoadingMore">Chargement…</span>
+      </button>
+    </div>
+  </div>
+
 </ion-content>
+
+<!-- Footer EN DEHORS de ion-content -->
+<ion-footer class="comment-footer" 
+            [class.emoji-open]="showEmojiPicker" 
+            [class.reply-mode]="isReplying">
+
+  <!-- Bandeau de réponse -->
+  <div *ngIf="isReplying" class="reply-banner">
+    <div class="reply-banner-info">
+      <ion-icon name="return-down-forward-outline"></ion-icon>
+      <span>Réponse à <strong>{{ replyingTo?.username }}</strong></span>
+    </div>
+    <button class="cancel-reply" (click)="cancelReply()">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+  </div>
+
+  <!-- Emoji picker -->
+  <div class="emoji-picker" *ngIf="showEmojiPicker">
+    <span 
+      class="emoji" 
+      *ngFor="let emoji of emojis" 
+      (click)="addEmoji(emoji)">{{ emoji }}</span>
+  </div>
+
+  <!-- Barre de saisie unifiée (commentaire ou réponse) -->
+  <div class="input-bar">
+    <button class="emoji-trigger" (click)="toggleEmojiPicker()" *ngIf="!isReplying">
+      <ion-icon [name]="showEmojiPicker ? 'close-outline' : 'happy-outline'"></ion-icon>
+    </button>
+
+    <div class="input-pill">
+      <!-- Mode réponse -->
+      <ion-input
+        *ngIf="isReplying"
+        class="comment-input"
+        [(ngModel)]="replyText"
+        [placeholder]="'Répondre à ' + replyingTo?.username + '…'"
+        (keydown.enter)="addReply()"
+        (ionFocus)="onCommentFocus()"
+        autofocus>
+      </ion-input>
+      <!-- Mode commentaire normal -->
+      <ion-input
+        *ngIf="!isReplying"
+        class="comment-input"
+        [(ngModel)]="newComment"
+        placeholder="Ajouter un commentaire…"
+        (keydown.enter)="addComment()"
+        (ionFocus)="onCommentFocus()">
+      </ion-input>
+    </div>
+
+    <button 
+      class="send-btn"
+      [class.active]="isReplying ? replyText.trim() : newComment.trim()"
+      [disabled]="isReplying ? (!replyText.trim() || isPosting) : (!newComment.trim() || isPosting)"
+      (click)="isReplying ? addReply() : addComment()">
+      <ion-icon name="send" *ngIf="!isPosting"></ion-icon>
+      <div class="sending-dot" *ngIf="isPosting"></div>
+    </button>
+  </div>
+
+</ion-footer>

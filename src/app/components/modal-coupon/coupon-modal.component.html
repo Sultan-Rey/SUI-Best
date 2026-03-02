@@ -151,7 +151,7 @@
 
       <!-- Aucun coupon disponible -->
       <ng-template  #loadingOrEmpty>
-  <div class="loading-container" *ngIf="isLoading; else noCoupons">
+  <div class="loading-container" *ngIf="isLoading && !selectedCoupon; else noCoupons">
     <ion-spinner name="crescent" color="primary"></ion-spinner>
     <p>Chargement des coupons...</p>
   </div>

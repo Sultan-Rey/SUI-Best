@@ -28,7 +28,7 @@
             <img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
             <div class="artist-details">
               <div class="profile-header">
-                <ion-chip *ngIf="hasActiveChallenge(post)" color="danger">{{ currentChallenge[post.challengeId]?.name }}</ion-chip>
+                <ion-chip *ngIf="hasActiveChallenge(post)" color="warning" >{{ currentChallenge[post.challengeId]?.name }}</ion-chip>
                 <h4 class="profile-name">{{ post.username || 'Utilisateur' }}
                    <ion-icon 
             *ngIf="post?.userId && userVerified[post.userId]" 
@@ -64,44 +64,20 @@
        
         </div>
 
-        <div class="side-actions">
-          <button class="action-button" *ngFor="let action of getActionsForPost(post)" (click)="action.action()">
-            <div class="action-icon" [class.liked]="action.icon === 'heart'">
-              <ion-icon [name]="action.icon" *ngIf="!action.gifIcon"></ion-icon>
-              <img [src]="getButtonImage(post, action)" *ngIf="action.gifIcon">
-            </div>
-            <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
-          </button>
-        </div>
+       <app-side-actions [CurrentChallenge]="currentChallenge"
+                          [CurrentUserProfile]="currentUserProfile"
+                          [HasActiveChallenge]="hasActiveChallenge(post)"
+                          [Post]="post"
+                          [UserAvatars]="userAvatars"
+                          [CommentCount]="post.commentCount"></app-side-actions>
       </div>
     </div>
     </ng-container>
 
-  <!-- Instagram-like comment footer for modal mode -->
-  <div *ngIf="challengeName" class="comment-footer">
-    <div class="comment-input-container">
-      <ion-icon name="happy-outline" class="emoji-icon" (click)="toggleEmojiPicker()"></ion-icon>
-      <ion-input 
-        placeholder="Ajouter un commentaire..." 
-        class="comment-input"
-        [(ngModel)]="newComment"
-        (keydown.enter)="postComment()"
-        (ionFocus)="onCommentFocus()">
-      </ion-input>
-      <ion-button 
-        fill="clear" 
-        class="post-btn"
-        [disabled]="!newComment.trim()"
-        (click)="postComment()">
-        <ion-icon name="send"></ion-icon>
-      </ion-button>
-    </div>
-    
-    <!-- Emoji picker -->
-    <div *ngIf="showEmojiPicker" class="emoji-picker">
-      <span class="emoji" *ngFor="let emoji of emojis" (click)="addEmoji(emoji)">{{ emoji }}</span>
-    </div>
-  </div>
+    <app-quick-comment *ngIf="challengeName === '-' && posts.length > 0"
+                        [CurrentPost]="posts[currentIndex]"
+                        [CurrentUserProfile]="currentUserProfile"
+                        (commentCount)="onCommentAdded($event)"></app-quick-comment>
   </div>
 
   <ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)" *ngIf="!challengeName">

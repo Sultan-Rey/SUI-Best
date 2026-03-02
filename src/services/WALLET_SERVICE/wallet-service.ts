@@ -388,7 +388,7 @@ export class WalletService {
   /**
    * Factorisation - Traite l'achat d'un pack de coupons
    */
-  private purchaseCouponsPack(currentWallet: Wallet, pack: Pack, paymentMethod: string, buyerId: string): Observable<Wallet> {
+   private purchaseCouponsPack(currentWallet: Wallet, pack: Pack, paymentMethod: string, buyerId: string): Observable<Wallet> {
     // Préparer les mises à jour pour le pack
     const currentHolders: string[] = (pack.holder || []).map(h => String(h));
     const currentQtySold = pack.qtySold || 0;
@@ -418,22 +418,26 @@ export class WalletService {
     const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
     const updatedTransactions = [transaction, ...currentTransactions];
     
-    // Plus de génération de coupons individuels - on adopte la logique de buy-coupon-modal
     // Les coupons sont gérés via les propriétés holder et qtySold du pack
     const updatedBalance = {
       coins: currentWallet.balance.coins || 0,
       coupons: (currentWallet.balance.coupons || 0) + pack.amount
     };
 
-    // D'abord mettre à jour le pack, puis le wallet
+    // D'abord mettre à jour le pack, puis générer les coupons individuels et mettre à jour le wallet
     return this.incomeService.updatePack(pack.id, packUpdates).pipe(
       switchMap((updatedPack) => {
-        // Succès de la mise à jour du pack, maintenant mettre à jour le wallet
-        return this.updateWallet({
-          transactions: updatedTransactions,
-          balance: updatedBalance,
-          coupons: currentWallet.coupons || [] // On garde les coupons existants sans en ajouter de nouveaux
-        });
+        // Succès de la mise à jour du pack, maintenant générer les coupons individuels
+        return this.generateIndividualCoupons(pack, currentWallet).pipe(
+          switchMap((walletWithCoupons) => {
+            // Mettre à jour le wallet avec la transaction et la balance
+            return this.updateWallet({
+              transactions: updatedTransactions,
+              balance: updatedBalance,
+              coupons: walletWithCoupons.coupons // Utiliser les coupons générés
+            });
+          })
+        );
       }),
       catchError((error) => {
         console.error('❌ Erreur lors de la mise à jour du pack:', error);
@@ -661,14 +665,50 @@ export class WalletService {
       })
     );
   }
-
-  // ============================================
-  // UTILS & CACHE
-  // ============================================
-
-  /**
-   * Génère un ID de transaction unique
-   */
+  generateIndividualCoupons(pack: Pack, currentWallet: Wallet): Observable<Wallet> {
+    // Génère les coupons individuels avec IDs uniques
+    const individualCoupons: Coupon[] = [];
+    
+    // Règles d'usage basées sur Fibonacci selon le type de coupon
+    const getUsageValueByType = (couponType: CouponType): number => {
+      const fibonacci = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
+      
+      switch (couponType) {
+        case 'standard':
+          return fibonacci[0]; // 1 utilisation
+        case 'premium':
+          return fibonacci[2]; // 2 utilisations
+        case 'legendary':
+          return fibonacci[4]; // 5 utilisations
+        case 'special':
+          return fibonacci[6]; // 13 utilisations
+        default:
+          return fibonacci[0]; // 1 par défaut
+      }
+    };
+    
+    for (let i = 0; i < pack.amount; i++) {
+      const coupon: Coupon = {
+        id: `${pack.id}_coupon_${i + 1}_${Date.now()}`,
+        name: `${pack.couponType} - ${pack.name}`,
+        description: `Coupon de réduction ${pack.couponType} issu du pack ${pack.name}`,
+        type: pack.couponType,
+        usageValue: getUsageValueByType(pack.couponType),
+        expiresAt: pack.expiryDate
+      };
+      individualCoupons.push(coupon);
+    }
+    
+    // Mettre à jour le wallet avec les nouveaux coupons
+    const currentCoupons = Array.isArray(currentWallet.coupons) ? currentWallet.coupons : [];
+    const updatedWallet = {
+      ...currentWallet,
+      coupons: [...currentCoupons, ...individualCoupons]
+    };
+    
+    // Mettre à jour le wallet via l'API
+    return this.updateWallet(updatedWallet);
+  }
   private generateTransactionId(): string {
     return `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

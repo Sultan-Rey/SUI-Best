@@ -1,0 +1,261 @@
+/* ==================== */
+/*   COMMENT FOOTER     */
+/* ==================== */
+.comment-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  z-index: 1000;
+}
+
+.comment-input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .emoji-icon {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    
+    &:hover {
+      color: rgba(255, 255, 255, 1);
+    }
+  }
+  
+  .comment-input {
+    flex: 1;
+    --background: rgba(255, 255, 255, 0.1);
+    --color: #fff;
+    --placeholder-color: rgba(255, 255, 255, 0.6);
+    --placeholder-opacity: 1;
+    --border-radius: 20px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --padding-top: 8px;
+    --padding-bottom: 8px;
+   
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+  
+  .post-btn {
+    --color: rgba(255, 255, 255, 0.8);
+    --padding-start: 8px;
+    --padding-end: 8px;
+    
+    &:not([disabled]) {
+      --color: #fff;
+    }
+    
+    ion-icon {
+      font-size: 20px;
+    }
+  }
+}
+
+.emoji-picker {
+  position: absolute;
+  bottom: 70px;
+  left: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
+  
+  .emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
+
+/* ==================== */
+/*   PROJECTION ANIMATION */
+/* ==================== */
+.comment-projection {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  right: 20px;
+  z-index: 9999;
+  pointer-events: none;
+  
+  .projection-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    
+    .projection-text {
+      color: #000;
+      font-size: 14px;
+      font-weight: 400;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  
+  // Animation CSS pure pour l'effet de projection
+  animation: slideUpAndFade 1000ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes slideUpAndFade {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    border-radius: 20px;
+  }
+  10% {
+    transform: translateY(-10px) scale(1.01);
+    opacity: 0.98;
+    border-radius: 20px;
+  }
+  25% {
+    transform: translateY(-35px) scale(1.02);
+    opacity: 0.95;
+    border-radius: 20px;
+  }
+  40% {
+    transform: translateY(-60px) scale(1.01);
+    opacity: 0.85;
+    border-radius: 19px;
+  }
+  55% {
+    transform: translateY(-90px) scale(0.98);
+    opacity: 0.70;
+    border-radius: 19px;
+  }
+  70% {
+    transform: translateY(-130px) scale(0.94);
+    opacity: 0.45;
+    border-radius: 18px;
+  }
+  85% {
+    transform: translateY(-170px) scale(0.88);
+    opacity: 0.20;
+    border-radius: 17px;
+  }
+  100% {
+    transform: translateY(-220px) scale(0.82);
+    opacity: 0;
+    border-radius: 16px;
+  }
+}
+
+/* ==================== */
+/*   COMMENT TOAST      */
+/* ==================== */
+.comment-toast {
+  --background: rgba(255, 255, 255, 0.95);
+  --color: #000;
+  border-radius: 18px;
+  margin: 0 20px 80px 20px;
+  max-width: 70%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
+  &::part(message) {
+    color: #000;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 12px 16px;
+    font-weight: 400;
+  }
+  
+  &::part(container) {
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  
+  // Animation de la bulle qui monte de l'input vers le contenu
+  animation: bubbleUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  
+  @keyframes bubbleUp {
+    0% {
+      transform: translateY(100px) scale(0.8);
+      opacity: 0;
+      border-radius: 12px;
+    }
+    20% {
+      transform: translateY(80px) scale(0.9);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(40px) scale(1.05);
+      opacity: 1;
+      border-radius: 16px;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      border-radius: 18px;
+    }
+  }
+  
+  // Animation de disparition fluide
+  &.toast-leave {
+    animation: bubbleFade 0.4s ease-out forwards;
+  }
+  
+  @keyframes bubbleFade {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-20px) scale(0.95);
+      opacity: 0;
+    }
+  }
+}

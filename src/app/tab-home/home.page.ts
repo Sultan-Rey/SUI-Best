@@ -13,8 +13,8 @@ import { UserProfile } from 'src/models/User.js';
 import { Auth } from 'src/services/AUTH/auth.js';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { Router } from '@angular/router';
-import { DiscoveryViewComponent } from "../components/view-discovery/discovery-view.component.js";
-import { FollowedViewComponent } from "../components/view-followed/followed-view.component.js";
+import { DiscoveryViewComponent } from "./containers/discovery-panel/discovery-view.component.js";
+import { FollowedViewComponent } from "./containers/followed-panel/followed-view.component.js";
 import { GestureController } from '@ionic/angular';
 import { switchMap, filter, takeUntil, Subject } from 'rxjs';
 

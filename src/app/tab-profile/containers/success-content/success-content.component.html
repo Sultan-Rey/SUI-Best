@@ -1,0 +1,145 @@
+<!-- ============================================ -->
+<!-- SUCCESS TAB                                  -->
+<!-- ============================================ -->
+
+
+  <!-- Header résumé -->
+  <div class="success-header">
+    <div class="level-badge">
+      <span class="level-label">LVL</span>
+      <span class="level-value">{{ userLevel }}</span>
+    </div>
+    <div class="success-summary">
+      <div class="summary-stat">
+        <span class="summary-value">{{ unlockedSuccessCount }}</span>
+        <span class="summary-label">Débloqués</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-stat">
+        <span class="summary-value">{{ inProgressSuccessCount }}</span>
+        <span class="summary-label">En cours</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-stat">
+        <span class="summary-value">{{ totalCollectedXP }}</span>
+        <span class="summary-label">XP total</span>
+      </div>
+    </div>
+
+    <!-- Barre XP -->
+    <div class="xp-bar-wrap">
+      <div class="xp-bar-track">
+        <div class="xp-bar-fill" [style.width.%]="xpProgressPercent"></div>
+      </div>
+      <span class="xp-bar-label">{{ currentXP }} / {{ nextLevelXP }} XP</span>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="success-filters">
+    <button class="filter-chip" [class.active]="successFilter === 'all'" (click)="setSuccessFilter('all')">
+      Tous <span class="chip-count">{{ achievements.length }}</span>
+    </button>
+    <button class="filter-chip" [class.active]="successFilter === 'unlocked'" (click)="setSuccessFilter('unlocked')">
+      <ion-icon name="checkmark-circle"></ion-icon>
+      Débloqués
+    </button>
+    <button class="filter-chip" [class.active]="successFilter === 'in_progress'" (click)="setSuccessFilter('in_progress')">
+      <ion-icon name="flash-outline"></ion-icon>
+      En cours
+    </button>
+    <button class="filter-chip" [class.active]="successFilter === 'locked'" (click)="setSuccessFilter('locked')">
+      <ion-icon name="lock-closed-outline"></ion-icon>
+      Verrouillés
+    </button>
+  </div>
+
+  <!-- Loader -->
+  <div class="loading-wrap" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <!-- Liste -->
+  <div class="success-list" *ngIf="!isLoading">
+
+    <div
+      *ngFor="let achievement of filteredAchievements; trackBy: trackByAchievement"
+      class="achievement-card"
+      [class]="'rarity-' + achievement.rarity"
+      [class.is-unlocked]="achievement.status === 'unlocked'"
+      [class.is-progress]="achievement.status === 'in_progress'"
+      [class.is-locked]="achievement.status === 'locked'"
+      (click)="openAchievementDetail(achievement)">
+
+      <!-- Coin rareté (ruban angulaire) -->
+      <div class="rarity-corner">
+        <span>{{ getRarityLabel(achievement.rarity) }}</span>
+      </div>
+
+      <!-- Icône -->
+      <div class="achievement-icon-wrap">
+        <div class="achievement-icon">
+          <ion-icon [name]="achievement.icon"></ion-icon>
+        </div>
+        <!-- Cadenas pour locked -->
+        <div class="lock-overlay" *ngIf="achievement.status === 'locked'">
+          <ion-icon name="lock-closed"></ion-icon>
+        </div>
+      </div>
+
+      <!-- Contenu -->
+      <div class="achievement-body">
+        <span class="achievement-title">{{ achievement.title }}</span>
+        <p class="achievement-description">{{ achievement.description }}</p>
+
+        <!-- Progression compteur -->
+        <div class="achievement-progress" *ngIf="achievement.status === 'in_progress' && achievement.progressType === 'count'">
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="getProgressPercent(achievement)"></div>
+            <span class="progress-inline">{{ achievement.currentProgress }}/{{ achievement.targetProgress }}</span>
+          </div>
+        </div>
+
+        <!-- Progression pourcentage -->
+        <div class="achievement-progress" *ngIf="achievement.status === 'in_progress' && achievement.progressType === 'percent'">
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="achievement.currentProgress"></div>
+            <span class="progress-inline">{{ achievement.currentProgress }}%</span>
+          </div>
+        </div>
+
+        <!-- Récompense preview -->
+        <div class="reward-preview">
+          <ion-icon [name]="getRewardIcon(achievement.reward.type)"></ion-icon>
+          <span>{{ getRewardLabel(achievement.reward) }}</span>
+        </div>
+      </div>
+
+      <!-- CTA Collecter (uniquement unlocked + non collecté) -->
+      <div
+        class="collect-cta"
+        *ngIf="achievement.status === 'unlocked' && !achievement.collected"
+        (click)="onCollect($event, achievement)">
+        <ion-icon name="gift"></ion-icon>
+        <span>Réclamer</span>
+      </div>
+
+      <!-- Collecté -->
+      <div class="collected-badge" *ngIf="achievement.collected">
+        <ion-icon name="checkmark-done"></ion-icon>
+      </div>
+
+      <!-- XP pill -->
+      <div class="xp-pill" *ngIf="achievement.status !== 'locked'">
+        +{{ achievement.rewardXP }} XP
+      </div>
+
+    </div>
+
+    <!-- Empty state -->
+    <div class="success-empty" *ngIf="filteredAchievements.length === 0">
+      <ion-icon name="shield-outline"></ion-icon>
+      <p>Aucun succès dans cette catégorie</p>
+    </div>
+
+  </div>

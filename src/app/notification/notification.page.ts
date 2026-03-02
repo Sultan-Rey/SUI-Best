@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel, IonButton, IonIcon, IonBadge, IonRefresher, IonRefresherContent, IonSegment, IonSegmentButton, IonBackButton, IonButtons } from '@ionic/angular/standalone';
-import { NotificationService } from '../../services/NOTIFICATION_SERVICE/notification-service';
+import { NotificationService } from '../../services/NOTIFICATION_SERVICES/Api/notification-service';
 import { Notification } from '../../models/Notification';
 import { addIcons } from 'ionicons';
 import {

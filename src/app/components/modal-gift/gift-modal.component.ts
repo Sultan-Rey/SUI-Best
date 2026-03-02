@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { NgFor, NgIf, CommonModule } from '@angular/common';
 import { ModalController } from '@ionic/angular';
 import { AnimationService } from '../../../services/ANIMATION_SERVICE/animation-service';
@@ -6,6 +6,10 @@ import { LottieComponent } from 'ngx-lottie';
 import { IonIcon } from '@ionic/angular/standalone';
 import { globeOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
+import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller';
+import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service';
+import { Content } from 'src/models/Content';
+import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
 
 @Component({
   selector: 'app-gift-modal',
@@ -17,11 +21,14 @@ import { addIcons } from 'ionicons';
 export class GiftModalComponent {
   constructor(
     private modalCtrl: ModalController,
+    private notificationController: NotificationController,
+    private notificationService: NotificationService,
     private animService: AnimationService 
   ) { addIcons({ globeOutline }); }
+  @Input() post!: Content;
   currentCategory = 'Tous'; // Par défaut
   selectedGift: any = null;
-
+  
   gifts = [
     // Classiques
     { id: 'g_rose', name: 'Rose', price: 10, cat: 'Classiques', lottie: 'assets/lottie/Rose.json' },
@@ -57,13 +64,14 @@ export class GiftModalComponent {
   async sendGift() {
     if (!this.selectedGift) return;
 
+    
     // 1. Fermer la modale
     await this.modalCtrl.dismiss();
 
     // 2. Déclencher l'animation plein écran
     this.animService.playAnimation(this.selectedGift.lottie);
 
-    // 3. TODO: Appel API pour déduire les jetons
-    console.log(`Cadeau ${this.selectedGift.name} envoyé !`);
+   const notified =  this.notificationService.createNotification(this.notificationController.notifyChallengerForGift(this.post.userId, this.post.id as string, this.selectGift)).toPromise();
+  
   }
 }

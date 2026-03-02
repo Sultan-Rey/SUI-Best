@@ -220,7 +220,7 @@ export class CreateCouponModalComponent implements OnInit {
         name: this.packConfig.name,
         isBestAcademy: false,
         ownerId: this.auth.getCurrentUser()?.id as string || 'user_current',
-        price: requiredCoins,
+        price: this.finalSalePriceInCoins,
         icon: this.selectedTypeMetadata?.icon || '⚡',
         itemType: 'coupons',
         holder: [],

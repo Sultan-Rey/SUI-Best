@@ -1,0 +1,31 @@
+ <div class="comment-footer">
+    <div class="comment-input-container">
+      <ion-icon name="happy-outline" class="emoji-icon" (click)="toggleEmojiPicker()"></ion-icon>
+      <ion-input 
+        placeholder="Ajouter un commentaire..." 
+        class="comment-input"
+        [(ngModel)]="newComment"
+        (keydown.enter)="postComment()"
+        (ionFocus)="onCommentFocus()">
+      </ion-input>
+      <ion-button 
+        fill="clear" 
+        class="post-btn"
+        [disabled]="!newComment.trim()"
+        (click)="postComment()">
+        <ion-icon name="send"></ion-icon>
+      </ion-button>
+    </div>
+    
+    <!-- Emoji picker -->
+    <div *ngIf="showEmojiPicker" class="emoji-picker">
+      <span class="emoji" *ngFor="let emoji of emojis" (click)="addEmoji(emoji)">{{ emoji }}</span>
+    </div>
+  </div>
+
+  <!-- Animation de projection du commentaire -->
+  <div *ngIf="isAnimating" class="comment-projection">
+    <div class="projection-content">
+      <span class="projection-text">{{ projectedComment }}</span>
+    </div>
+  </div>

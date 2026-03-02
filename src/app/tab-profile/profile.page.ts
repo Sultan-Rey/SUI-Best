@@ -1,10 +1,12 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { NgIf, CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
 import { ChallengeFormComponent } from '../components/modal-challenge-form/challenge-form.component.js';
 import { ModalChallengeComponent } from '../components/modal-challenge-view/modal-challenge.component.js';
 import { ModalMessageComponent } from '../components/modal-message/modal-message.component.js';
+import { SuccessContentComponent } from './containers/success-content/success-content.component.js';
+import { ChallengeSectionComponent } from './containers/challenge-section/challenge-section.component.js';
 import { addIcons } from 'ionicons';
 
 import { 
@@ -52,7 +54,6 @@ import { Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { Challenge } from 'src/models/Challenge.js';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { Auth } from 'src/services/AUTH/auth.js';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service.js';
 import { UserService } from 'src/services/USER_SERVICE/user-service.js';
 import { Content } from 'src/models/Content.js';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
@@ -61,8 +62,8 @@ import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ModalEditProfileComponent } from '../components/modal-edit-profile/modal-edit-profile.component.js';
 import { ShortNumberPipe } from '../utils/pipes/shortNumberPipe/short-number-pipe.js';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core.js';
-import { FollowedViewComponent } from '../components/view-followed/followed-view.component.js';
-
+import { FollowedViewComponent } from '../tab-home/containers/followed-panel/followed-view.component.js';
+import { PostGridComponent } from './containers/post-grid/post-grid.component.js';
 interface Post {
   id: number;
   imageUrl: string;
@@ -79,9 +80,9 @@ interface Post {
   styleUrls: ['./profile.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [ NgIf,IonTitle, IonSpinner, 
+  imports: [ NgIf,IonTitle, IonSpinner, SuccessContentComponent, ChallengeSectionComponent, PostGridComponent,
     IonContent, IonHeader, IonToolbar, IonButtons, IonButton, 
-    IonIcon, IonBadge, IonFab, IonFabButton,
+    IonIcon, IonFab, IonFabButton,
     CommonModule, FormsModule, MediaUrlPipe, ShortNumberPipe
   ] 
 })
@@ -100,6 +101,22 @@ export class ProfilePage implements OnInit {
   userContents: Content[] = [];
   isLoadingContents = false; 
   successPosts: Post[] = [];
+
+  // Méthode pour récupérer le nombre de challenges actifs depuis le composant enfant
+  onActiveChallengesCountChange(count: number) {
+    this.activeChallengesCount = count;
+  }
+
+  // Référence au composant challenge-section
+  @ViewChild('challengeSection') challengeSectionComponent!: ChallengeSectionComponent;
+
+  // Méthode pour recharger les challenges depuis le parent
+  reloadChallenges() {
+    if (this.challengeSectionComponent) {
+      this.challengeSectionComponent.reloadChallenges();
+    }
+  }
+
   private destroy$ = new Subject<void>();
   constructor(
     private cdr: ChangeDetectorRef, 
@@ -108,7 +125,6 @@ export class ProfilePage implements OnInit {
     private location: Location,
     private profileService : ProfileService,
     private authservice: Auth,
-    private creationService: CreationService,
     private challengeService: ChallengeService,
     private alertController: AlertController,
     private toastController: ToastController,
@@ -215,9 +231,6 @@ async toggleFollow() {
     this.isOwnProfile = this.currentUserId === userId;
     this.cdr.detectChanges();
     
-    // Charger les données associées
-    this.loadUserContents(userId);
-    this.loadActiveChallenges(userId);
     
   } catch (error) {
     console.error('Erreur lors du chargement du profil:', error);
@@ -227,31 +240,8 @@ async toggleFollow() {
   }
 }
 
-  loadUserContents(userId: string) {
-    this.isLoadingContents = true;
-    this.creationService.getUserContents(userId).subscribe({
-      next: (contents) => {
-        this.userContents = contents;
-        this.isLoadingContents = false;
-      },
-      error: (err) => {
-        console.error('Erreur lors du chargement des contenus', err);
-        this.isLoadingContents = false;
-      }
-    });
-  }
 
-
-  loadActiveChallenges(UerId: string){
-    this.activeChallengesCount = 0;
-    this.activeChallenges$ = this.challengeService.getChallengesByCreator(UerId);
-    this.activeChallenges$.subscribe((challenges: Challenge[]) => {
-      if(challenges.some((challenge)=> challenge.is_active)){
-      this.activeChallengesCount++;
-      }
-    });
-    
-  }
+ 
 
   selectTab(tab: 'posts' | 'success' | 'info') {
     this.selectedTab = tab;
@@ -276,59 +266,11 @@ async toggleFollow() {
     const { data } = await modal.onDidDismiss();
     
     if (data) {
-      this.loadActiveChallenges(this.currentUserId || ''); // Rafraîchir la liste des challenges
+      this.reloadChallenges(); // Rafraîchir la liste des challenges via le composant enfant
     }
    
   }
 
-   async openChallenge(challenge?: Challenge) {
-    console.log('Navigating to create challenge...');
-    //this.router.navigate(['/create-challenge']);
-  }
-
-  viewAllChallenges() {
-    console.log('Viewing all challenges for user:', this.userProfile.id);
-    this.router.navigate(['/challenges', this.userProfile.id]);
-  }
-
-  getDaysRemaining(challenge: Challenge): number {
-  if (!challenge.end_date) return 0;
-  
-  const endDate = new Date(challenge.end_date);
-  if (isNaN(endDate.getTime())) {
-    console.error('Date de fin invalide:', challenge.end_date);
-    return 0;
-  }
-  
-  const now = new Date();
-  const diffTime = endDate.getTime() - now.getTime();
-  return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-}
-
-  getChallengeStatus(challenge: Challenge): 'active' | 'ending-soon' | 'ended' {
-    const daysRemaining = this.getDaysRemaining(challenge);
-    if (daysRemaining <= 0) return 'ended';
-    if (daysRemaining <= 3) return 'ending-soon';
-    return 'active';
-  }
-
-  getStatusBadgeColor(status: string): string {
-    switch(status) {
-      case 'active': return 'success';
-      case 'ending-soon': return 'warning';
-      case 'ended': return 'medium';
-      default: return 'primary';
-    }
-  }
-
-  getStatusText(status: string): string {
-    switch(status) {
-      case 'active': return 'EN COURS'; 
-      case 'ending-soon': return 'BIENTÔT TERMINÉ';
-      case 'ended': return 'TERMINÉ';
-      default: return 'ACTIF';
-    }
-  }
 
   // Méthodes existantes
   async presentShareOptions(profile: UserProfile) {
@@ -461,15 +403,6 @@ async openAccountModal() {
       });
 }
 
-async openChallengeModal(challenge: Challenge){
-  const modal = await this.modalCtrl.create({
-    component: ModalChallengeComponent,
-    cssClass: 'auto-height',
-    componentProps: {challenge: challenge, currentUserProfile:this.userProfile, currentUserId:this.currentUserId},
-  })
-
-  await modal.present();
-}
 
 private async editProfile() {
   const modal = await this.modalCtrl.create({
@@ -711,4 +644,7 @@ goBack() {
   }
   return num.toString();
 }
+
+
+
 }
