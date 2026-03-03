@@ -1,4 +1,13 @@
 {
+  "name": "Best Academy",
+  "short_name": "Best",
+  "description": "Application de contenu créatif et de challenges",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#ff9500",
+  "orientation": "portrait-primary",
+  "scope": "/",
   "icons": [
     {
       "src": "assets/icons/icon-48.webp",

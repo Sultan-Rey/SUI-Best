@@ -8,8 +8,8 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <div class="posts-container">
-    <ng-container *ngIf="posts.length > 0; else noPostsTemplate">
+  <div class="posts-container" #postsContainer>
+    <ng-container *ngIf="posts.length > 0; else noPostsTemplate ">
       <div 
         class="post" 
         *ngFor="let post of posts; trackBy: trackByPostId; let i = index"
@@ -73,12 +73,17 @@
       </div>
     </div>
     </ng-container>
-
-    <app-quick-comment *ngIf="challengeName === '-' && posts.length > 0"
+    <ng-template #loading>
+      <div class="loading-container">
+  <ion-spinner name="crescent" color="primary"></ion-spinner>
+  <p class="loading-text">Chargement de votre feed...</p>
+</div>
+    </ng-template>
+     <app-quick-comment *ngIf="challengeName === '-' && posts.length > 0"
                         [CurrentPost]="posts[currentIndex]"
                         [CurrentUserProfile]="currentUserProfile"
                         (commentCount)="onCommentAdded($event)"></app-quick-comment>
-  </div>
+     </div>
 
   <ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)" *ngIf="!challengeName">
     <ion-infinite-scroll-content

@@ -9,7 +9,7 @@ import {
   IonIcon, 
   IonButton, 
   IonContent,
-  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonInput } from '@ionic/angular/standalone';
+  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonInput, IonSpinner } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   play, 
@@ -42,12 +42,14 @@ import { QuickCommentComponent } from './components/quick-comment/quick-comment.
   standalone: true,
   providers: [ModalController],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonContent, DatePipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
+  imports: [IonSpinner, IonContent, DatePipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
     IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, IonChip, FormsModule, SideActionsComponent, QuickCommentComponent]
 })
 export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   //#region Component Configuration
   @ViewChild(IonContent) content!: IonContent;
+  @ViewChild('postsContainer') postsContainer!: ElementRef<HTMLDivElement>;
+  @ViewChildren('postEl') postElements!: QueryList<ElementRef<HTMLDivElement>>;
   @ViewChildren(SideActionsComponent) sideActionsComponents!: QueryList<SideActionsComponent>;
   @Input() currentUserProfile: UserProfile = {} as UserProfile;
   @Input() posts: Content[] = [];
@@ -62,11 +64,18 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   private viewTimers: { [contentId: string]: any } = {};
   private viewedContent: Set<string> = new Set();
   private intersectionObserver?: IntersectionObserver;
+   private scrollTimeout: any;
+private snapRevealTimeout: any;
+private lastIndex = -1;
   //#endregion
 
   //#region Public Properties
   needsRefresh = false;
   currentIndex = 0;
+  isMuted = true;
+  scrollingUiHidden = false;
+  uiHidden: { [postId: string]: boolean } = {};
+  loadingVideos: { [postId: string]: boolean } = {};
   currentPage = 1;
   isLoading = false;
   userAvatars: { [userId: string]: string } = {};
@@ -95,6 +104,15 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   //#endregion
 
   //#region Lifecycle Hooks
+  ngAfterViewInit() {
+    // Petit délai pour laisser Ionic finir son rendu
+    setTimeout(() => this.initIntersectionObserver(), 300);
+    // Observer les nouveaux posts ajoutés (infinite scroll)
+    this.postElements.changes.subscribe(() => {
+      this.observeAllPosts();
+    });
+  }
+
   async ngOnInit() {
     
     if (this.posts && this.posts.length > 0) {
@@ -107,7 +125,6 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
         this.loadInitialFeed().subscribe();
       }
     }
-     this.setupIntersectionObserver();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -125,26 +142,18 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  ngOnDestroy() {
+ ngOnDestroy() {
+    this.intersectionObserver?.disconnect();
+  clearTimeout(this.snapRevealTimeout);
+  // Retirer le listener scroll
+  this.postsContainer?.nativeElement
+    .removeEventListener('scroll', this.onScroll);
     this.cleanup();
   }
   //#endregion
 
   //#region Initialization Methods
-  private initializeUserProfile() {
-    this.currentUserProfile.stats = {
-      posts: 0,
-      fans: 0,
-      votes: 0,
-      stars: 0
-    } as {
-      posts: number;
-      fans: number;
-      votes: number;
-      stars: number;
-    };
-    this.currentUserProfile.myFollows = [];
-  }
+
 
   private setupIcons() {
     addIcons({
@@ -166,35 +175,142 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  private setupIntersectionObserver() {
-    if (typeof IntersectionObserver !== 'undefined') {
-      //console.log('Setting up Intersection Observer');
-      this.intersectionObserver = new IntersectionObserver((entries) => {
-        //console.log('Intersection Observer entries:', entries);
-        entries.forEach(entry => {
-          //console.log('Entry:', entry.isIntersecting, entry.target);
-          if (entry.isIntersecting) {
-            const element = entry.target as HTMLElement;
-            const contentId = element.getAttribute('data-content-id');
-            //console.log('Content ID from attribute:', contentId);
-            if (contentId) {
-              const post = this.posts.find(p => p.id === contentId);
-              //console.log('Found post:', post);
-              if (post) {
-                //console.log('Calling onViewChange for post:', post.id);
-                this.onViewChange(post);
-              }
-            }
+  onPostTap(postId: string) {
+  this.uiHidden[postId] = !this.uiHidden[postId];
+  this.cdr.markForCheck(); // ✅ Ajouter
+}
+
+    // -------------------------------------------------------
+  // ✅ Crée l'observer — se déclenche quand un post est 
+  //    visible à 70% → lecture / pause automatique
+  // -------------------------------------------------------
+  private initIntersectionObserver() {
+  this.intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        const postEl = entry.target as HTMLElement;
+        const index = parseInt(postEl.getAttribute('data-index') || '0', 10);
+        const video = postEl.querySelector('video') as HTMLVideoElement | null;
+
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
+          
+          // ✅ Nouveau post visible
+          if (this.lastIndex !== index) {
+            this.lastIndex = index;
+            this.currentIndex = index;
+
+            // ✅ Reset le tap-hide du post précédent
+            const prevPostId = this.posts[index > 0 ? index - 1 : 0]?.id;
+            if (prevPostId) this.uiHidden[prevPostId] = false;
+
+            // ✅ UI cachée pendant le scroll → réapparaît avec animation
+            this.triggerSnapReveal(postEl);
           }
-        });
-      }, {
-        threshold: 0.5,
-        rootMargin: '0px'
+
+          if (video) this.playVideo(video, this.posts[index]?.id as string);
+
+        } else {
+          if (video) {
+            video.pause();
+            video.currentTime = 0;
+          }
+        }
       });
-    } else {
-      console.error('IntersectionObserver is not supported');
+    },
+    {
+      root: this.postsContainer.nativeElement,
+      threshold: 0.7
+    }
+  );
+
+  // ✅ Cacher l'UI pendant le scroll
+  this.postsContainer.nativeElement.addEventListener('scroll', () => {
+    this.onScroll();
+  }, { passive: true });
+
+  this.observeAllPosts();
+}
+
+// -------------------------------------------------------
+// ✅ Pendant le scroll → UI disparaît
+// -------------------------------------------------------
+private onScroll() {
+  this.scrollingUiHidden = true;
+  clearTimeout(this.snapRevealTimeout);
+  this.cdr.markForCheck(); // ✅ Indispensable avec OnPush
+}
+
+// -------------------------------------------------------
+// ✅ Au snap → UI réapparaît avec animation
+// -------------------------------------------------------
+private triggerSnapReveal(postEl: HTMLElement) {
+  clearTimeout(this.snapRevealTimeout);
+
+  this.snapRevealTimeout = setTimeout(() => {
+    this.scrollingUiHidden = false;
+    this.cdr.markForCheck(); // ✅ Indispensable avec OnPush
+
+    const ui = postEl.querySelector('.post-ui') as HTMLElement;
+    if (ui) {
+      ui.classList.remove('snap-reveal');
+      void ui.offsetWidth;
+      ui.classList.add('snap-reveal');
+      setTimeout(() => ui.classList.remove('snap-reveal'), 350);
+    }
+  }, 50);
+}
+
+
+  // -------------------------------------------------------
+  // ✅ Observe tous les éléments .post actuels
+  // -------------------------------------------------------
+  private observeAllPosts() {
+    // Déconnecter les anciens
+    this.intersectionObserver?.disconnect();
+
+    this.postElements.forEach(ref => {
+      this.intersectionObserver?.observe(ref.nativeElement);
+    });
+  }
+
+  // -------------------------------------------------------
+  // ✅ Lecture vidéo avec gestion du son et du loading
+  // -------------------------------------------------------
+  private async playVideo(video: HTMLVideoElement, postId: string) {
+    video.muted = this.isMuted;
+
+    // Afficher le spinner si la vidéo n'est pas prête
+    if (video.readyState < 3) {
+      this.loadingVideos[postId] = true;
+      await new Promise<void>(resolve => {
+        video.oncanplay = () => resolve();
+      });
+      this.loadingVideos[postId] = false;
+    }
+
+    try {
+      await video.play();
+    } catch (err) {
+      // Autoplay bloqué par le navigateur → silencieux
+      console.warn('Autoplay bloqué:', err);
     }
   }
+
+  // -------------------------------------------------------
+  // ✅ Toggle mute global sur toutes les vidéos
+  // -------------------------------------------------------
+  toggleMute(event: Event) {
+    event.stopPropagation();
+    this.isMuted = !this.isMuted;
+
+    // Appliquer à la vidéo actuellement visible
+    const currentPost = this.postElements.get(this.currentIndex);
+    if (currentPost) {
+      const video = currentPost.nativeElement.querySelector('video') as HTMLVideoElement;
+      if (video) video.muted = this.isMuted;
+    }
+  }
+
   //#endregion
 
 
@@ -376,7 +492,7 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   async loadFeed(event?: any) {
     if (this.isLoading) return;
     this.isLoading = true;
-    
+    console.log("Launched");
     try {
       const newPosts = await this.creationService.getFollowedFeedContents(this.currentUserProfile, this.currentPage, this.PAGE_SIZE).toPromise();
       if (!newPosts) return;

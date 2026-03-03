@@ -10,6 +10,7 @@ import { ModalCommentComponent } from 'src/app/components/modal-comment/modal-co
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { NgIf, NgFor } from '@angular/common';
+import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
 
 @Component({
   selector: 'app-side-actions',
@@ -26,17 +27,50 @@ export class SideActionsComponent  implements OnInit, OnChanges {
   @Input() HasActiveChallenge!: boolean;
   @Input() CommentCount!: number;
   buttonAction: { [key: string]: string } = {};
-  constructor(private toastController: ToastController, private modalController: ModalController, 
+  constructor(private toastController: ToastController, private creationService: CreationService,
+    private modalController: ModalController, 
     private voteService: VoteService, private router: Router, private loadingController: LoadingController) { }
 
-  ngOnInit() {}
+  // ✅ Stocker le résultat calculé
+cachedActions: any[] = [];
 
-  ngOnChanges(changes: SimpleChanges) {
-    // Détecter quand le commentCount change
-    if (changes['CommentCount']) {
-      this.Post.commentCount = changes['CommentCount'].currentValue;
-    }
+ngOnInit() {
+  this.buildActions(); // Calcul initial
+}
+
+ngOnChanges(changes: SimpleChanges) {
+  if (changes['CommentCount']) {
+    this.Post.commentCount = changes['CommentCount'].currentValue;
   }
+  // ✅ Reconstruire seulement quand Post ou HasActiveChallenge changent
+  if (changes['Post'] || changes['HasActiveChallenge']) {
+    this.buildActions();
+  }
+}
+
+// ✅ Renommée et privée — appelée uniquement quand nécessaire
+private buildActions() {
+  const voteIcon = this.Post.isVotedByUser 
+    ? '../assets/icon/checked.gif' 
+    : '../assets/icon/like.gif';
+  const giftColor = this.Post.isGiftedByUser ? 'danger' : '';
+
+  const buttons = [];
+
+  if (this.HasActiveChallenge) {
+    buttons.push(
+      { icon: 'thumbs-up', count: this.Post.voteCount, gifIcon: voteIcon, action: () => this.voteForArtist(this.Post) },
+      { icon: 'gift', count: this.Post.giftCount, color: giftColor, action: () => this.giftPost(this.Post) }
+    );
+  }
+
+  buttons.push(
+    { icon: 'chatbubble', count: this.Post.commentCount, action: () => this.openComments(this.Post) },
+    { icon: 'share', count: this.Post.shareCount, action: () => this.sharePost(this.Post) }
+  );
+
+  this.cachedActions = buttons;
+}
 
   // Méthode publique pour incrémenter le compteur de commentaires
   incrementCommentCount() {
@@ -46,41 +80,7 @@ export class SideActionsComponent  implements OnInit, OnChanges {
   }
 
     
-  
-  getActionsForPost() {
-      const voteIcon = this.Post.isVotedByUser ? '../assets/icon/checked.gif' : '../assets/icon/like.gif';
-      const giftColor = this.Post.isGiftedByUser ? 'danger' : '';
-      let actionButtons = [];
-      
-      if(this.HasActiveChallenge){
-        actionButtons.push({ 
-          icon: 'thumbs-up', 
-          count: this.Post.voteCount,
-          gifIcon: voteIcon,
-          action: () => this.voteForArtist(this.Post) 
-        },
-        { 
-          icon: 'gift', 
-          count: this.Post.giftCount,
-          color: giftColor,
-          action: () => this.giftPost(this.Post) 
-        });
-      }
-      
-      actionButtons.push(
-        { 
-          icon: 'chatbubble', 
-          count: this.Post.commentCount, 
-          action: () => this.openComments(this.Post) 
-        },
-        { 
-          icon: 'share', 
-          count: this.Post.shareCount,
-          action: () => this.sharePost(this.Post) 
-        });
-  
-      return actionButtons;
-    }
+
 
 
     
@@ -141,7 +141,7 @@ export class SideActionsComponent  implements OnInit, OnChanges {
            await this.voteService.getTotalVotesForContent(post.id as string).toPromise().then((votecount)=>{
             this.Post.voteCount = Number(votecount);
             post.isVotedByUser = true;
-            this.getActionsForPost();
+            this.buildActions();
           })
           this.showToast('Vote enregistré!', 'dark');
         }
@@ -150,6 +150,9 @@ export class SideActionsComponent  implements OnInit, OnChanges {
       
     
       async giftPost(post: Content) {
+        if(post.userId === this.CurrentUserProfile.id){
+          return;
+        }
         const modal = await this.modalController.create({
           component: GiftModalComponent,
           componentProps: { post },
@@ -163,7 +166,7 @@ export class SideActionsComponent  implements OnInit, OnChanges {
     
         const { data } = await modal.onWillDismiss();
         if (data?.gift) {
-          this.getActionsForPost();
+           this.buildActions();
         }
       }
     
@@ -188,6 +191,7 @@ const modal = await this.modalController.create({
         modal.onDidDismiss().then((data)=>{
             if(data && data.data.isPost){
               this.Post.commentCount++;
+               this.buildActions();
             }
         });
         
@@ -198,11 +202,39 @@ const modal = await this.modalController.create({
           const shareData = {
           
             text: post.description || 'Regardez ce contenu intéressant',
-            url: post.fileUrl
+            url: post.fileUrl //A modifier lorsqu'on aura l'adresse web
           };
     
           if (navigator.share) {
-            await navigator.share(shareData);
+            try {
+              await navigator.share(shareData);
+              // ✅ Partage réussi - incrémenter le compteur
+              this.Post.shareCount = (this.Post.shareCount || 0) + 1;
+              
+              // Mettre à jour le post via le service
+              this.creationService['api'].patch('content', this.Post.id as string, {
+                shareCount: this.Post.shareCount
+              }).subscribe({
+                next: () => {
+                  console.log('Share count updated successfully');
+                },
+                error: (err: any) => {
+                  console.error('Error updating share count:', err);
+                }
+              });
+              
+              const toast = await this.toastController.create({
+                message: 'Contenu partagé !',
+                duration: 2000,
+                position: 'bottom'
+              });
+              await toast.present();
+            } catch (error: any) {
+              // ❌ Partage annulé ou échoué
+              if (error.name !== 'AbortError') {
+                console.error('Erreur lors du partage:', error);
+              }
+            }
           } else {
             await this.copyToClipboard(shareData.url);
             const toast = await this.toastController.create({

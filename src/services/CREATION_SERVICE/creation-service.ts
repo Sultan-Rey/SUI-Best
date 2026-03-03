@@ -541,9 +541,9 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
     return this.getFeedContents(page, limit).pipe(
       map(contents => contents.filter(content => 
         content.userId === currentUserProfile.id ||
-        currentUserProfile.myFollows.includes(content.userId)||
-        content.status == ContentStatus.PUBLISHED ||
-        content.isPublic
+        currentUserProfile.myFollows.includes(content.userId)&&
+        (content.status == ContentStatus.PUBLISHED &&
+        content.isPublic)
 
       )),
       map(contents => {

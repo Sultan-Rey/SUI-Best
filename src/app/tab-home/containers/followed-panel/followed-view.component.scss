@@ -1,25 +1,43 @@
 /* ==================== */
 /*       CONTENT        */
 /* ==================== */
-.tiktok-content {
-  --background: #000;
-  
-  &::part(scroll) {
-    scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
-  }
+ion-content.tiktok-content {
+  --overflow: hidden; // Désactive le scroll natif d'Ionic
 }
 
 .posts-container {
-  height: 100%;
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;   // ✅ LE cœur du fix
+  -webkit-overflow-scrolling: touch;
+
+  // Cache la scrollbar
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+  
+  // S'assurer qu'il n'y a pas d'espace vide à la fin
+  &:after {
+    content: '';
+    display: block;
+    height: 1px;
+  }
+}
+
+ion-refresher {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
 .post {
-  height: 100vh;
-  width: 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   position: relative;
+  width: 100%;
+  height: 100vh;                   // ✅ Chaque post = 1 écran exact
+  scroll-snap-align: start;        // ✅ S'accroche au haut
+  scroll-snap-stop: always;        // ✅ Force l'arrêt sur chaque post (comme TikTok)
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.4s ease-out;
@@ -40,7 +58,6 @@ ion-button[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 
 .close-modal-btn {
   position: fixed;
@@ -69,33 +86,12 @@ ion-button[disabled] {
 /* ==================== */
 .video-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  overflow: hidden;
+  inset: 0;
   
-  img.video-thumbnail {
+  video, img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    animation: zoomIn 20s ease-out infinite alternate;
-    
-    &.fit-to-screen {
-      object-fit: contain;
-      animation: none; /* Désactive l'animation de zoom en mode fit */
-    }
-  }
-  
-  video.video-thumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    
-    &.fit-to-screen {
-      object-fit: contain;
-    }
   }
 }
 
@@ -469,6 +465,47 @@ ion-button[disabled] {
   }
 }
 
+// ✅ Le wrapper UI
+.post-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  
+  // Transition douce
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  
+  // État caché
+  &.ui-hidden {
+    opacity: 0;
+    pointer-events: none; // Évite les clics accidentels quand caché
+  }
+  
+  // Réactiver les clics sur les éléments interactifs
+  .main-content,
+  .artist-info,
+  app-side-actions,
+  ion-button,
+  .artist-avatar {
+    pointer-events: auto;
+  }
+}
+
+// ✅ Animation de réapparition (uniquement au snap, pas au tap)
+.post-ui.snap-reveal {
+  animation: snapReveal 0.3s ease forwards;
+}
+
+@keyframes snapReveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* ==================== */
 /*     EMPTY STATE       */
@@ -554,4 +591,32 @@ ion-button[disabled] {
   margin: 0;
   line-height: 1.4;
   font-weight: 500;
+}
+
+.mute-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0,0,0,0.4);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.video-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.3);
+  z-index: 5;
 }
