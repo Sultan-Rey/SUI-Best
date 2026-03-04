@@ -61,12 +61,12 @@
           <span class="verified-badge" *ngIf="profile.isVerified">
             <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
           </span>
-          <span class="user-type-badge" [class]="'type-' + profile.userType">
-            {{ profile.userType }}
+          <span class="user-type-badge" [class]="'type-' + profile.type">
+            {{ profile.type }}
           </span>
         </div>
         <p class="profile-username">@{{ profile.username }}</p>
-        <p class="profile-bio" *ngIf="profile.bio">{{ profile.bio }}</p>
+        <p class="profile-bio" *ngIf="profile.userInfo.bio">{{ profile.userInfo.bio }}</p>
         <div class="profile-stats">
           <span class="stat-item">
             <strong>{{ profile.stats.fans || 0 | shortNumber }}</strong> fans
@@ -107,8 +107,8 @@
           <span class="verified-badge" *ngIf="profile.isVerified">
             <ion-icon name="checkmark-circle" class="verified-icon"></ion-icon>
           </span>
-          <span class="user-type-badge" [class]="'type-' + profile.userType">
-            {{ profile.userType }}
+          <span class="user-type-badge" [class]="'type-' + profile.type">
+            {{ profile.type }}
           </span>
         </div>
         <p class="profile-username">@{{ profile.username }}</p>

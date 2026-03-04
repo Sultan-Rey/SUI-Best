@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ShortNumberPipe } from '../utils/pipes/shortNumberPipe/short-number-pipe';
@@ -30,7 +30,7 @@ import { SocketService } from '../../services/SOCKET/socket-service';
   styleUrls: ['./search.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [IonButton, 
+  imports: [NgIf, IonButton, 
     IonContent, 
     IonHeader, 
     IonTitle, 

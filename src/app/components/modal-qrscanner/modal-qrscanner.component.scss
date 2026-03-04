@@ -1,0 +1,128 @@
+ion-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  
+  ion-toolbar {
+    --background: transparent;
+    
+    ion-title {
+      color: white;
+      font-weight: 600;
+    }
+    
+    ion-button {
+      --color: white;
+    }
+  }
+}
+
+ion-content {
+  --background: #f8f9fa;
+  
+  #qr-reader-modal {
+    margin: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.error-card {
+  margin: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  
+  ion-card-header {
+    background: #fff5f5;
+    border-bottom: 1px solid #fed7d7;
+    
+    ion-card-title {
+      color: #e53e3e;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+  
+  ion-card-content {
+    p {
+      color: #4a5568;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+  }
+}
+
+.instructions-card {
+  margin: 20px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  
+  ion-card-content {
+    h3 {
+      color: #2d3748;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      
+      li {
+        color: #4a5568;
+        margin-bottom: 8px;
+        line-height: 1.5;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+ion-button {
+  --border-radius: 8px;
+  font-weight: 500;
+  margin: 8px 0;
+  
+  &[color="danger"] {
+    --background: #e53e3e;
+    --background-hover: #c53030;
+  }
+  
+  &[color="primary"] {
+    --background: #667eea;
+    --background-hover: #5a67d8;
+  }
+}
+
+// Animation d'apparition
+ion-card {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  #qr-reader-modal {
+    margin: 10px;
+  }
+  
+  .error-card,
+  .instructions-card {
+    margin: 16px;
+  }
+}

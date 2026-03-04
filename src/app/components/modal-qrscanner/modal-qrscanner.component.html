@@ -1,0 +1,63 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Scanner QR Code</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" fill="clear">
+        <ion-icon name="close-circle"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Scanner Container -->
+  <div id="qr-reader-modal" *ngIf="isScanning && isCameraAvailable && !errorMessage"></div>
+
+  <!-- Message d'erreur -->
+  <ion-card *ngIf="errorMessage" class="error-card">
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="warning" color="danger"></ion-icon>
+        Scanner indisponible
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p>{{ errorMessage }}</p>
+      <ion-button 
+        expand="block" 
+        (click)="goToManualMode()" 
+        color="primary"
+        class="ion-margin-top">
+        <ion-icon slot="start" name="pencil-outline"></ion-icon>
+        Utiliser le mode manuel
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Bouton d'arrêt du scan -->
+  <ion-grid *ngIf="isScanning && isCameraAvailable && !errorMessage" class="ion-margin-vertical">
+    <ion-row class="ion-justify-content-center">
+      <ion-col size="12" class="ion-text-center">
+        <ion-button 
+          expand="block" 
+          (click)="dismiss()" 
+          color="danger">
+          <ion-icon slot="start" name="close-circle"></ion-icon>
+          Annuler le scan
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+  <!-- Instructions -->
+  <ion-card *ngIf="isScanning && isCameraAvailable && !errorMessage" class="instructions-card">
+    <ion-card-content>
+      <h3>Instructions:</h3>
+      <ul>
+        <li>Positionnez le QR code dans le cadre de scan</li>
+        <li>Assurez-vous d'avoir un bon éclairage</li>
+        <li>Maintenez une distance stable</li>
+      </ul>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

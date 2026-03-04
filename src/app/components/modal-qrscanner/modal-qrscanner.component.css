@@ -1,0 +1,8 @@
+/* Modal QR Scanner Styles */
+.qr-scanner-modal {
+  --ion-background-color: transparent;
+  
+  .ion-page {
+    background: rgba(0, 0, 0, 0.8);
+  }
+}

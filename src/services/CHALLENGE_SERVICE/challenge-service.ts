@@ -123,7 +123,7 @@ export class ChallengeService {
    * @returns Observable<number> Nombre total de vues
    */
   getTotalViewsForChallenge(challengeId: string): Observable<number> {
-    return this.api.getAll<any>('contents', { challengeId }).pipe(
+    return this.api.get<any>('contents', { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;

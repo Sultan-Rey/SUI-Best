@@ -23,6 +23,7 @@
       <div class="dots-stepper">
         <div class="dot" [class.active]="currentStep >= 1"></div>
         <div class="dot" [class.active]="currentStep >= 2"></div>
+        <div class="dot" [class.active]="currentStep >= 3"></div>
       </div>
       <p>Étape {{ currentStep }}/{{ totalSteps }}</p>
     </div>
@@ -73,17 +74,29 @@
 </ion-item>
 
 <!-- Modal de sélection de date -->
-<ion-modal [isOpen]="isDatePickerOpen" (didDismiss)="isDatePickerOpen = false">
+<ion-modal [isOpen]="isDatePickerOpen" (didDismiss)="isDatePickerOpen = false" initialBreakpoint="0.6" [breakpoints]="[0, 0.6, 1]">
   <ng-template>
-    <ion-datetime
-      [value]="registrationData.birthDate ? (registrationData.birthDate | date: 'yyyy-MM-dd') : ''"
-      (ionChange)="onDateSelected($event)"
-      [max]="maxDate"
-      presentation="date"
-      showDefaultButtons="true"
-      doneText="Valider"
-      cancelText="Annuler">
-    </ion-datetime>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Sélectionner une date</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="isDatePickerOpen = false" fill="clear">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-datetime
+        [value]="registrationData.birthDate ? (registrationData.birthDate | date: 'yyyy-MM-dd') : ''"
+        (ionChange)="onDateSelected($event)"
+        [max]="maxDate"
+        presentation="date"
+        showDefaultButtons="true"
+        doneText="Valider"
+        cancelText="Annuler">
+      </ion-datetime>
+    </ion-content>
   </ng-template>
 </ion-modal>
 
@@ -108,7 +121,9 @@
 
     <div class="step-wrapper" *ngIf="currentStep === 2">
       <div class="welcome-msg">
-        <h1>Dernière étape 🔒</h1>
+        <h1>Seconde étape</h1>
+        <p>Parles-nous un peu de toi 😊</p>
+        </div>
         <div class="form-card">
     <div class="selection-label">Mon Statut *</div>
     <div class="status-grid">
@@ -123,18 +138,14 @@
       </div>
     </div>
 
-<!-- Scanner Container -->
-<div id="qr-reader" *ngIf="isScanning && isCameraAvailable && needsProof()"></div>
-
 <!-- Boutons de contrôle -->
-<ion-grid *ngIf="!isScanning && needsProof()" class="ion-margin-vertical">
+<ion-grid *ngIf="needsProof()" class="ion-margin-vertical">
   <ion-row class="ion-justify-content-center">
     <ion-col size="12" class="ion-text-center">
       <ion-button 
         expand="block" 
         (click)="startScan()" 
-        color="primary"
-        *ngIf="isCameraAvailable">
+        color="primary">
         <ion-icon slot="start" name="qr-code-outline"></ion-icon>
         Scanner un QR Code
       </ion-button>
@@ -151,27 +162,6 @@
     </ion-col>
   </ion-row>
 </ion-grid>
-
-<!-- Bouton pour arrêter le scan -->
-<ion-grid *ngIf="isScanning" class="ion-margin-vertical">
-  <ion-row class="ion-justify-content-center">
-    <ion-col size="12" class="ion-text-center">
-      <ion-button 
-        expand="block" 
-        (click)="stopScan()" 
-        color="danger">
-        <ion-icon slot="start" name="close-circle"></ion-icon>
-        Arrêter le scan
-      </ion-button>
-    </ion-col>
-  </ion-row>
-</ion-grid>
-
-<!-- Message d'erreur caméra -->
-<div *ngIf="!isCameraAvailable && !isScanning && needsProof()" class="ion-padding ion-text-center">
-  <ion-icon name="camera-off" size="large" color="medium"></ion-icon>
-  <p>La caméra n'est pas disponible sur cet appareil.</p>
-</div>
 
 <!-- Affichage du code scanné -->
 <ion-card *ngIf="registrationData.QR_proof" class="ion-margin">
@@ -190,9 +180,31 @@
     </ion-button>
   </ion-card-content>
 </ion-card>
+  
+      </div>
+      
+          <ion-item fill="outline" class="custom-item" lines="none">
+            <ion-icon name="call-outline" slot="start"></ion-icon>
+            <ion-input type="tel" placeholder="Téléphone *" [(ngModel)]="registrationData.phone"></ion-input>
+          </ion-item>
+
+          <ion-item fill="outline" class="custom-item" lines="none">
+            <ion-icon name="location-outline" slot="start"></ion-icon>
+            <ion-input type="text" placeholder="Adresse " [(ngModel)]="registrationData.address"></ion-input>
+          </ion-item>
+
+          <ion-button expand="block" class="main-btn" (click)="nextStep()">
+          Suivant
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        </ion-button>
     </div>
+
+    <div class="step-wrapper" *ngIf=" currentStep === 3">
+      <div class="welcome-msg">
+        <h1>Bienvenue ! 🚀</h1>
         <p>Comment souhaites-tu te connecter ?</p>
       </div>
+       
 
       <div class="social-fast-track">
         <ion-button class="google-pill" (click)="loginWithGoogle()">

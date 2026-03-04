@@ -40,10 +40,7 @@ export class BlacklistPage implements OnInit {
     private profileService: ProfileService,
     private route: ActivatedRoute
   ) {
-    addIcons({
-      'person-outline': personOutline,
-      'person-remove-outline': personRemoveOutline
-    });
+    addIcons({personOutline,personRemoveOutline});
   }
 
   ngOnInit() {

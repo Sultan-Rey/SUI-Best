@@ -346,7 +346,7 @@ async unblackListProfile(userId: string, profileIdToUnblackList: string): Promis
     return this.api.getAll<UserProfile>(this.resource).pipe(
       map(profiles => {
         // Filtrer pour ne garder que les artistes
-        const artists = profiles.filter(profile => profile.userType === 'artist');
+        const artists = profiles.filter(profile => profile.type === 'artist');
         
         // Trier par nombre de fans décroissant
         return artists.sort((a, b) => {
@@ -369,7 +369,7 @@ async unblackListProfile(userId: string, profileIdToUnblackList: string): Promis
     return this.api.getAll<UserProfile>(this.resource).pipe(
       map(profiles => {
         // Filtrer pour ne garder que les créateurs
-        const creators = profiles.filter(profile => profile.userType === 'creator');
+        const creators = profiles.filter(profile => profile.type === 'creator');
         
         // Trier par nombre de publications décroissant
         return creators.sort((a, b) => {
@@ -393,7 +393,7 @@ getTopFans(limit: number = 10): Observable<UserProfile[]> {
     map(profiles => {
       // Filtrer pour ne garder que les fans (pas les artistes)
       const fans = profiles.filter(profile => 
-        profile.userType === 'fan' || !profile.userType
+        profile.type === 'fan' || !profile.type
       );
 
       // Trier selon plusieurs critères
@@ -458,13 +458,13 @@ getTopFans(limit: number = 10): Observable<UserProfile[]> {
           const displayNameMatch = profile.displayName?.toLowerCase().includes(searchTerm);
           
           // Recherche dans la bio
-          const bioMatch = profile.bio?.toLowerCase().includes(searchTerm);
+          const bioMatch = profile.userInfo.bio?.toLowerCase().includes(searchTerm);
           
           // Recherche dans le type d'utilisateur
-          const userTypeMatch = profile.userType?.toLowerCase().includes(searchTerm);
+          const userTypeMatch = profile.type?.toLowerCase().includes(searchTerm);
           
           // Recherche dans l'école
-          const schoolMatch = profile.school?.toLowerCase().includes(searchTerm);
+          const schoolMatch = profile.userInfo.school.name.toLowerCase().includes(searchTerm);
           
           // Retourner true si au moins un critère correspond
           return usernameMatch || displayNameMatch || bioMatch || userTypeMatch || schoolMatch;
@@ -519,14 +519,14 @@ getTopFans(limit: number = 10): Observable<UserProfile[]> {
           filteredProfiles = filteredProfiles.filter(profile => 
             profile.username?.toLowerCase().includes(searchTerm) ||
             profile.displayName?.toLowerCase().includes(searchTerm) ||
-            profile.bio?.toLowerCase().includes(searchTerm)
+            profile.userInfo.bio?.toLowerCase().includes(searchTerm)
           );
         }
 
         // Filtrer par type d'utilisateur
         if (criteria.userType) {
           filteredProfiles = filteredProfiles.filter(profile => 
-            profile.userType === criteria.userType
+            profile.type === criteria.userType
           );
         }
 

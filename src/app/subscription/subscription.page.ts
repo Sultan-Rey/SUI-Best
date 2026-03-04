@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { UserProfile } from 'src/models/User';
-import { Dialog } from '@capacitor/dialog';
 import { Plan } from '../../models/Plan';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { 
@@ -61,12 +60,13 @@ export class SubscriptionPage implements OnInit {
   currentUser: User | null = null;
   isLoading = false;
   error: string | null = null
-  registrationData: User | null = null;
+  registrationData: any | null = null;
   constructor(
     private router: Router, 
-    @Inject('SubscriptionService') private subscriptionService: SubscriptionService,
-    @Inject('UserService') private userService: UserService, 
-    @Inject('ProfileService') private profileService: ProfileService
+    private alertController: AlertController,
+    private subscriptionService: SubscriptionService,
+    private userService: UserService, 
+    private profileService: ProfileService
   ) {
      addIcons({
     'arrow-back': arrowBack,
@@ -92,6 +92,70 @@ export class SubscriptionPage implements OnInit {
   }
 
   ngOnInit() {this.loadPlans();}
+
+  // Méthode pour extraire le modèle User depuis registrationData
+  private extractUserModel(): User {
+    if (!this.registrationData) {
+      throw new Error('Aucune donnée d\'inscription disponible');
+    }
+
+    return {
+      id: this.registrationData.id,
+      email: this.registrationData.email,
+      password_hash: this.registrationData.password_hash || '',
+      QR_proof: this.registrationData.QR_proof || '',
+      password: this.registrationData.password || '',
+      confirmPassword: this.registrationData.confirmPassword || '',
+      user_type: this.registrationData.user_type || 'fan',
+      user_status: this.registrationData.user_status || 'other',
+      status: 'active',
+      readonly: false,
+      myPlan: this.registrationData.myPlan || {} as Plan,
+      registration_date: this.registrationData.registration_date || new Date().toISOString()
+    };
+  }
+
+  // Méthode pour créer le modèle UserProfile depuis registrationData
+  private async createUserProfileModel(userId: string): Promise<UserProfile> {
+    if (!this.registrationData) {
+      throw new Error('Aucune donnée d\'inscription disponible');
+    }
+
+    return {
+      id: userId,
+      type: this.registrationData.user_type,
+      myFollows: [],
+      myBlackList: [],
+      username: await this.generateUniqueUsername(
+        this.registrationData.first_name || 'user',
+        this.registrationData.last_name || userId.substring(0, 8)
+      ),
+      displayName: `${this.registrationData.first_name || ''} ${this.registrationData.last_name || ''}`.trim() || 'Utilisateur',
+      avatar: 'storage/uploads/avatar-default.png',
+      isVerified: false,
+      isFollowing: false,
+      stats: {
+        posts: 0,
+        fans: 0,
+        votes: 0,
+        stars: 0
+      },
+      userInfo: {
+        first_name: this.registrationData.first_name || '',
+        last_name: this.registrationData.last_name || '',
+        gender: this.registrationData.gender || '',
+        birthDate: this.registrationData.birthDate || new Date(),
+        age: this.registrationData.age || 0,
+        email: this.registrationData.email || '',
+        phone: this.registrationData.phone || '',
+        address: this.registrationData.address || '',
+        website: this.registrationData.website || '',
+        memberShip: {date:this.registrationData.myPlan.startDate, plan: this.registrationData.myPlan.name},
+        bio: this.registrationData.bio || '',
+        school:  { id: this.registrationData.school.id, name: this.registrationData.school.name }
+      }
+    };
+  }
 
   private loadPlans() {
     this.isLoading = true;
@@ -123,11 +187,12 @@ export class SubscriptionPage implements OnInit {
 async subscribe() {
   // 1️⃣ Vérifier si un plan est sélectionné
   if (!this.selectedPlan) {
-    await Dialog.alert({
-      title: 'Information',
+    const alert = await this.alertController.create({
+      header: 'Information',
       message: 'Veuillez sélectionner un plan pour continuer',
-      buttonTitle: 'OK'
+      buttons: ['OK']
     });
+    await alert.present();
     return;
   }
 
@@ -135,11 +200,12 @@ async subscribe() {
   if (this.registrationData) {
     const selectedPlan = this.plans.find(plan => plan.id === this.selectedPlan);
     if (!selectedPlan) {
-      await Dialog.alert({
-        title: 'Erreur',
+      const alert = await this.alertController.create({
+        header: 'Erreur',
         message: 'Le plan sélectionné est invalide',
-        buttonTitle: 'OK'
+        buttons: ['OK']
       });
+      await alert.present();
       return;
     }
 
@@ -170,10 +236,12 @@ this.registrationData.myPlan = {
 };
     
 
+const userModel = this.extractUserModel();
+ 
     try {
       // 3️⃣ Créer l'utilisateur
       const userCreated = await firstValueFrom(
-        this.userService.createUser(this.registrationData).pipe(
+        this.userService.createUser(userModel).pipe(
           tap({
             next: (response) => console.log('Utilisateur créé :', response),
             error: (error) => {
@@ -189,32 +257,7 @@ this.registrationData.myPlan = {
       }
 
       // 4️⃣ Créer le profil utilisateur
-      const userProfile: UserProfile = {
-        id: userCreated.id.toString(),
-        myFollows: [],
-        myCoupons: [],
-        myBlackList: [],
-        username: await this.generateUniqueUsername(
-    this.registrationData.first_name || 'user',
-    this.registrationData.last_name || userCreated.id.toString().substring(0, 8)
-  ),
-        displayName: `${this.registrationData.first_name} ${this.registrationData.last_name}`,
-        avatar: 'storage/uploads/avatar-default.png',
-        isVerified: false,
-        isFollowing: false,
-        bio: '',
-        school: this.registrationData.user_status === 'university' ? 'Nom de l\'université' : 
-               this.registrationData.user_status === 'student' ? 'Nom de l\'école' : '',
-        contact: this.registrationData.email,
-        memberSince: new Date().toISOString().split('T')[0],
-        userType: this.registrationData.user_type || 'fan',
-        stats: {
-          posts: 0,
-          fans: 0,
-          votes: 0,
-          stars: 0
-        }
-      };
+      const userProfile = await this.createUserProfileModel(userCreated.id.toString());
 
       // 5️⃣ Enregistrer le profil
       await firstValueFrom(
@@ -230,12 +273,18 @@ this.registrationData.myPlan = {
       );
 
       // 6️⃣ Afficher un message de succès
-      await Dialog.alert({
-        title: 'Succès',
+      const successAlert = await this.alertController.create({
+        header: 'Succès',
         message: 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.',
-        buttonTitle: 'Se connecter'
+        buttons: [{
+          text: 'Se connecter',
+          handler: () => {
+            this.router.navigate(['/login']);
+          }
+        }]
       });
-          
+      await successAlert.present();
+
           this.registrationData.id = userCreated.id;
           this.registrationData.password_hash = "";
           this.registrationData.QR_proof = "";
@@ -255,11 +304,12 @@ this.registrationData.myPlan = {
 
     } catch (error) {
       console.error('Erreur lors de l\'inscription :', error);
-      await Dialog.alert({
-        title: 'Erreur',
+      const errorAlert = await this.alertController.create({
+        header: 'Erreur',
         message: error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'inscription',
-        buttonTitle: 'OK'
+        buttons: ['OK']
       });
+      await errorAlert.present();
     } finally {
       this.isLoading = false;
     }

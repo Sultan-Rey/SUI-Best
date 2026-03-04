@@ -86,9 +86,9 @@ export class ModalMessageComponent implements OnInit, OnDestroy {
           isOnline: Math.random() > 0.5,
           isTyping: false,
           isVerified: profile?.isVerified || false,
-          userType: profile?.userType || 'fan',
+          userType: profile.type || 'fan',
           stats: profile?.stats.fans,
-          plan: profile?.plan || 'free'
+          plan: profile.userInfo.memberShip?.plan || 'free'
         },
         unreadCount: conv.unreadCount || 0,
         lastMessage: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].content : '',

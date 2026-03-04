@@ -3,15 +3,8 @@ import { Plan } from "./Plan";
 export interface User {
   id: number | string;
 
-  /* Identity */
-  first_name: string;
-  last_name: string;
-  gender: string;
-  birthDate?:Date;  
-  age: number; 
-  email: string;
-
   /* Auth */
+  email:string;
   password_hash: string;
   QR_proof: string;
   password?: string;
@@ -34,26 +27,21 @@ export interface User {
   /* Meta */
   
   readonly:boolean;
-  myPlan:Plan
+  myPlan:Plan;
   registration_date: string;
 }
 
 
 export interface UserProfile {
   id: string;
-  username: string;
-  displayName: string;
   avatar: string;
+  username: string;
+  displayName ?: string;
+  userInfo: UserInfo,
+  type:  'fan'| 'artist'| 'admin' | 'creator';
   isVerified: boolean;
   isFollowing: boolean;
-  plan?: string;
-  bio: string;
-  school: string;
-  contact: string;
-  memberSince: string;
-  userType: 'fan' | 'artist' | 'creator' | 'admin';
   myFollows: string[];
-  myCoupons: string[];
   myBlackList: string[];
   stats: {
     posts: number;
@@ -61,6 +49,27 @@ export interface UserProfile {
     votes: number;
     stars: number;
   };
+}
+
+export interface UserInfo{
+ /* Identity */
+  first_name: string;
+  last_name: string;
+  gender: string;
+  birthDate:Date;  
+  age?: number; 
+
+  /* Contact */
+  email: string;
+  phone: string;
+  address: string;
+  website: string;
+
+  /* Personal */
+  memberShip?: {date: string, plan: string};
+  bio: string;
+  school: {id: string, name:string};
+
 }
 
 export interface Artist {

@@ -1,13 +1,37 @@
 import { Auth } from '../../services/AUTH/auth';
+import { FireAuth } from '../../services/AUTH/fireAuth/fire-auth';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { Component, Inject, OnInit, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
-import { Dialog } from '@capacitor/dialog';
+import { AlertController, ActionSheetController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
-import { addIcons } from 'ionicons';  
-import * as bcrypt from 'bcryptjs';
-import { Html5Qrcode } from 'html5-qrcode';
 import { Platform } from '@ionic/angular';
+import { ModalController } from '@ionic/angular';
+import { ModalQRscannerComponent } from '../components/modal-qrscanner/modal-qrscanner.component';
+import { User, UserInfo } from 'src/models/User';
+import { UserService } from 'src/services/USER_SERVICE/user-service';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { Plan } from 'src/models/Plan';
+import * as bcrypt from 'bcryptjs';
+import { addIcons } from 'ionicons';  
+import { v4 as uuidv4 } from 'uuid';
+
+// Interface sur mesure pour le template de register
+interface RegisterModel extends User {
+  // Propriétés de UserInfo
+  first_name: string;
+  last_name: string;
+  gender: string;
+  birthDate: Date;
+  age: number;
+  email: string;
+  phone: string;
+  address: string;
+  website: string;
+  bio: string;
+  school: { id: string; name: string };
+  memberShip?: { date: string; plan: string };
+}  
 import { 
   arrowBack,
   cloudUpload,
@@ -32,11 +56,16 @@ import {
   chevronBack,
   arrowForward,
   calendar,
+  calendarOutline,
+  callOutline,
+  locationOutline,
+  todayOutline,
+  closeOutline,
   mailOutline,
   lockClosedOutline,
   qrCodeOutline,
   heart,
-  create
+  create,
 } from 'ionicons/icons';
 import { 
   IonHeader, 
@@ -45,53 +74,51 @@ import {
   IonButton, 
   IonLabel,
   IonItem,
-  IonDatetime,
-  IonModal,
   IonInput,
   IonTitle,
   IonButtons,
-  IonContent, IonLoading, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/angular/standalone';
-import { User } from 'src/models/User';
-import { UserService } from 'src/services/USER_SERVICE/user-service';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
-import { Plan } from 'src/models/Plan';
-
+  IonContent, IonLoading, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonModal, IonDatetime } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
-   imports: [IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonCol, IonRow, IonGrid, IonLoading, NgIf,NgFor,DatePipe, FormsModule,IonHeader, IonDatetime, IonModal, IonToolbar, IonIcon, IonButton, IonInput, IonTitle, IonButtons, IonContent, IonItem, IonLabel]
+    providers: [ModalController],
+   imports: [IonDatetime, IonModal, IonCardContent, IonCardTitle, IonCardHeader, IonCard, IonCol, IonRow, IonGrid, IonLoading, NgIf,NgFor,DatePipe, FormsModule,IonHeader, IonToolbar, IonIcon, IonButton, IonInput, IonTitle, IonButtons, IonContent, IonItem, IonLabel]
 })
 export class RegisterPage implements OnInit {
   isLoading = false;
   currentStep: number = 1;
-  totalSteps: number = 2;
-isDatePickerOpen = false;
-maxDate = new Date().toISOString();
+  totalSteps: number = 3;
+  isDatePickerOpen = false;
+  maxDate = new Date().toISOString();
   showPassword: boolean = false;
   showConfirmPassword: boolean = false;
-  html5QrCode: Html5Qrcode | null = null;
-   isScanning = false;
-  isCameraAvailable = true;
-  manualQRInput = '';
-  registrationData: User = {
-  id: 0, // Will be set by the server
+  registrationData: RegisterModel = {
+  id: uuidv4(), // Généré côté client avec UUID v4
+  password_hash: '', // Will be set before sending to server
+  QR_proof: '',
+  password: '',
+  confirmPassword: '',
+  user_type: 'fan', // Default value
+  user_status: 'other', // Default value
+  status: 'active',
+  readonly: false,
+  myPlan:{} as Plan,
+  registration_date: new Date().toISOString(),
+  // Propriétés de UserInfo
   first_name: '',
   last_name: '',
   gender: '',
   birthDate: new Date(),
-  myPlan: {} as Plan,
-  readonly:false,
   age: 0,
   email: '',
-  password: '',
-  password_hash: '', // Will be set before sending to server
-  QR_proof: '',
-  user_type: 'fan', // Default value
-  user_status: 'other', // Default value
-  status: 'active',
-  registration_date: new Date().toISOString()
+  phone: '',
+  address: '',
+  website: '',
+  bio: '',
+  school: { id: '', name: '' },
+  memberShip: undefined
 };
 
   studentProofName: string = '';
@@ -142,6 +169,10 @@ maxDate = new Date().toISOString();
   constructor(
     private router: Router,
     private platform: Platform,
+    private modalController: ModalController,
+    private alertController: AlertController,
+    private actionSheetController: ActionSheetController,
+    private fireAuth: FireAuth
   ) {
     addIcons({
     'arrow-back': arrowBack,
@@ -164,27 +195,33 @@ maxDate = new Date().toISOString();
     'heart': heart,
     'male': male,
     'female': female,
-    'mail-outline': mailOutline,
-    'lock-closed-outline': lockClosedOutline,
-    'qr-code-outline': qrCodeOutline,
+    'location-outline': locationOutline,
+    'call-outline': callOutline,
     'transgender': transgender,
     'chevron-back': chevronBack,
     'arrow-forward': arrowForward,
     'calendar': calendar,
+    'calendar-outline': calendarOutline,
+    'today-outline': todayOutline,
+    'close-outline': closeOutline,
+    'mail-outline': mailOutline,
+    'lock-closed-outline': lockClosedOutline,
+    'qr-code-outline': qrCodeOutline,
     'create': create
   });
   }
 
   ngOnInit() {}
   ngOnDestroy() {
-    this.stopScan();
+    // Nettoyage si nécessaire
   }
   // Navigation entre les étapes
   nextStep() {
-    if (this.currentStep === 1 && this.validateStep1()) {
-      this.currentStep++;
-    }
+  if ((this.currentStep === 1 && this.validateStep1()) || 
+      (this.currentStep === 2 && this.validateStep2())) {
+    this.currentStep++;
   }
+}
 
   previousStep() {
     if (this.currentStep > 1) {
@@ -217,6 +254,69 @@ confirmDateSelection() {
     this.registrationData.age = age;
   }
 }
+
+async openDateActionSheet() {
+  const actionSheet = await this.actionSheetController.create({
+    header: 'Sélectionner la date de naissance',
+    buttons: [
+      {
+        text: 'Choisir une date',
+        icon: 'calendar-outline',
+        handler: () => {
+          this.isDatePickerOpen = true;
+        }
+      },
+      {
+        text: 'Aujourd\'hui',
+        icon: 'today-outline',
+        handler: () => {
+          this.registrationData.birthDate = new Date();
+          this.confirmDateSelection();
+        }
+      },
+      {
+        text: 'Annuler',
+        icon: 'close-outline',
+        role: 'cancel'
+      }
+    ]
+  });
+
+  await actionSheet.present();
+}
+
+  // Nettoyer le formulaire
+  resetForm() {
+    this.registrationData = {
+      id: uuidv4(), // Nouvel UUID pour la prochaine inscription
+      password_hash: '',
+      QR_proof: '',
+      password: '',
+      confirmPassword: '',
+      user_type: 'fan',
+      user_status: 'other',
+      status: 'active',
+      readonly: false,
+      myPlan: {} as Plan,
+      registration_date: new Date().toISOString(),
+      // Propriétés de UserInfo
+      first_name: '',
+      last_name: '',
+      gender: '',
+      birthDate: new Date(),
+      age: 0,
+      email: '',
+      phone: '',
+      address: '',
+      website: '',
+      bio: '',
+      school: { id: '', name: '' },
+      memberShip: undefined
+    };
+    this.currentStep = 1;
+    this.showPassword = false;
+    this.showConfirmPassword = false;
+  }
 
   // Validation de l'étape 1
   validateStep1(): boolean {
@@ -251,11 +351,28 @@ confirmDateSelection() {
 
     return true;
   }
+  validateStep2(): boolean{
+    const { phone} = this.registrationData;
+    if(!this.registrationData.phone){
+       this.showAlert('Erreur phone invalide', 'Veuillez fournir un numero de telephone valide');
+      return false;
+    }
+    if (!phone) {
+      this.showAlert('Aucun numero de contact', 'Veuillez fournir un numero de telephone');
+      return false;
+    }
 
-
-
+    // Validation du numéro de téléphone avec regex précise
+    const phoneRegex = /^\+?[0-9\s\-]{8,20}$/;
+    if(!phone || !phoneRegex.test(phone)){
+        this.showAlert('Erreur téléphone', 'Veuillez fournir un numéro de téléphone valide (ex: +33612345678 ou 0612345678)');
+       return false;
+    }
+    
+    return true;
+  }
   // Validation de l'étape 2
-  validateStep2(): boolean {
+  validateStep3(): boolean {
     const { email, password, confirmPassword } = this.registrationData;
 
     if (!this.registrationData.user_status) {
@@ -292,120 +409,20 @@ confirmDateSelection() {
   // Gestion proof
 
  async startScan() {
-    // Vérifier si on est sur un appareil mobile ou desktop
-    const isMobile = this.platform.is('mobile') || 
-                    this.platform.is('ios') || 
-                    this.platform.is('android');
-    const isWebNative = this.platform.is('desktop') && !this.platform.is('mobileweb');
+    const modal = await this.modalController.create({
+      component: ModalQRscannerComponent,
+      cssClass: 'qr-scanner-modal',
+      backdropDismiss: false
+    });
 
-    try {
-      if (this.isScanning) return;
-      
-      // Pour web native, vérifier d'abord les permissions de caméra
-      if (isWebNative) {
-        try {
-          // Vérifier si mediaDevices est disponible
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error('Camera API not available');
-          }
-          
-          // Vérifier si on est dans un contexte sécurisé
-          if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            throw new Error('Camera access requires HTTPS or localhost');
-          }
-          
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "user" } 
-          });
-          // Libérer le stream immédiatement après vérification
-          stream.getTracks().forEach(track => track.stop());
-        } catch (err: any) {
-          console.error("Permission caméra refusée:", err);
-          this.isCameraAvailable = false;
-          
-          // Message spécifique pour contexte non sécurisé
-          if (err.message && err.message.includes('secure context')) {
-            this.showAlert('Accès caméra impossible', 
-              'L\'accès à la caméra nécessite une connexion HTTPS ou localhost. Veuillez utiliser la saisie manuelle.');
-          }
-          
-          this.showManualInput();
-          return;
-        }
-      }
+    await modal.present();
 
-      // Vérifier la disponibilité de la caméra
-      const devices = await Html5Qrcode.getCameras();
-      if (!devices || devices.length === 0) {
-        this.isCameraAvailable = false;
-        this.showManualInput();
-        return;
-      }
-
-      this.isScanning = true;
-      this.isCameraAvailable = true;
-      document.querySelector('ion-app')?.classList.add('scanner-active');
-      
-      // Attendre que le DOM soit mis à jour
-      setTimeout(async () => {
-        try {
-          const qrReaderElement = document.getElementById('qr-reader');
-          if (!qrReaderElement) {
-            throw new Error('HTML Element with id=qr-reader not found');
-          }
-          
-          this.html5QrCode = new Html5Qrcode('qr-reader');
-          
-          // Configuration spécifique pour web native
-          const config = isWebNative 
-            ? { facingMode: "user" }        // Caméra frontale pour web native
-            : isMobile 
-              ? { facingMode: "environment" }  // Caméra arrière sur mobile
-              : { facingMode: "user" };       // Caméra frontale par défaut
-
-          // Configuration optimisée pour web native
-          const scanConfig = isWebNative 
-            ? {
-                fps: 5,  // Réduire FPS pour web native
-                qrbox: { width: 200, height: 200 },
-                aspectRatio: 1.0
-              }
-            : {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-              };
-
-          await this.html5QrCode.start(
-            config,
-            scanConfig,
-            (decodedText) => this.handleScanSuccess(decodedText),
-            (errorMessage) => {
-              // Ignorer les erreurs silencieusement sur web native
-              if (!isWebNative) {
-                console.warn('Scan error:', errorMessage);
-              }
-            }
-          );
-        } catch (err) {
-          console.error("Erreur du scanner:", err);
-          this.isCameraAvailable = false;
-          await this.stopScan();
-          this.showManualInput();
-        }
-      }, 100); // Attendre 100ms pour la mise à jour du DOM
-
-    } catch (error) {
-      console.error('Erreur lors du démarrage du scan:', error);
-      this.isCameraAvailable = false;
-      await this.stopScan();
-      this.showManualInput();
+    const { data } = await modal.onWillDismiss();
+    
+    if (data && data.success && data.result) {
+      this.registrationData.QR_proof = data.result;
+      this.studentProofName = 'QR Code scanné ✓';
     }
-  }
-
-  private handleScanSuccess(decodedText: string) {
-    this.registrationData.QR_proof = decodedText;
-    this.studentProofName = 'QR Code scanné ✓';
-    this.stopScan();
   }
 
    showManualInput() {
@@ -416,24 +433,9 @@ confirmDateSelection() {
     }
   }
 
-  async stopScan() {
-    try {
-      if (this.html5QrCode && this.html5QrCode.isScanning) {
-        await this.html5QrCode.stop();
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'arrêt du scan:', error);
-    } finally {
-      this.html5QrCode = null;
-      this.isScanning = false;
-      document.querySelector('ion-app')?.classList.remove('scanner-active');
-    }
-  }
-
   clearQRCode() {
   this.registrationData.QR_proof = '';
   this.studentProofName = '';
-  this.stopScan();
 }
 
   needsProof(): boolean {
@@ -445,17 +447,52 @@ confirmDateSelection() {
 
   // Social Login
   async loginWithGoogle() {
-   this.isLoading = true;
+    this.isLoading = true;
 
-    // Intégrez votre logique Google Sign-In
-    setTimeout(async () => {
-      this.isLoading = false
-      // Pré-remplir les données depuis Google
-      this.registrationData.email = 'user@gmail.com';
-      this.registrationData.first_name = 'John';
-      this.registrationData.last_name = 'Doe';
-      this.showAlert('Succès', 'Informations Google récupérées!');
-    }, 2000);
+    try {
+      // Utiliser Firebase Auth pour Google Sign-In
+      const result = await this.fireAuth.signInWithGoogle();
+      
+      if (result) {
+        // Extraire les informations de l'utilisateur Google
+        const googleUser = result.user;
+        const displayName = googleUser.displayName || '';
+        const names = displayName.split(' ');
+        
+        // Pré-remplir les données depuis Google
+        this.registrationData.email = googleUser.email || '';
+        this.registrationData.first_name = names[0] || '';
+        this.registrationData.last_name = names.slice(1).join(' ') || '';
+        
+        // Si l'utilisateur a une photo de profil, on pourrait la sauvegarder
+        if (googleUser.photoURL) {
+          // Optionnel: télécharger la photo de profil
+          console.log('Photo URL:', googleUser.photoURL);
+        }
+        
+        await this.showAlert('Succès', 'Compte Google connecté avec succès! Vos informations ont été pré-remplies.');
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      
+      let errorMessage = 'Erreur lors de la connexion avec Google';
+      
+      if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Google Sign-In n\'est pas activé. Veuillez contacter l\'administrateur.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'La fenêtre de connexion a été fermée';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'La fenêtre de connexion a été bloquée. Veuillez autoriser les popups.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Connexion annulée';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = 'Ce domaine n\'est pas autorisé pour Google Sign-In.';
+      }
+      
+      await this.showAlert('Erreur', errorMessage);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   async loginWithFacebook() {
@@ -475,7 +512,7 @@ confirmDateSelection() {
 
 async PrepareRegister() {
   // 1️⃣ Valider le formulaire
-  if (!this.validateStep1() || !this.validateStep2()) {
+  if (!this.validateStep1() || !this.validateStep2() || !this.validateStep3()) {
     return;
   }
 
@@ -503,15 +540,19 @@ async PrepareRegister() {
     // 6️⃣ Rediriger vers la page d'abonnement avec les données
     await this.router.navigate(['/subscription'], {
       state: { registrationData: userData }
+    }).then(()=>{
+      // Nettoyer le formulaire après redirection
+      this.resetForm();
     });
 
   } catch (error) {
     console.error('Erreur lors de la préparation des données:', error);
-    await Dialog.alert({
-      title: 'Erreur',
+    const alert = await this.alertController.create({
+      header: 'Erreur',
       message: 'Une erreur est survenue lors de la préparation des données d\'inscription',
-      buttonTitle: 'OK'
+      buttons: ['OK']
     });
+    await alert.present();
   }
 }
 
@@ -524,10 +565,12 @@ async PrepareRegister() {
   }
 
   async showAlert(header: string, message: string) {
-    await Dialog.alert({
-    title: header,
-    message
-  }); 
+    const alert = await this.alertController.create({
+      header: header,
+      message: message,
+      buttons: ['OK']
+    });
+    await alert.present();
   }
 
   goBack() {

@@ -530,7 +530,7 @@ private async presentToast(message: string, color: 'success' | 'warning' | 'dang
   async shareProfile(profile: UserProfile) {
     const shareData = {
       title: `${profile.displayName} - Best Academy`,
-      text: `Découvrez le profil de ${profile.displayName}${profile.bio ? ': ' + profile.bio : ''}`,
+      text: `Découvrez le profil de ${profile.displayName}${profile.userInfo.bio ? ': ' + profile.userInfo.bio : ''}`,
       url: `https://app.com/profile/${profile.id}`
     };
 

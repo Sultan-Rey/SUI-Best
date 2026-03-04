@@ -1,19 +1,19 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
-import { ModalCameraViewerComponent } from './modal-camera-viewer.component';
+import { ModalQRscannerComponent } from './modal-qrscanner.component';
 
-describe('ModalCameraViewerComponent', () => {
-  let component: ModalCameraViewerComponent;
-  let fixture: ComponentFixture<ModalCameraViewerComponent>;
+describe('ModalQRscannerComponent', () => {
+  let component: ModalQRscannerComponent;
+  let fixture: ComponentFixture<ModalQRscannerComponent>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ ModalCameraViewerComponent ],
+      declarations: [ ModalQRscannerComponent ],
       imports: [IonicModule.forRoot()]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ModalCameraViewerComponent);
+    fixture = TestBed.createComponent(ModalQRscannerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   }));

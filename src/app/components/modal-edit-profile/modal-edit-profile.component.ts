@@ -77,8 +77,8 @@ export class ModalEditProfileComponent implements OnInit {
   private initializeForm() {
     this.editForm = this.formBuilder.group({
       displayName: [this.profile.displayName, [Validators.required, Validators.maxLength(50)]],
-      bio: [this.profile.bio, [Validators.maxLength(500)]],
-      contact: [this.profile.contact, [Validators.email]]
+      bio: [this.profile.userInfo.bio, [Validators.maxLength(500)]],
+      contact: [this.profile.userInfo.email, [Validators.email]]
     });
   }
 

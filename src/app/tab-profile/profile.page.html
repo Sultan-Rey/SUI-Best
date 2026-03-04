@@ -71,24 +71,24 @@
 
       <!-- Bio Section -->
       <div class="bio-section">
-        <p class="bio-text">{{ userProfile.bio }}</p>
+        <p class="bio-text">{{ userProfile.userInfo.bio }}</p>
         
         <div class="info-items">
-          <div class="info-item" *ngIf="userProfile.school">
+          <div class="info-item" *ngIf="userProfile.userInfo.school">
             <ion-icon name="school-outline" class="info-icon"></ion-icon>
-            <span>{{ userProfile.school }}</span>
+            <span>{{ userProfile.userInfo.school }}</span>
           </div>
-          <div class="info-item" *ngIf="userProfile.contact">
+          <div class="info-item" *ngIf="userProfile.userInfo.phone">
             <ion-icon name="link-outline" class="info-icon"></ion-icon>
-            <span>{{ userProfile.contact }}</span>
+            <span>{{ userProfile.userInfo.phone }}</span>
           </div>
-          <div class="info-item" *ngIf="userProfile.memberSince">
+          <div class="info-item" *ngIf="userProfile.userInfo.memberShip?.date">
             <ion-icon name="calendar-outline" class="info-icon"></ion-icon>
-            <span>Membre depuis {{ userProfile.memberSince }}</span>
+            <span>Membre depuis {{ userProfile.userInfo.memberShip?.date }}</span>
           </div>
-          <div class="info-item" *ngIf="userProfile.plan">
+          <div class="info-item" *ngIf="userProfile.userInfo.memberShip?.plan">
             <ion-icon name="rocket-outline" class="info-icon"></ion-icon>
-            <span>Abonnement {{ userProfile.memberSince }}</span>
+            <span>Abonnement {{ userProfile.userInfo.memberShip?.plan }}</span>
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@
     </app-challenge-section>
 
     <!-- Message si créateur sans challenges actifs -->
-    <div class="no-challenges-section" *ngIf="userProfile.userType === 'creator' && activeChallengesCount <=0 && isOwnProfile">
+    <div class="no-challenges-section" *ngIf="userProfile.type === 'creator' && activeChallengesCount <=0 && isOwnProfile">
       <div class="empty-challenges">
         <ion-icon name="trophy-outline" class="empty-icon"></ion-icon>
         <h3>Aucun challenge actif</h3>
@@ -187,26 +187,7 @@
 
     <!-- Info Tab -->
     <div class="info-content" *ngIf="selectedTab === 'info'">
-      <div class="info-card">
-        <h3>À propos</h3>
-        <p>{{ userProfile.bio }}</p>
-      </div>
       
-      <div class="info-card">
-        <h3>Informations</h3>
-        <div class="info-row">
-          <span class="info-label">Institution</span>
-          <span class="info-value">{{ userProfile.school }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Contact</span>
-          <span class="info-value">{{ userProfile.contact }}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Membre depuis</span>
-          <span class="info-value">{{ userProfile.memberSince }}</span>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -215,7 +196,7 @@
     vertical="bottom" 
     horizontal="end" 
     slot="fixed"
-    *ngIf="userProfile.userType === 'creator' && isOwnProfile">
+    *ngIf="userProfile.type === 'creator' && isOwnProfile">
     <ion-fab-button color="warning" (click)="createChallenge()">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>

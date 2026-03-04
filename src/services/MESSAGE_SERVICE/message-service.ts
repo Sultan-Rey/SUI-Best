@@ -66,24 +66,28 @@ export class MessageService {
         const participantRequests = userConversations.map(conv => {
           const receiverId = ConversationUtils.getReceiverId(conv.participantIds, currentUserId);
           return this.profileService.getProfileById(receiverId).pipe(
-            map(profile => ({
-              ...conv,
-              participant: {
-                id: receiverId,
-                username: profile?.username || 'Unknown',
-                avatar: profile?.avatar || 'assets/avatar-default.png',
-                isOnline: Math.random() > 0.5,
-                isTyping: false,
-                isVerified: profile?.isVerified || false,
-                userType: profile?.userType || 'fan',
-                stats: profile?.stats.fans,
-                plan: profile?.plan || 'free'
-              },
-              unreadCount: conv.messages?.filter(msg => msg.status === 'sent' && msg.receiverId == currentUserId).length || 0,
-              lastMessage: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].content : '',
-              lastMessageTime: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].createdAt : new Date(),
-              lastMessageType: conv.messages?.length > 0 ? this.getMessageType(conv.messages[conv.messages.length - 1].content) : 'text'
-            }))
+            map(profile => {
+              // Créer un objet Conversation enrichi avec les infos du participant
+              const enrichedConv: Conversation = {
+                ...conv,
+                participant: {
+                  id: receiverId,
+                  username: profile?.username || 'Unknown',
+                  avatar: profile?.avatar || 'assets/avatar-default.png',
+                  isOnline: Math.random() > 0.5,
+                  isTyping: false,
+                  isVerified: profile?.isVerified || false,
+                  userType: profile.type || 'fan',
+                  stats: profile?.stats.fans,
+                  plan: profile?.userInfo.memberShip?.plan || 'free'
+                },
+                unreadCount: conv.messages?.filter(msg => msg.status === 'sent' && msg.receiverId == currentUserId).length || 0,
+                lastMessage: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].content : '',
+                lastMessageTime: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].createdAt : new Date(),
+                lastMessageType: conv.messages?.length > 0 ? this.getMessageType(conv.messages[conv.messages.length - 1].content) : 'text'
+              };
+              return enrichedConv;
+            })
           );
         });
         

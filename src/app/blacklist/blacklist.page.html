@@ -29,7 +29,7 @@
         <ion-label>
           <h2>{{ profile.displayName }}</h2>
           <p>@{{ profile.username }}</p>
-          <p *ngIf="profile.bio" class="bio">{{ profile.bio | slice:0:50 }}{{ profile.bio.length > 50 ? '...' : '' }}</p>
+          <p *ngIf="profile.userInfo?.bio" class="bio">{{ profile.userInfo.bio | slice:0:50 }}{{ profile.userInfo.bio.length > 50 ? '...' : '' }}</p>
         </ion-label>
 
         <ion-button 
