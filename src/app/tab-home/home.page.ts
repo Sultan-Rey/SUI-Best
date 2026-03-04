@@ -96,6 +96,7 @@ export class HomePage implements OnInit {
         
         // Swipe vers la gauche (deltaX négatif) = aller vers Suivis
         if (detail.deltaX < -threshold && this.selectedSegment === 'discovery') {
+          this.setupAuthSubscription();
           this.switchTab('followed');
         }
         // Swipe vers la droite (deltaX positif) = aller vers Découverte  

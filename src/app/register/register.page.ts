@@ -15,6 +15,8 @@ import {
   eye,
   eyeOff,
   checkmarkCircle,
+  pencilOutline,
+  camera,
   mail,
   lockClosed,
   logoGoogle,
@@ -140,7 +142,6 @@ maxDate = new Date().toISOString();
   constructor(
     private router: Router,
     private platform: Platform,
-    @Inject('Auth') private auth: Auth,
   ) {
     addIcons({
     'arrow-back': arrowBack,
@@ -150,6 +151,8 @@ maxDate = new Date().toISOString();
     'eye-off': eyeOff,
     'checkmark-circle': checkmarkCircle,
     'mail': mail,
+    'pencil-outline': pencilOutline,
+    'camera-off': camera,
     'lock-closed': lockClosed,
     'logo-google': logoGoogle,
     'logo-facebook': logoFacebook,
@@ -293,10 +296,44 @@ confirmDateSelection() {
     const isMobile = this.platform.is('mobile') || 
                     this.platform.is('ios') || 
                     this.platform.is('android');
+    const isWebNative = this.platform.is('desktop') && !this.platform.is('mobileweb');
 
     try {
       if (this.isScanning) return;
       
+      // Pour web native, vérifier d'abord les permissions de caméra
+      if (isWebNative) {
+        try {
+          // Vérifier si mediaDevices est disponible
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera API not available');
+          }
+          
+          // Vérifier si on est dans un contexte sécurisé
+          if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            throw new Error('Camera access requires HTTPS or localhost');
+          }
+          
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "user" } 
+          });
+          // Libérer le stream immédiatement après vérification
+          stream.getTracks().forEach(track => track.stop());
+        } catch (err: any) {
+          console.error("Permission caméra refusée:", err);
+          this.isCameraAvailable = false;
+          
+          // Message spécifique pour contexte non sécurisé
+          if (err.message && err.message.includes('secure context')) {
+            this.showAlert('Accès caméra impossible', 
+              'L\'accès à la caméra nécessite une connexion HTTPS ou localhost. Veuillez utiliser la saisie manuelle.');
+          }
+          
+          this.showManualInput();
+          return;
+        }
+      }
+
       // Vérifier la disponibilité de la caméra
       const devices = await Html5Qrcode.getCameras();
       if (!devices || devices.length === 0) {
@@ -309,27 +346,53 @@ confirmDateSelection() {
       this.isCameraAvailable = true;
       document.querySelector('ion-app')?.classList.add('scanner-active');
       
-      this.html5QrCode = new Html5Qrcode('qr-reader');
-      
-      // Configuration pour mobile ou desktop
-      const config = isMobile 
-        ? { facingMode: "environment" }  // Caméra arrière sur mobile
-        : { facingMode: "user" };        // Caméra avant sur desktop
+      // Attendre que le DOM soit mis à jour
+      setTimeout(async () => {
+        try {
+          const qrReaderElement = document.getElementById('qr-reader');
+          if (!qrReaderElement) {
+            throw new Error('HTML Element with id=qr-reader not found');
+          }
+          
+          this.html5QrCode = new Html5Qrcode('qr-reader');
+          
+          // Configuration spécifique pour web native
+          const config = isWebNative 
+            ? { facingMode: "user" }        // Caméra frontale pour web native
+            : isMobile 
+              ? { facingMode: "environment" }  // Caméra arrière sur mobile
+              : { facingMode: "user" };       // Caméra frontale par défaut
 
-      await this.html5QrCode.start(
-        config,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => this.handleScanSuccess(decodedText),
-        () => {} // Gestion des erreurs de décodage
-      ).catch(async (err) => {
-        console.error("Erreur du scanner:", err);
-        this.isCameraAvailable = false;
-        await this.stopScan();
-        this.showManualInput();
-      });
+          // Configuration optimisée pour web native
+          const scanConfig = isWebNative 
+            ? {
+                fps: 5,  // Réduire FPS pour web native
+                qrbox: { width: 200, height: 200 },
+                aspectRatio: 1.0
+              }
+            : {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+              };
+
+          await this.html5QrCode.start(
+            config,
+            scanConfig,
+            (decodedText) => this.handleScanSuccess(decodedText),
+            (errorMessage) => {
+              // Ignorer les erreurs silencieusement sur web native
+              if (!isWebNative) {
+                console.warn('Scan error:', errorMessage);
+              }
+            }
+          );
+        } catch (err) {
+          console.error("Erreur du scanner:", err);
+          this.isCameraAvailable = false;
+          await this.stopScan();
+          this.showManualInput();
+        }
+      }, 100); // Attendre 100ms pour la mise à jour du DOM
 
     } catch (error) {
       console.error('Erreur lors du démarrage du scan:', error);
@@ -374,6 +437,7 @@ confirmDateSelection() {
 }
 
   needsProof(): boolean {
+  
   return (this.registrationData.user_status === 'university' || 
           this.registrationData.user_status === 'student') && 
          !this.registrationData.QR_proof;

@@ -76,7 +76,7 @@
 <ion-modal [isOpen]="isDatePickerOpen" (didDismiss)="isDatePickerOpen = false">
   <ng-template>
     <ion-datetime
-      [value]="registrationData.birthDate"
+      [value]="registrationData.birthDate ? (registrationData.birthDate | date: 'yyyy-MM-dd') : ''"
       (ionChange)="onDateSelected($event)"
       [max]="maxDate"
       presentation="date"
@@ -147,6 +147,21 @@
         class="ion-margin-top">
         <ion-icon slot="start" name="pencil-outline"></ion-icon>
         Saisir manuellement
+      </ion-button>
+    </ion-col>
+  </ion-row>
+</ion-grid>
+
+<!-- Bouton pour arrêter le scan -->
+<ion-grid *ngIf="isScanning" class="ion-margin-vertical">
+  <ion-row class="ion-justify-content-center">
+    <ion-col size="12" class="ion-text-center">
+      <ion-button 
+        expand="block" 
+        (click)="stopScan()" 
+        color="danger">
+        <ion-icon slot="start" name="close-circle"></ion-icon>
+        Arrêter le scan
       </ion-button>
     </ion-col>
   </ion-row>

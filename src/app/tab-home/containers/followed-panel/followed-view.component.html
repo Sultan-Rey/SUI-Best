@@ -9,7 +9,7 @@
   </ion-refresher>
 
   <div class="posts-container" #postsContainer>
-    <ng-container *ngIf="posts.length > 0; else noPostsTemplate ">
+    <ng-container *ngIf="posts.length > 0; else noPostsTemplate">
       <div 
         class="post" 
         *ngFor="let post of posts; trackBy: trackByPostId; let i = index"
@@ -92,9 +92,9 @@
     </ion-infinite-scroll-content>
   </ion-infinite-scroll>
 
-  <!-- Template pour quand il n'y a pas de posts -->
+  <!-- Template pour quand il n'y a pas de posts ET aucun follow -->
   <ng-template #noPostsTemplate>
-    <div class="empty-state-container">
+    <div class="empty-state-container" *ngIf="currentUserProfile.myFollows.length == 0">
       <div class="empty-state-content">
         <img src="assets/icon/skateboard.gif" alt="Skateboard" class="empty-state-gif">
         <h2 class="empty-state-title">🛹 Lancez votre vibe !</h2>
