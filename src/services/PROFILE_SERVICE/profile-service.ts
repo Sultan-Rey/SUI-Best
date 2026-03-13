@@ -1,16 +1,17 @@
 // src/app/services/PROFILE_SERVICE/profile.service.ts
 import { Injectable } from '@angular/core';
-import { Observable, of, EMPTY, throwError, BehaviorSubject } from 'rxjs';
-import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError } from 'rxjs/operators';
+import { Observable, of, EMPTY, throwError, BehaviorSubject, from } from 'rxjs';
+import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError, expand, reduce, takeWhile, scan } from 'rxjs/operators';
 import { ApiJSON} from '../API/LOCAL/api-json';
 import { UserProfile } from '../../models/User';
+import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProfileService {
   private resource = 'profiles';
-  private readonly uploadResource = 'api/upload';
+  private readonly uploadResource = 'storage/profiles';
   private searchQuery$ = new BehaviorSubject<string>('');
   private searchResults$ = new BehaviorSubject<UserProfile[]>([]);
 
@@ -27,10 +28,11 @@ export class ProfileService {
     });
   }
 
-  constructor(private api: ApiJSON) {
+  constructor(private api: FirebaseService) {
     this.setupSearchStream();
   }
 
+ 
   
   /* =====================
      CREATE
@@ -46,8 +48,8 @@ export class ProfileService {
     return this.api.getAll<UserProfile>(this.resource);
   }
 
-  getProfileById(id: string): Observable<UserProfile> {
-    return this.api.getById<UserProfile>(this.resource, id);
+  getProfileById(id: string): Observable<UserProfile | null> {
+    return this.api.getById<UserProfile | null>(this.resource, id);
   }
 
 
@@ -176,6 +178,7 @@ export class ProfileService {
       }
     });
   }
+
 
   /* =====================
      DELETE OLD AVATAR
@@ -426,7 +429,7 @@ getTopFans(limit: number = 10): Observable<UserProfile[]> {
     return this.api.getById<UserProfile>(this.resource, userId).pipe(
       map(user => {
         // Assurez-vous que myFollows est un tableau
-      const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
+      const myFollows = Array.isArray(user?.myFollows) ? user.myFollows : [];
       return myFollows.includes(profileId);
     })
   );
@@ -581,6 +584,268 @@ getTopFans(limit: number = 10): Observable<UserProfile[]> {
   clearSearch(): void {
     this.searchQuery$.next('');
     this.searchResults$.next([]);
+  }
+
+  /* ====================
+     SEARCH IN MYFOLLOWS WITH PAGINATION
+     ==================== */
+
+  /**
+   * Recherche progressive d'un UserId dans les myFollows des UserProfile avec pagination
+   * @param targetUserId L'ID de l'utilisateur à rechercher
+   * @param pageSize Nombre de résultats par page (défaut: 10)
+   * @returns Observable qui émet les résultats progressivement avec pagination
+   */
+  searchUserIdInMyFollows(targetUserId: string, pageSize: number = 10): Observable<{
+    results: UserProfile[];
+    hasMore: boolean;
+    currentPage: number;
+    totalCount: number;
+    found: boolean;
+  }> {
+    type SearchResult = {
+      results: UserProfile[];
+      hasMore: boolean;
+      currentPage: number;
+      totalCount: number;
+      found: boolean;
+    };
+
+    type ExpandedResult = SearchResult & {
+      allProfiles: UserProfile[];
+    };
+
+    return this.getProfiles().pipe(
+      map(profiles => {
+        // Filtrer les profils qui ont des myFollows et qui contiennent le targetUserId
+        const profilesMatching = profiles.filter(profile => 
+          Array.isArray(profile.myFollows) && 
+          profile.myFollows.includes(targetUserId)
+        );
+
+        return {
+          allProfiles: profilesMatching,
+          totalCount: profilesMatching.length
+        };
+      }),
+      expand(({ allProfiles, totalCount }) => {
+        // Si nous avons déjà traité tous les profils, arrêter l'expansion
+        if (allProfiles.length === 0) {
+          return of({ results: [], hasMore: false, currentPage: 0, totalCount, found: totalCount > 0 });
+        }
+
+        // Prendre la prochaine page de résultats
+        const nextPage = allProfiles.slice(0, pageSize);
+        const remainingProfiles = allProfiles.slice(pageSize);
+
+        return of({
+          results: nextPage,
+          hasMore: remainingProfiles.length > 0,
+          currentPage: Math.floor((totalCount - remainingProfiles.length) / pageSize),
+          totalCount,
+          found: totalCount > 0,
+          allProfiles: remainingProfiles
+        } as ExpandedResult);
+      }),
+      map((result: ExpandedResult | SearchResult): SearchResult => {
+        // Retourner seulement les propriétés SearchResult
+        if ('allProfiles' in result) {
+          const { allProfiles, ...searchResult } = result;
+          return searchResult;
+        }
+        return result;
+      })
+    );
+  }
+
+  /**
+   * Version simplifiée qui retourne seulement les profiles contenant le UserId
+   * @param targetUserId L'ID de l'utilisateur à rechercher
+   * @param limit Nombre maximum de résultats (optionnel)
+   * @returns Observable avec les UserProfile trouvés
+   */
+  findProfilesFollowingUser(targetUserId: string, limit?: number): Observable<UserProfile[]> {
+    return this.getProfiles().pipe(
+      map(profiles => {
+        let results = profiles.filter(profile => 
+          Array.isArray(profile.myFollows) && 
+          profile.myFollows.includes(targetUserId)
+        );
+
+        if (limit && limit > 0) {
+          results = results.slice(0, limit);
+        }
+
+        return results;
+      })
+    );
+  }
+
+  /**
+   * Vérifie si un utilisateur est suivi par d'autres utilisateurs et retourne les détails
+   * @param targetUserId L'ID de l'utilisateur à vérifier
+   * @returns Observable avec les détails sur qui suit cet utilisateur
+   */
+  getUserFollowersDetails(targetUserId: string): Observable<{
+    isFollowedByAnyone: boolean;
+    followerCount: number;
+    followers: UserProfile[];
+  }> {
+    return this.findProfilesFollowingUser(targetUserId).pipe(
+      map(followers => ({
+        isFollowedByAnyone: followers.length > 0,
+        followerCount: followers.length,
+        followers: followers
+      }))
+    );
+  }
+
+  /* ====================
+     GET PROFILES BY IDS
+     ==================== */
+
+  /**
+   * Retrouve les UserProfile correspondants aux IDs fournis
+   * @param profileIds Tableau d'IDs de profils à retrouver
+   * @returns Observable avec les UserProfile trouvés
+   */
+  getProfilesByIds(profileIds: string[]): Observable<UserProfile[]> {
+    if (!profileIds || profileIds.length === 0) {
+      return of([]);
+    }
+
+    // Éliminer les doublons et les valeurs vides
+    const uniqueIds = [...new Set(profileIds.filter(id => id && id.trim() !== ''))];
+
+    if (uniqueIds.length === 0) {
+      return of([]);
+    }
+
+    return this.getProfiles().pipe(
+      map(profiles => {
+        // Filtrer les profils qui correspondent aux IDs fournis
+        return profiles.filter(profile => uniqueIds.includes(profile.id));
+      })
+    );
+  }
+
+  /**
+   * Version progressive avec pagination pour retrouver les UserProfile par IDs
+   * @param profileIds Tableau d'IDs de profils à retrouver
+   * @param pageSize Nombre de résultats par page (défaut: 10)
+   * @returns Observable qui émet les résultats progressivement avec pagination
+   */
+  getProfilesByIdsPaginated(profileIds: string[], pageSize: number = 10): Observable<{
+    results: UserProfile[];
+    hasMore: boolean;
+    currentPage: number;
+    totalCount: number;
+    processedIds: string[];
+    remainingIds: string[];
+  }> {
+    if (!profileIds || profileIds.length === 0) {
+      return of({
+        results: [],
+        hasMore: false,
+        currentPage: 0,
+        totalCount: 0,
+        processedIds: [],
+        remainingIds: []
+      });
+    }
+
+    // Éliminer les doublons et les valeurs vides
+    const uniqueIds = [...new Set(profileIds.filter(id => id && id.trim() !== ''))];
+    
+    if (uniqueIds.length === 0) {
+      return of({
+        results: [],
+        hasMore: false,
+        currentPage: 0,
+        totalCount: 0,
+        processedIds: [],
+        remainingIds: []
+      });
+    }
+
+    type PaginatedResult = {
+      results: UserProfile[];
+      hasMore: boolean;
+      currentPage: number;
+      totalCount: number;
+      processedIds: string[];
+      remainingIds: string[];
+    };
+
+    return this.getProfiles().pipe(
+      map(allProfiles => {
+        // Filtrer tous les profils qui correspondent aux IDs
+        const matchingProfiles = allProfiles.filter(profile => uniqueIds.includes(profile.id));
+        
+        return {
+          allProfiles: matchingProfiles,
+          totalCount: matchingProfiles.length,
+          allIds: uniqueIds
+        };
+      }),
+      expand(({ allProfiles, totalCount, allIds }) => {
+        // Si nous avons déjà traité tous les profils, arrêter l'expansion
+        if (allProfiles.length === 0) {
+          return of({
+            results: [],
+            hasMore: false,
+            currentPage: Math.ceil(allIds.length / pageSize),
+            totalCount,
+            processedIds: allIds,
+            remainingIds: []
+          });
+        }
+
+        // Prendre la prochaine page de résultats
+        const nextPage = allProfiles.slice(0, pageSize);
+        const remainingProfiles = allProfiles.slice(pageSize);
+        
+        const processedCount = Math.min(pageSize, allProfiles.length);
+        const currentPage = Math.floor(processedCount / pageSize);
+
+        return of({
+          results: nextPage,
+          hasMore: remainingProfiles.length > 0,
+          currentPage,
+          totalCount,
+          processedIds: nextPage.map(p => p.id),
+          remainingIds: remainingProfiles.map(p => p.id)
+        });
+      })
+    );
+  }
+
+  /**
+   * Retrouve les UserProfile par IDs avec gestion d'erreur pour les IDs non trouvés
+   * @param profileIds Tableau d'IDs de profils à retrouver
+   * @returns Observable avec les résultats et les IDs non trouvés
+   */
+  getProfilesByIdsWithNotFound(profileIds: string[]): Observable<{
+    found: UserProfile[];
+    notFound: string[];
+  }> {
+    if (!profileIds || profileIds.length === 0) {
+      return of({ found: [], notFound: [] });
+    }
+
+    const uniqueIds = [...new Set(profileIds.filter(id => id && id.trim() !== ''))];
+
+    return this.getProfilesByIds(uniqueIds).pipe(
+      map(foundProfiles => {
+        const foundIds = foundProfiles.map(profile => profile.id);
+        const notFound = uniqueIds.filter(id => !foundIds.includes(id));
+        
+        return {
+          found: foundProfiles,
+          notFound: notFound
+        };
+      })
+    );
   }
 
 }
