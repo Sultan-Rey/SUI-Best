@@ -20,7 +20,6 @@ import { FollowedViewComponent } from '../../tab-home/containers/followed-panel/
 import { Content, ContentStatus } from 'src/models/Content';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { ModalSelectPostComponent } from '../modal-select-post/modal-select-post.component';
-import { UploadPage } from 'src/app/tab-upload/upload.page';
 import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service';
 import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller';
 
@@ -520,7 +519,7 @@ export class ModalChallengeComponent  implements OnInit {
   }
   createPost(){
       this.modalController.create({
-        component:UploadPage,
+        component:null,
         componentProps:{isModalMode:true, challengeId:this.challenge?.id, isAutomaticAcceptance:this.challenge?.is_acceptance_automatic, creatorId:this.challenge?.creator_id},
         handle:true
       }).then((modal) => {

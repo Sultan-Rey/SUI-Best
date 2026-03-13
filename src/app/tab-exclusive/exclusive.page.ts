@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import {
   IonContent,
   IonIcon,
@@ -121,7 +122,7 @@ const MOCK_ALL: ExclusiveContent[] = [
   templateUrl: 'exclusive.page.html',
   styleUrls: ['exclusive.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonIcon],
+  imports: [CommonModule, FormsModule, IonContent, IonIcon, HeaderComponentComponent],
 })
 export class ExclusivePage {
 

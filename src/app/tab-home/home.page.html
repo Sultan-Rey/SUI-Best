@@ -1,12 +1,12 @@
-<!-- Header natif HTML - pas de balises Ionic -->
+<!-- Header natif HTML - pas de balises Ionic --
 <div class="native-header">
   <div class="header-container">
-    <!-- Icône search à gauche -->
+    <-- Icône search à gauche --
     <button class="action-button search-button" (click)="openSearch()">
       <ion-icon name="search" class="action-icon"></ion-icon>
     </button>
 
-    <!-- Système de tabs custom -->
+    <-- Système de tabs custom --
     <div class="tabs-system">
       <div class="tabs-track">
         
@@ -22,21 +22,23 @@
           <span class="tab-label">Suivis</span>
         </button>
         
-        <!-- Indicateur orbital -->
+        <-- Indicateur orbital --
         
       </div>
     </div>
 
-    <!-- Bouton notification à droite -->
+    <-- Bouton notification à droite --
     <button class="action-button notification-button" (click)="openNotifications()">
       <ion-icon name="notifications-outline" class="action-icon"></ion-icon>
       <span class="notification-badge" *ngIf="hasNotifications"></span>
     </button>
   </div>
   
-  <!-- Gradient de fusion -->
+  <-- Gradient de fusion --
   <div class="header-fade"></div>
-</div>
+</div>-->
+
+<app-header-component></app-header-component>
 
 <!-- Contenu Ionic simplifié -->
 <ion-content [fullscreen]="true" class="home-content">
@@ -44,20 +46,34 @@
   <div class="content-spacer"></div>
   
   <!-- Container swipeable -->
-  <div class="views-container" [class.show-followed]="selectedSegment === 'followed'">
+  <div class="views-container" [ngSwitch]="selectedSegment">
     
     <!-- Vue Découverte -->
-    <div class="view-panel discovery-panel">
+    <div class="view-panel discovery-panel" *ngSwitchCase="'discovery'">
       <app-discovery-view 
         [currentUserProfile]="currentUserProfile">
       </app-discovery-view>
     </div>
 
     <!-- Vue Suivis -->
-    <div class="view-panel followed-panel">
+    <div class="view-panel followed-panel" *ngSwitchCase="'followed'">
       <app-followed-view 
         [currentUserProfile]="currentUserProfile">
       </app-followed-view>
     </div>
+
+    <!-- Vue Message -->
+    <div class="view-panel message-panel" *ngSwitchCase="'message'">
+      <app-messages [currentUserId]="currentUserProfile?.id || ''" [currentUsername]="currentUserProfile?.displayName || ''"></app-messages>
+    </div>
+
+    <!-- Vue Upload -->
+    <div class="view-panel upload-panel" *ngSwitchCase="'upload'">
+    <app-publication [isModalMode]="false"></app-publication>
+    </div>
+
   </div>
 </ion-content>
+<ion-footer>
+  <app-bottom-navigation (activeItemChange)="onNavigationChange($event)"></app-bottom-navigation>
+</ion-footer>

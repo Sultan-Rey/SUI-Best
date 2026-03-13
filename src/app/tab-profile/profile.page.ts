@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
 import { ChallengeFormComponent } from '../components/modal-challenge-form/challenge-form.component.js';
 import { ModalChallengeComponent } from '../components/modal-challenge-view/modal-challenge.component.js';
-import { ModalMessageComponent } from '../components/modal-message/modal-message.component.js';
 import { SuccessContentComponent } from './containers/success-content/success-content.component.js';
 import { ChallengeSectionComponent } from './containers/challenge-section/challenge-section.component.js';
 import { addIcons } from 'ionicons';
@@ -46,20 +45,20 @@ import {
   IonIcon, 
   IonBadge,
   IonFab,
-  IonFabButton, IonSpinner, IonTitle }  from '@ionic/angular/standalone';
+  IonFabButton, IonSpinner, IonTitle, IonSkeletonText }  from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, ToastController } from '@ionic/angular';
-import { UserProfile } from 'src/models/User.js';
+import { UserProfile } from 'src/models/User';
 import { Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
-import { Challenge } from 'src/models/Challenge.js';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
-import { Auth } from 'src/services/AUTH/auth.js';
-import { UserService } from 'src/services/USER_SERVICE/user-service.js';
-import { Content } from 'src/models/Content.js';
-import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
-import { AccountModalComponent } from '../components/modal-account/account-modal.component.js';
+import { Challenge } from 'src/models/Challenge';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { Auth } from 'src/services/AUTH/local-auth/auth';
+import { UserService } from 'src/services/USER_SERVICE/user-service';
+import { Content } from 'src/models/Content';
+import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
+import { AccountModalComponent } from '../components/modal-account/account-modal.component';
 import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
-import { ModalEditProfileComponent } from '../components/modal-edit-profile/modal-edit-profile.component.js';
+import { ModalEditProfileComponent } from '../components/modal-edit-profile/modal-edit-profile.component';
 import { ShortNumberPipe } from '../utils/pipes/shortNumberPipe/short-number-pipe.js';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core.js';
 import { FollowedViewComponent } from '../tab-home/containers/followed-panel/followed-view.component.js';
@@ -82,7 +81,7 @@ interface Post {
   providers: [ModalController],
   imports: [ NgIf,IonTitle, IonSpinner, SuccessContentComponent, ChallengeSectionComponent, PostGridComponent,
     IonContent, IonHeader, IonToolbar, IonButtons, IonButton, 
-    IonIcon, IonFab, IonFabButton,
+    IonIcon, IonFab, IonFabButton, IonSkeletonText,
     CommonModule, FormsModule, MediaUrlPipe, ShortNumberPipe
   ] 
 })
@@ -568,16 +567,7 @@ private async presentToast(message: string, color: 'success' | 'warning' | 'dang
   }
 
   async openDM() {
-    const modal = await this.modalCtrl.create({
-      component: ModalMessageComponent,
-      componentProps: {
-        currentUserId: this.currentUserId,
-        currentUsername: this.userProfile?.displayName
-      },
-      cssClass: 'modal-fullscreen'
-    });
-    
-    await modal.present();
+   
   }
 
   // Dans profile.page.ts

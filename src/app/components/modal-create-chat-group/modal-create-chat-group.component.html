@@ -1,0 +1,287 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="closeModal()" fill="clear">
+        <ion-icon name="chevron-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title *ngIf="!isEditingMode">Nouveau groupe</ion-title>
+    <ion-title *ngIf="isEditingMode">Modifier le groupe</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Progression -->
+  <div class="steps-container">
+    <div class="step" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+      <div class="step-number">
+        <span *ngIf="currentStep <= 1">1</span>
+        <ion-icon *ngIf="currentStep > 1" name="checkmark"></ion-icon>
+      </div>
+      <div class="step-label">{{ isEditingMode ? 'Membres' : 'Membres' }}</div>
+    </div>
+    <div class="step-line" [class.active]="currentStep > 1"></div>
+    <div class="step" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+      <div class="step-number">
+        <span *ngIf="currentStep <= 2">2</span>
+        <ion-icon *ngIf="currentStep > 2" name="checkmark"></ion-icon>
+      </div>
+      <div class="step-label">{{ isEditingMode ? 'Infos' : 'Infos' }}</div>
+    </div>
+    <div class="step-line" [class.active]="currentStep > 2"></div>
+    <div class="step" [class.active]="currentStep >= 3">
+      <div class="step-number">3</div>
+      <div class="step-label">{{ isEditingMode ? 'Mettre à jour' : 'Créer' }}</div>
+    </div>
+  </div>
+
+  <!-- ─── ÉTAPE 1 : PARTICIPANTS ─── -->
+  <div class="step-content" *ngIf="currentStep === 1">
+    <div class="step-header">
+      <h2 *ngIf="!isEditingMode">Ajouter des membres</h2>
+      <h2 *ngIf="isEditingMode">Gérer les membres</h2>
+      <p *ngIf="!isEditingMode">Sélectionnez les personnes à inviter</p>
+      <p *ngIf="isEditingMode">Sélectionnez les membres à conserver dans le groupe</p>
+    </div>
+
+    <ion-searchbar
+      [(ngModel)]="searchQuery"
+      placeholder="Rechercher…"
+      animated="true">
+    </ion-searchbar>
+
+    <div class="participants-list">
+      <div *ngIf="isLoading" class="loading-container">
+        <ion-spinner name="dots"></ion-spinner>
+        <p>Chargement…</p>
+      </div>
+
+      <div *ngIf="!isLoading && filteredParticipants.length === 0" class="empty-state">
+        <ion-icon name="people"></ion-icon>
+        <p>Aucun résultat</p>
+      </div>
+
+      <div
+        *ngFor="let participant of filteredParticipants"
+        class="participant-item"
+        [class.is-selected]="isParticipantSelected(participant.id)"
+        (click)="toggleParticipantSelection(participant)">
+        <div class="participant-info">
+          <img [src]="participant.avatar || 'assets/avatar-default.png'" [alt]="participant.username">
+          <div class="participant-details">
+            <h3>{{ participant.username }}</h3>
+            <p>{{ participant.userInfo?.first_name || '' }} {{ participant.userInfo?.last_name || '' }}</p>
+          </div>
+        </div>
+        <div class="participant-checkbox">
+          <ion-checkbox
+            [checked]="isParticipantSelected(participant.id)"
+            [disabled]="false">
+          </ion-checkbox>
+        </div>
+      </div>
+    </div>
+
+    <div class="selected-summary" *ngIf="selectedParticipants.length > 0">
+      <h4>{{ selectedParticipants.length }} sélectionné{{ selectedParticipants.length > 1 ? 's' : '' }}</h4>
+      <div class="selected-avatars">
+        <img
+          *ngFor="let p of selectedParticipants.slice(0, 5)"
+          [src]="p.avatar || 'assets/avatar-default.png'"
+          [alt]="p.username"
+          [title]="p.username">
+        <div *ngIf="selectedParticipants.length > 5" class="more-indicator">
+          +{{ selectedParticipants.length - 5 }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ÉTAPE 2 : CONFIGURATION ─── -->
+  <div class="step-content" *ngIf="currentStep === 2">
+    <div class="step-header">
+      <h2>Configurer le groupe</h2>
+      <p>Donnez une identité à votre groupe</p>
+    </div>
+
+    <form [formGroup]="groupForm" class="group-form">
+      <div class="avatar-section">
+        <label class="avatar-label">Photo</label>
+        <div class="avatar-container">
+          <div class="avatar-preview" (click)="triggerAvatarInput()">
+            <img *ngIf="groupAvatarPreview" [src]="groupAvatarPreview" alt="Avatar">
+            <div *ngIf="!groupAvatarPreview" class="avatar-placeholder">
+              <ion-icon name="camera"></ion-icon>
+              <span>Ajouter</span>
+            </div>
+          </div>
+          <button
+            *ngIf="groupAvatarPreview"
+            type="button"
+            class="remove-avatar-btn"
+            (click)="removeAvatar()">
+            <ion-icon name="close"></ion-icon>
+          </button>
+        </div>
+        <input
+          #avatarInput
+          type="file"
+          accept="image/*"
+          (change)="onAvatarChange($event)"
+          style="display:none">
+      </div>
+
+      <ion-item lines="none">
+        <ion-label position="floating">Nom du groupe</ion-label>
+        <ion-input
+          formControlName="name"
+          placeholder="Ex : Les devs"
+          maxlength="30">
+        </ion-input>
+      </ion-item>
+      <div class="char-count" *ngIf="groupForm.get('name')?.value">
+        {{ groupForm.get('name')?.value?.length || 0 }}/30
+      </div>
+
+      <ion-item lines="none">
+        <ion-label position="floating">Description (optionnel)</ion-label>
+        <ion-textarea
+          formControlName="description"
+          placeholder="Décrivez votre groupe…"
+          rows="3"
+          maxlength="200">
+        </ion-textarea>
+      </ion-item>
+      <div class="char-count" *ngIf="groupForm.get('description')?.value">
+        {{ groupForm.get('description')?.value?.length || 0 }}/200
+      </div>
+
+      <!-- Options du groupe -->
+      <div class="group-options">
+        <div class="option-item">
+          <div class="option-info">
+            <h5>Groupe privé</h5>
+            <p>Seuls les membres invités peuvent rejoindre ce groupe</p>
+          </div>
+          <ion-toggle [(ngModel)]="isPrivate"></ion-toggle>
+        </div>
+        
+        <div class="option-item">
+          <div class="option-info">
+            <h5>Messages admins uniquement</h5>
+            <p>Seuls les administrateurs peuvent envoyer des messages</p>
+          </div>
+          <ion-toggle [(ngModel)]="isAdminOnly"></ion-toggle>
+        </div>
+      </div>
+    </form>
+
+    <div class="group-summary">
+      <h4>Récapitulatif</h4>
+      <div class="summary-item">
+        <ion-icon name="people"></ion-icon>
+        <span>{{ selectedParticipants.length + 1 }} membre{{ selectedParticipants.length > 0 ? 's' : '' }}</span>
+      </div>
+      <div class="summary-item" *ngIf="groupForm.get('name')?.value">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        <span>{{ groupForm.get('name')?.value }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ÉTAPE 3 : CONFIRMATION ─── -->
+  <div class="step-content" *ngIf="currentStep === 3">
+    <div class="step-header">
+      <h2 *ngIf="!isEditingMode">Tout est prêt</h2>
+      <h2 *ngIf="isEditingMode">Modifications prêtes</h2>
+      <p *ngIf="!isEditingMode">Vérifiez les informations avant de créer</p>
+      <p *ngIf="isEditingMode">Vérifiez les modifications avant de mettre à jour</p>
+    </div>
+
+    <div class="final-summary">
+      <div class="group-preview">
+        <div class="group-avatar">
+          <img *ngIf="groupAvatarPreview" [src]="groupAvatarPreview" alt="Avatar">
+          <div *ngIf="!groupAvatarPreview" class="default-avatar">
+            <ion-icon name="people"></ion-icon>
+          </div>
+        </div>
+        <div class="group-info">
+          <h3>{{ groupForm.get('name')?.value }}</h3>
+          <p *ngIf="groupForm.get('description')?.value">
+            {{ groupForm.get('description')?.value }}
+          </p>
+          <div class="member-count">
+            <ion-icon name="people"></ion-icon>
+            {{ selectedParticipants.length + 1 }} membres
+          </div>
+          <div class="group-badges" *ngIf="isPrivate || isAdminOnly">
+            <ion-chip *ngIf="isPrivate" color="warning">
+              <ion-icon name="lock-closed"></ion-icon>
+              Privé
+            </ion-chip>
+            <ion-chip *ngIf="isAdminOnly" color="secondary">
+              <ion-icon name="shield-checkmark"></ion-icon>
+              Admins seulement
+            </ion-chip>
+          </div>
+        </div>
+      </div>
+
+      <div class="participants-preview">
+        <h4>Participants</h4>
+        <div class="participants-grid">
+          <div class="participant-card current-user">
+            <img [src]="CurrentUser?.avatar || 'assets/avatar-default.png'" [alt]="CurrentUser?.username">
+            <span>Vous</span>
+          </div>
+          <div
+            *ngFor="let participant of selectedParticipants"
+            class="participant-card">
+            <img [src]="participant.avatar || 'assets/avatar-default.png'" [alt]="participant.username">
+            <span>{{ participant.username }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="creation-actions">
+      <ion-button
+        expand="block"
+        size="large"
+        [disabled]="isLoading || !groupForm.valid"
+        (click)="createGroup()"
+        class="create-btn">
+        <ion-icon name="checkmark" slot="start" *ngIf="!isLoading"></ion-icon>
+        {{ isLoading ? (isEditingMode ? 'Mise à jour en cours…' : 'Création en cours…') : (isEditingMode ? 'Mettre à jour le groupe' : 'Créer le groupe') }}
+      </ion-button>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Footer navigation -->
+<ion-footer *ngIf="currentStep < 3">
+  <div class="step-navigation">
+    <ion-button
+      *ngIf="currentStep > 1"
+      fill="clear"
+      (click)="previousStep()">
+      Retour
+    </ion-button>
+    <span *ngIf="currentStep === 1"></span>
+
+    <ion-button
+      *ngIf="currentStep === 1"
+      [disabled]="!canGoToStep2()"
+      (click)="nextStep()">
+      Continuer
+    </ion-button>
+
+    <ion-button
+      *ngIf="currentStep === 2"
+      [disabled]="!canGoToStep3()"
+      (click)="nextStep()">
+      Continuer
+    </ion-button>
+  </div>
+</ion-footer>

@@ -8,7 +8,7 @@ import {
   checkmarkDoneOutline, closeOutline, notificationsOutline,
   trophyOutline, heartOutline, chatbubbleOutline, shareOutline,
   statsChartOutline, personOutline, alertCircleOutline, starOutline, checkmarkDoneCircle } from 'ionicons/icons';
-import { Auth } from 'src/services/AUTH/auth';
+import { Auth } from 'src/services/AUTH/local-auth/auth';
 
 interface SegmentOption {
   value: string;

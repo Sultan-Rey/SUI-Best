@@ -1,0 +1,262 @@
+// ─────────────────────────────────────────────
+// Bottom Navigation Component
+// Dark theme — glassmorphism chord
+// ─────────────────────────────────────────────
+
+:host {
+  display: block;
+  position: relative;
+  width: 100%;
+  --orange:        #FF6B00;
+  --orange-glow:   rgba(255, 107, 0, 0.25);
+  --item-w:        90px;
+  --nav-h:         88px;
+  --circle-d:      88px;
+  --circle-r:      44px;
+  --chord-h:       32px;
+  --font-nav:      'DM Sans', -apple-system, sans-serif;
+}
+
+// ── Nav bar wrapper ───────────────────────────
+.nav-bar {
+  position: relative;
+  width: 100%;
+  height: var(--nav-h);
+  background: transparent;
+  overflow: visible;
+}
+
+// ── Scrollable track ──────────────────────────
+.nav-track {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &.dragging { cursor: grabbing; }
+}
+
+// ── Strip that moves ──────────────────────────
+.nav-strip {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  will-change: transform;
+}
+
+// ── Individual item ───────────────────────────
+.nav-item {
+  width: var(--item-w);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+
+  .item-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  svg {
+    width: 22px;
+    height: 22px;
+    stroke: rgba(255, 255, 255, 0.3);
+    transition: stroke 0.3s ease;
+    display: block;
+  }
+
+  .item-label {
+    font-family: var(--font-nav);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.2px;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+  }
+
+  // Item adjacent — légèrement plus lumineux
+  &.near {
+    svg         { stroke: rgba(255, 255, 255, 0.6); }
+    .item-label { color: rgba(255, 255, 255, 0.6); }
+  }
+
+  // Item capturé — invisible dans la bande
+  &.captured {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+// ── Badge ─────────────────────────────────────
+.badge-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -10px;
+  background: #e63946;
+  color: #fff;
+  font-family: var(--font-nav);
+  font-size: 8.5px;
+  font-weight: 700;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Circle portal ─────────────────────────────
+.circle-portal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--circle-d);
+  height: var(--circle-d);
+  z-index: 10;
+  pointer-events: none;
+
+  &.snapped {
+    animation: snapPulse 0.3s ease;
+  }
+}
+
+// Transparent — le fond noir de l'app transparaît
+.circle-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: transparent;
+  z-index: 1;
+}
+
+// ── Action button (immuable) ──────────────────
+.circle-action-btn {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: all;
+  z-index: 6; // au-dessus du ring SVG
+  transition: background 0.2s ease;
+  padding: 0;
+
+  svg {
+    width: 27px;
+    height: 27px;
+    stroke: #ffffff; // blanc sur fond noir
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+    display: block;
+  }
+
+  &:active {
+    background: var(--orange-glow);
+  }
+}
+
+// ── Séparateur chord — désactivé ─────────────
+// Le glassmorphisme crée sa propre limite visuelle
+// via border-top, pas besoin de div séparée
+.chord-line {
+  display: none;
+}
+
+// ── Chord glassmorphisme ──────────────────────
+.circle-chord {
+  position: absolute;
+  bottom: 2px;
+  left: 3px;
+  right: 3px;
+  height: var(--chord-h);
+
+  // Clippé en arc dans le cercle
+  border-radius: 0 0 calc(var(--circle-r) - 2px) calc(var(--circle-r) - 2px);
+  overflow: hidden;
+
+  // Glassmorphisme : verre dépoli sombre
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px) saturate(1.6) brightness(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6) brightness(1.1);
+
+  // Délimitation subtile en haut de la corde
+  border-top: 0.5px solid rgba(255, 255, 255, 0.18);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  box-sizing: border-box;
+
+  span {
+    font-family: var(--font-nav);
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    animation: chordIn 0.25s ease forwards;
+
+    // Ne jamais déborder de la corde
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+
+    // Réduction automatique jusqu'à 7.5px si nécessaire
+    font-size: clamp(7.5px, 1.8vw, 10px);
+  }
+}
+
+// ── SVG ring ──────────────────────────────────
+// inset: 0 (pas de débordement) — élimine le filet orangé
+.circle-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+// ── Animations ────────────────────────────────
+@keyframes snapPulse {
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  40%  { transform: translate(-50%, -50%) scale(1.05); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes chordIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

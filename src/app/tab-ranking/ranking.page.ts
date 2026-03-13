@@ -9,7 +9,7 @@ import { VoteService } from '../../services/VOTE_SERVICE/vote-service';
 import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service';
 import { forkJoin, Observable, of } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
-
+import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import { 
   IonContent, 
   IonHeader, 
@@ -64,6 +64,7 @@ interface ChallengeRanking {
   imports: [
     CommonModule,
     FormsModule,
+    HeaderComponentComponent,
     IonHeader,
     IonToolbar,
     IonContent,

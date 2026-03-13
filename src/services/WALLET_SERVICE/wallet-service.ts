@@ -6,7 +6,8 @@ import { Coupon, CouponType } from '../../models/Coupon';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { IncomeService } from '../INCOME_SERVICE/income-service';
 import { Pack, CouponTypeInfo, CouponValidation } from '../../interfaces/income.interfaces';
-import { Auth } from '../AUTH/auth';
+import { Auth } from '../AUTH/local-auth/auth';
+import { FirebaseService } from '../API/firebase/firebase-service';
 
 // Interface locale pour compatibilité
 export interface UserBalance {
@@ -81,7 +82,7 @@ export class WalletService {
   );
 
   constructor(
-    private api: ApiJSON,
+    private api: FirebaseService,
     private incomeService: IncomeService,
     private auth: Auth
   ) {

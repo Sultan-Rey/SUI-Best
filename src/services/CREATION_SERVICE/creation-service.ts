@@ -7,13 +7,14 @@ import { Vote } from '../../models/Vote';
 import { ChallengeService } from '../CHALLENGE_SERVICE/challenge-service';
 import { ProfileService } from '../PROFILE_SERVICE/profile-service';
 import { UserProfile } from '../../models/User';
+import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CreationService {
   private readonly contentResource = 'contents';
-  private readonly uploadResource = 'api/upload'
+
   
   // BehaviorSubjects isolés par contexte pour éviter le couplage implicite
   private newContentSubject = new BehaviorSubject<Content | null>(null);
@@ -25,7 +26,7 @@ export class CreationService {
   discoveryFeed$ = this.discoveryFeedSubject.asObservable();
   followedFeed$ = this.followedFeedSubject.asObservable();
 
-  constructor(private api: ApiJSON, private challengeService: ChallengeService, private profileService: ProfileService) {}
+  constructor(private api: FirebaseService, private profileService: ProfileService) {}
 
   // =====================
   // MÉTHODES POUR LES CONTENUS
@@ -39,60 +40,45 @@ createContentWithFile(
     isPublic: boolean;
     allowDownloads: boolean;
     allowComments: boolean;
-    commentIds:[],
-    likedIds:[],
-    status: ContentStatus,
+    commentIds: [];
+    likedIds: [];
+    status: ContentStatus;
     challengeId?: string;
-    cadrage: 'default'| 'fit';
+    cadrage: 'default' | 'fit';
     source: ContentSource;
   },
   progressCallback?: (progress: number) => void
 ): Observable<Content> {
 
- 
-  return this.api.upload<{ file: { path: string } }>(
-    this.uploadResource, 
-    file, 
-    'file',
-    !!progressCallback
+  return this.api.upload<any>(
+    'storage/upload',   // ← dossier Firebase Storage
+    file,
+    'file'
+    // on retire le 4e argument (progressCallback booléen) — Firebase ne supporte pas ça ici
   ).pipe(
-    switchMap((event: any) => {
-  // Handle progress events
-  if (event.type) {
-    if (progressCallback && event.loaded !== undefined && event.total) {
-      const progress = Math.round((100 * event.loaded) / event.total);
-      progressCallback(progress);
-    }
-    // Return an empty observable that doesn't emit any values
-    return EMPTY;
-  }
+    switchMap((response: { url: string; data: any }) => {
 
-  // Handle the final response
-  const uploadResponse = event.body || event;
-  
-  // Create content data
-  const contentData: Omit<Content, 'id'> = {
-    ...metadata,
-    fileUrl: uploadResponse.file.path,
-    mimeType: file.type,
-    fileSize: file.size,
-    status: metadata.status,
-    challengeId: metadata.challengeId || '',
-    cadrage: metadata.cadrage,  
-    viewCount: 0,
-    likeCount: 0,
-    voteCount: 0,
-    shareCount: 0,
-    giftCount: 0,
-    commentCount: 0,
-    downloadCount: 0,
-    createdAt: new Date().toISOString(),
-    tags: this.extractTags(metadata.description || '')
-  };
+      const contentData: Omit<Content, 'id'> = {
+        ...metadata,
+        fileUrl: response.url,           // ← URL Firebase Storage directe
+        mimeType: file.type,
+        fileSize: file.size,
+        status: metadata.status,
+        challengeId: metadata.challengeId || '',
+        cadrage: metadata.cadrage,
+        viewCount: 0,
+        likeCount: 0,
+        voteCount: 0,
+        shareCount: 0,
+        giftCount: 0,
+        commentCount: 0,
+        downloadCount: 0,
+        createdAt: new Date().toISOString(),
+        tags: this.extractTags(metadata.description || '')
+      };
 
-  // Return the API call that creates the content
-  return this.api.create<Content>(this.contentResource, contentData);
-}),
+      return this.api.create<Content>(this.contentResource, contentData);
+    }),
     catchError(error => {
       console.error('Erreur lors de la création du contenu:', error);
       return throwError(() => error);
@@ -132,8 +118,8 @@ getUserContents(userId: string): Observable<Content[]> {
 }
 
 
-getContentById(id: string): Observable<Content> {
-  return this.api.getById<Content>(this.contentResource, id);
+getContentById(id: string): Observable<Content | null> {
+  return this.api.getById<Content | null>(this.contentResource, id);
 }
 
 /**
@@ -150,7 +136,7 @@ getFeedContents(page: number = 1, limit: number = 10): Observable<Content[]> {
     '_limit': limit.toString()         // Limitation
   };
 
-  return this.api.getAll<Content>(this.contentResource, params).pipe(
+  return this.api.getAll<Content>(this.contentResource).pipe(
     map(contents => contents.map(content => ({
       ...content,
       // Optionnel : on peut forcer la sécurisation de l'URL ici si besoin
@@ -197,7 +183,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
   return this.api.getById<Content>(this.contentResource, contentId).pipe(
     tap(content => console.log('Contenu récupéré:', content)),
     switchMap(content => {
-      const currentLikes = [...(content.likedIds || [])];
+      const currentLikes = [...(content?.likedIds || [])];
       console.log('Likes actuels:', currentLikes);
       
       const userHasLiked = currentLikes.includes(userId);
@@ -235,7 +221,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
   unlikeContent(contentId: string, userId: string): Observable<Content> {
     return this.api.getById<Content>(this.contentResource, contentId).pipe(
       switchMap(content => {
-        const updatedLikes = (content.likedIds || []).filter(id => id !== userId);
+        const updatedLikes = (content?.likedIds || []).filter(id => id !== userId);
         return this.api.patch<Content>(this.contentResource, contentId, {
           likedIds: updatedLikes,
           likeCount: updatedLikes.length
@@ -253,7 +239,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    */
   hasLikedContent(contentId: string, userId: string): Observable<boolean> {
     return this.api.getById<Content>(this.contentResource, contentId).pipe(
-      map(content => (content.likedIds || []).includes(userId)),
+      map(content => (content?.likedIds || []).includes(userId)),
       catchError(error => {
         console.error('Erreur lors de la vérification du like:', error);
         return of(false);
@@ -290,7 +276,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<number> Nombre total de vues
    */
   getTotalViewsForChallenge(challengeId: string): Observable<number> {
-    return this.api.get<Content[]>(this.contentResource, { challengeId }).pipe(
+    return this.api.get<any>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;
@@ -315,7 +301,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<number> Nombre total de votes
    */
   getTotalVotesForChallenge(challengeId: string): Observable<number> {
-    return this.api.get<Content[]>(this.contentResource, { challengeId }).pipe(
+    return this.api.get<any>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;
@@ -340,7 +326,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<number> Nombre total de partages
    */
   getTotalSharesForChallenge(challengeId: string): Observable<number> {
-    return this.api.get<Content[]>(this.contentResource, { challengeId }).pipe(
+    return this.api.get<any>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return 0;
@@ -365,7 +351,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<{content: Content, profile: UserProfile}[]> Liste des participants avec leurs contenus et profils
    */
   getChallengeParticipants(challengeId: string): Observable<{content: Content, profile: UserProfile}[]> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }, true).pipe(
+    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
       switchMap(contents => {
         if (!contents || contents.length === 0) {
           return of([]);
@@ -419,7 +405,7 @@ getContentsByChallenge(challengeId: string): Observable<Content[]> {
    * @returns Observable<UserProfile[]> Liste des profils des participants
    */
   getChallengeParticipantProfiles(challengeId: string): Observable<UserProfile[]> {
-    return this.api.filter<Content>(this.contentResource, { challengeId }, true).pipe(
+    return this.api.filter<Content>(this.contentResource, { challengeId }).pipe(
       map(contents => {
         if (!contents || contents.length === 0) {
           return [];

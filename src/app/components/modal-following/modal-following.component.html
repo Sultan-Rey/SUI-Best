@@ -1,0 +1,168 @@
+<div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-content">
+        <h2 class="modal-title">Réseau</h2>
+        <button class="close-btn" (click)="closeModal()" aria-label="Fermer">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Segments -->
+    <div class="segments-container">
+      <div class="segment-tabs">
+        <button 
+          class="segment-tab" 
+          [class.active]="activeSegment === 'following'"
+          (click)="switchSegment('following')"
+        >
+          <span class="tab-label">Suivis</span>
+          <span class="tab-count">{{ followingCount }}</span>
+        </button>
+        <button 
+          class="segment-tab" 
+          [class.active]="activeSegment === 'fans'"
+          (click)="switchSegment('fans')"
+        >
+          <span class="tab-label">Fans</span>
+          <span class="tab-count">{{ fansCount }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="modal-content">
+      <!-- Loading State -->
+      <div class="loading-container" *ngIf="loading$ | async">
+        <div class="skeleton-loader">
+          <div class="skeleton-item" *ngFor="let i of [1,2,3,4,5]">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-line skeleton-name"></div>
+              <div class="skeleton-line skeleton-username"></div>
+            </div>
+            <div class="skeleton-action"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Following Content -->
+      <div class="profiles-container" *ngIf="!(loading$ | async) && activeSegment === 'following'">
+        <div class="profiles-list" *ngIf="((followingProfiles$ | async) || []).length > 0">
+          <div 
+            class="profile-item" 
+            *ngFor="let profile of (followingProfiles$ | async) || []"
+            [class.processing]="isProcessing(profile.id)"
+          >
+            <div class="profile-info">
+              <img 
+                [src]="profile.avatar || 'assets/avatar-default.png'" 
+                [alt]="profile.username"
+                class="profile-avatar"
+                (error)="$event.target.src='assets/avatar-default.png'"
+              >
+              <div class="profile-details">
+                <h3 class="profile-name">{{ profile.displayName || profile.username }}</h3>
+                <p class="profile-username">@{{ profile.username }}</p>
+                <p class="profile-bio" *ngIf="profile.userInfo?.bio">{{ profile.userInfo.bio }}</p>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <button 
+                class="action-btn unfollow-btn"
+                (click)="toggleFollow(profile.id, true)"
+                [disabled]="isProcessing(profile.id)"
+              >
+                <span *ngIf="!isProcessing(profile.id)">Suivi</span>
+                <span *ngIf="isProcessing(profile.id)" class="loading-spinner"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="empty-state" *ngIf="(followingProfiles$ | async)?.length === 0">
+          <div class="empty-icon">👥</div>
+          <h3>Aucun suivi</h3>
+          <p>Vous ne suivez personne pour le moment</p>
+        </div>
+
+        <!-- Load More -->
+        <div class="load-more-container" *ngIf="followingHasMore">
+          <button class="load-more-btn" (click)="loadMore()">
+            <span>Charger plus</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fans Content -->
+      <div class="profiles-container" *ngIf="!(loading$ | async) && activeSegment === 'fans'">
+        <div class="profiles-list" *ngIf="((fansProfiles$ | async) || []).length > 0">
+          <div 
+            class="profile-item" 
+            *ngFor="let profile of (fansProfiles$ | async) || []"
+            [class.processing]="isProcessing(profile.id)"
+          >
+            <div class="profile-info">
+              <img 
+                [src]="profile.avatar || 'assets/avatar-default.png'" 
+                [alt]="profile.username"
+                class="profile-avatar"
+                (error)="$event.target.src='assets/avatar-default.png'"
+              >
+              <div class="profile-details">
+                <h3 class="profile-name">{{ profile.displayName || profile.username }}</h3>
+                <p class="profile-username">@{{ profile.username }}</p>
+                <p class="profile-bio" *ngIf="profile.userInfo?.bio">{{ profile.userInfo.bio }}</p>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <button 
+                class="action-btn follow-btn"
+                (click)="toggleFollow(profile.id, false)"
+                [disabled]="isProcessing(profile.id)"
+              >
+                <span *ngIf="!isProcessing(profile.id)">Suivre</span>
+                <span *ngIf="isProcessing(profile.id)" class="loading-spinner"></span>
+              </button>
+              <button 
+                class="action-btn blacklist-btn"
+                (click)="blacklistProfile(profile.id)"
+                [disabled]="isProcessing(profile.id)"
+                title="Blacklister"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="empty-state" *ngIf="(fansProfiles$ | async)?.length === 0">
+          <div class="empty-icon">🌟</div>
+          <h3>Aucun fan</h3>
+          <p>Personne ne vous suit pour le moment</p>
+        </div>
+
+        <!-- Load More -->
+        <div class="load-more-container" *ngIf="fansHasMore">
+          <button class="load-more-btn" (click)="loadMore()">
+            <span>Charger plus</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

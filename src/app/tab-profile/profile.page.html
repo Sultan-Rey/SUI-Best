@@ -12,7 +12,7 @@
     <ion-title>{{ userProfile.displayName }}</ion-title>
     <ion-buttons slot="end">
       
-      <ion-button (click)="presentMoreOptions()">
+      <ion-button (click)="presentMoreOptions()" *ngIf="userProfile.id">
         <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -74,7 +74,7 @@
         <p class="bio-text">{{ userProfile.userInfo.bio }}</p>
         
         <div class="info-items">
-          <div class="info-item" *ngIf="userProfile.userInfo.school">
+          <div class="info-item" *ngIf="userProfile.userInfo.school && userProfile.userInfo.school.id!==''">
             <ion-icon name="school-outline" class="info-icon"></ion-icon>
             <span>{{ userProfile.userInfo.school }}</span>
           </div>
@@ -205,20 +205,35 @@
   <ng-template #loading>
     <div class="loading-container">
       <div class="loading-content">
-        <ion-spinner name="crescent" class="loading-spinner"></ion-spinner>
-        <h3 class="loading-text">Chargement du profil...</h3>
-        <div class="loading-skeleton">
-          <div class="skeleton-avatar"></div>
-          <div class="skeleton-info">
-            <div class="skeleton-line skeleton-name"></div>
-            <div class="skeleton-line skeleton-username"></div>
-          </div>
+        <!-- Avatar skeleton -->
+        <div class="skeleton-avatar-section">
+          <ion-skeleton-text animated="true" style="width: 100px; height: 100px; border-radius: 50%;"></ion-skeleton-text>
         </div>
+        
+        <!-- Name and username skeleton -->
+        <div class="skeleton-info">
+          <ion-skeleton-text animated="true" style="width: 200px; height: 24px; margin-bottom: 8px;"></ion-skeleton-text>
+          <ion-skeleton-text animated="true" style="width: 150px; height: 18px;"></ion-skeleton-text>
+        </div>
+        
+        <!-- Stats skeleton -->
         <div class="skeleton-stats">
           <div class="skeleton-stat" *ngFor="let i of [1,2,3,4]">
-            <div class="skeleton-number"></div>
-            <div class="skeleton-label"></div>
+            <ion-skeleton-text animated="true" style="width: 40px; height: 24px; margin-bottom: 4px;"></ion-skeleton-text>
+            <ion-skeleton-text animated="true" style="width: 50px; height: 16px;"></ion-skeleton-text>
           </div>
+        </div>
+        
+        <!-- Bio skeleton -->
+        <div class="skeleton-bio">
+          <ion-skeleton-text animated="true" style="width: 100%; height: 16px; margin-bottom: 8px;"></ion-skeleton-text>
+          <ion-skeleton-text animated="true" style="width: 80%; height: 16px;"></ion-skeleton-text>
+        </div>
+        
+        <!-- Action buttons skeleton -->
+        <div class="skeleton-actions">
+          <ion-skeleton-text animated="true" style="width: 100%; height: 48px; margin-bottom: 12px; border-radius: 8px;"></ion-skeleton-text>
+          <ion-skeleton-text animated="true" style="width: 100%; height: 48px; border-radius: 8px;"></ion-skeleton-text>
         </div>
       </div>
     </div>

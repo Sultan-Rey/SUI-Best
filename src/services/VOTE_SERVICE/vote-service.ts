@@ -6,6 +6,7 @@ import { Content } from 'src/models/Content';
 import { Observable, of, throwError } from 'rxjs';
 import { map, switchMap, catchError, tap, take } from 'rxjs/operators';
 import { ChallengeService } from '../CHALLENGE_SERVICE/challenge-service';
+import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root',
@@ -26,7 +27,7 @@ export class VoteService {
     };
   }
 
-  constructor(private api: ApiJSON, private challengeService: ChallengeService) {}
+  constructor(private api: FirebaseService, private challengeService: ChallengeService) {}
 
   /**
    * Définit la règle de vote
@@ -49,8 +50,8 @@ export class VoteService {
    * @param contentId ID du contenu
    */
   getVotesForContent(contentId: string): Observable<Vote[]> {
-    return this.api.get<Content>(this.CONTENT_URL, { id: contentId }).pipe(
-      map(content => content.votersList || [])
+    return this.api.getById<Content>(this.CONTENT_URL, contentId).pipe(
+      map(content => content?.votersList || [])
     );
   }
 
@@ -60,9 +61,9 @@ export class VoteService {
    * @param contentId ID du contenu
    */
   getUserVoteForContent(userId: string, contentId: string): Observable<Vote | undefined> {
-    return this.api.get<Content>(this.CONTENT_URL, { id: contentId }).pipe(
+    return this.api.getById<Content>(this.CONTENT_URL,contentId).pipe(
       map(content => {
-        if (!content.votersList) return undefined;
+        if (!content?.votersList) return undefined;
         return content.votersList.find(vote => vote.userId === userId);
       })
     );
@@ -73,10 +74,10 @@ export class VoteService {
    * @param userId ID de l'utilisateur
    * @param contentId ID du contenu
    */
-  removeVote(userId: string, contentId: string): Observable<Content> {
-    return this.api.get<Content>(this.CONTENT_URL, { id: contentId }).pipe(
+  removeVote(userId: string, contentId: string): Observable<Content | null> {
+    return this.api.getById<Content | null>(this.CONTENT_URL,contentId).pipe(
       switchMap(content => {
-        if (!content.votersList) {
+        if (!content?.votersList) {
           return of(content);
         }
         
@@ -104,8 +105,8 @@ export class VoteService {
    * @param contentId ID du contenu
    */
   getTotalVotesForContent(contentId: string): Observable<number> {
-    return this.api.get<Content>(this.CONTENT_URL, { id: contentId }).pipe(
-      map(content => content.voteCount || 0)
+    return this.api.getById<Content>(this.CONTENT_URL,  contentId ).pipe(
+      map(content => content?.voteCount || 0)
     );
   }
 
@@ -115,14 +116,14 @@ export class VoteService {
    * @param userId ID de l'utilisateur dont on veut mettre à jour le vote
    * @param newVoteValue Nouvelle valeur du vote
    */
-  updateVote(contentId: string, userId: string, newVoteValue: number): Observable<Content> {
+  updateVote(contentId: string, userId: string, newVoteValue: number): Observable<Content | null> {
     if (this.voteRule === VoteRule.ONE_VOTE_PER_USER) {
       return throwError(() => new Error('La mise à jour des votes n\'est pas autorisée avec la règle ONE_VOTE_PER_USER'));
     }
 
-    return this.api.get<Content>(this.CONTENT_URL, { id: contentId }).pipe(
+    return this.api.getById<Content | null>(this.CONTENT_URL, contentId).pipe(
       switchMap(content => {
-        if (!content.votersList) {
+        if (!content?.votersList) {
           return throwError(() => new Error('Aucun vote trouvé pour ce contenu'));
         }
         
@@ -154,7 +155,7 @@ export class VoteService {
   addVoteToContent(vote: Vote, voteRule: VoteRule = VoteRule.UNLIMITED_VOTES): Observable<Content> {
     return this.api.getById<Content>(this.CONTENT_URL, vote.contentId).pipe(
       switchMap(content => {
-        const currentVotersList = [...(content.votersList || [])];
+        const currentVotersList = [...(content?.votersList || [])];
         
         if (voteRule === VoteRule.UNLIMITED_VOTES) {
           // Mode UNLIMITED_VOTES: on cherche si l'utilisateur a déjà voté POUR CE CONTENU
@@ -215,7 +216,7 @@ export class VoteService {
     // Récupérer le challenge pour connaître la règle de vote
     return this.challengeService.getChallengeById(challengeId).pipe(
       switchMap(challenge => {
-        const voteRule = challenge.vote_rule as VoteRule;
+        const voteRule = challenge?.vote_rule as VoteRule;
         
         // Si la règle est UNLIMITED_VOTES, l'utilisateur peut toujours voter
         if (voteRule === VoteRule.UNLIMITED_VOTES) {
@@ -225,7 +226,7 @@ export class VoteService {
         // Pour ONE_VOTE_PER_USER, on vérifie si l'utilisateur a déjà voté
         return this.api.getById<Content>(this.CONTENT_URL, contentId).pipe(
           map(content => {
-            const existingVote = (content.votersList || []).find(v => 
+            const existingVote = (content?.votersList || []).find(v => 
               v.userId === userId && v.challengeId === challengeId
             );
             

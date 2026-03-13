@@ -1,12 +1,12 @@
 import { Plan } from "./Plan";
 
 export interface User {
-  id: number | string;
+  id: string;
 
   /* Auth */
   email:string;
   password_hash: string;
-  QR_proof: string;
+  QR_proof?: string;
   password?: string;
   confirmPassword?: string;
   
@@ -35,6 +35,7 @@ export interface User {
 export interface UserProfile {
   id: string;
   avatar: string;
+  coverImg?: string;
   username: string;
   displayName ?: string;
   userInfo: UserInfo,
@@ -42,6 +43,7 @@ export interface UserProfile {
   isVerified: boolean;
   isFollowing: boolean;
   myFollows: string[];
+  myFans?:string[];
   myBlackList: string[];
   stats: {
     posts: number;

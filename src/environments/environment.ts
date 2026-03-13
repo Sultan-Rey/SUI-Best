@@ -11,7 +11,7 @@ export const environment = {
   authDomain: "datafire-681e8.firebaseapp.com",
   databaseURL: "https://datafire-681e8.firebaseio.com",
   projectId: "datafire-681e8",
-  storageBucket: "datafire-681e8.appspot.com",
+  storageBucket: "bestfire-681e8.appspot.com",
   messagingSenderId: "182727338924",
   appId: "1:182727338924:web:3fba3cb1b82e8a09f06809",
   measurementId: "G-95FXSY9WYT"

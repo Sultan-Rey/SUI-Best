@@ -1,22 +1,23 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { NgIf } from '@angular/common';
-import {
-  IonIcon, 
-  IonContent
-} from '@ionic/angular/standalone';
+import { NgIf, NgSwitch, NgSwitchCase } from '@angular/common';
+import {IonContent, IonFooter } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
-  search, 
-  notificationsOutline
-} from 'ionicons/icons';
-import { UserProfile } from 'src/models/User.js';
-import { Auth } from 'src/services/AUTH/auth.js';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+  search,
+  notificationsOutline, sparklesOutline, logoBitcoin, addCircle, peopleOutline, trophy, star, person } from 'ionicons/icons';
+import { UserProfile } from 'src/models/User';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { Router } from '@angular/router';
-import { DiscoveryViewComponent } from "./containers/discovery-panel/discovery-view.component.js";
-import { FollowedViewComponent } from "./containers/followed-panel/followed-view.component.js";
+import { DiscoveryViewComponent } from "./containers/discovery-panel/discovery-view.component";
+import { FollowedViewComponent } from "./containers/followed-panel/followed-view.component";
+import { MessagesComponent } from './containers/messages/messages.component';
 import { GestureController } from '@ionic/angular';
 import { switchMap, filter, takeUntil, Subject } from 'rxjs';
+import { FireAuth } from 'src/services/AUTH/fireAuth/fire-auth';
+import { HeaderComponentComponent } from '../components/header-component/header-component.component';
+import { BottomNavigationComponent } from '../components/bottom-navigation/bottom-navigation.component';
+import { PublicationComponent } from './containers/publication/publication.component';
+import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 
 @Component({
   selector: 'app-home',
@@ -25,23 +26,54 @@ import { switchMap, filter, takeUntil, Subject } from 'rxjs';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    NgIf, 
-    IonIcon, 
+    NgSwitchCase,
+    IonFooter,
     IonContent,
     DiscoveryViewComponent,
-    FollowedViewComponent
-  ]
+    FollowedViewComponent,
+    MessagesComponent,
+    PublicationComponent,
+    HeaderComponentComponent,
+    BottomNavigationComponent, NgSwitch
+]
 })
 
 export class HomePage implements OnInit {
-  selectedSegment: 'discovery' | 'followed' = 'discovery';
-  currentUserProfile: UserProfile = {} as UserProfile;
+  selectedSegment: 'discovery' | 'followed' | 'message' | 'upload' = 'discovery';
+  activeNavItem: any = null;
+
+  onNavigationChange(item: any) {
+    console.log(' Navigation changed to:', item.label);
+    
+    // Mapper les items de navigation vers les segments
+    switch(item.page) {
+      case 'challenges':
+      case 'explorez':
+        this.selectedSegment = 'discovery';
+        break;
+      case 'suivis':
+        this.selectedSegment = 'followed';
+        break;
+      case 'messages':
+        this.selectedSegment = 'message';
+        break;
+      case 'publier':
+        this.selectedSegment = 'upload';
+        break;
+      default:
+        this.selectedSegment = 'discovery';
+    }
+    
+    this.activeNavItem = item;
+  }
+
+  currentUserProfile: UserProfile  = {} as UserProfile;
   hasNotifications: boolean = true;
   private destroy$ = new Subject<void>();
 
   constructor(
     private router: Router, 
-    private authService: Auth,
+    private authService: FireAuth,
     private profileService: ProfileService,
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController
@@ -53,7 +85,7 @@ export class HomePage implements OnInit {
       stars: 0;
     };
     this.currentUserProfile.myFollows = [];
-    addIcons({search, notificationsOutline});
+    addIcons({sparklesOutline,logoBitcoin,addCircle,trophy,star,person,notificationsOutline,peopleOutline,search});
   }
 
   ngOnInit() {
@@ -69,9 +101,11 @@ export class HomePage implements OnInit {
         this.profileService.getProfileById(user.id.toString())
       )
     ).subscribe(profile => {
-      this.currentUserProfile = profile;
+      this.currentUserProfile = profile as UserProfile;
+      if(!isNullOrUndefined(this.currentUserProfile)){
       this.selectedSegment = this.currentUserProfile.myFollows.length > 5 ? 'followed' : 'discovery';
       this.cdr.markForCheck();
+      }
     });
   }
 

@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
-import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, user, User as FirebaseUser, updateProfile, GoogleAuthProvider, signInWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult } from '@angular/fire/auth';
-import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
-import { catchError, tap, map } from 'rxjs/operators';
+import { Injectable, Injector, runInInjectionContext } from '@angular/core';
+import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, updatePassword as firebaseUpdatePassword, reauthenticateWithCredential, EmailAuthProvider, user, User as FirebaseUser, updateProfile, GoogleAuthProvider, signInWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, UserProfile, sendEmailVerification } from '@angular/fire/auth';
 import { Firestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from '@angular/fire/firestore';
+import { BehaviorSubject, Observable, throwError, of, firstValueFrom } from 'rxjs';
+import { catchError, tap, map } from 'rxjs/operators';
+import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 
 export type AuthUser = {
   id: string;
@@ -12,6 +13,7 @@ export type AuthUser = {
   readonly: boolean;
   displayName?: string;
   photoURL?: string;
+  plan?: any
 };
 
 interface SessionData {
@@ -28,6 +30,7 @@ interface SessionData {
 })
 export class FireAuth {
   private readonly STORAGE_KEY = 'best_auth_user';
+  private readonly REDIRECT_KEY = 'best_google_redirect_pending';
   private readonly MAX_ATTEMPTS = 5;
   private readonly LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
   private loginAttempts = new Map<string, { attempts: number; lastAttempt: number }>();
@@ -37,20 +40,26 @@ export class FireAuth {
   currentUser$: Observable<AuthUser | null> = this.currentUserSubject.asObservable();
   
   /** Firebase Auth User Observable */
-  firebaseUser$: Observable<FirebaseUser | null> = user(this.auth);
+  firebaseUser$: Observable<FirebaseUser | null> = runInInjectionContext(this.injector, () => user(this.auth));
+
+  /** Événement pour notifier quand un utilisateur Google s'authentifie */
+  private googleSignInSubject = new BehaviorSubject<FirebaseUser | null>(null);
+  googleSignIn$: Observable<FirebaseUser | null> = this.googleSignInSubject.asObservable();
 
   constructor(
     private auth: Auth,
-    private firestore: Firestore
+    private profileService: ProfileService,
+    private firestore: Firestore,
+    private injector: Injector
   ) {
     // Écouter les changements d'état de l'authentification Firebase
-    this.firebaseUser$.subscribe(firebaseUser => {
-      if (firebaseUser) {
-        this.syncUserData(firebaseUser);
-      } else {
-        this.logout();
-      }
-    });
+    // this.firebaseUser$.subscribe(firebaseUser => {
+    //   if (firebaseUser) {
+    //     this.syncUserData(firebaseUser);
+    //   } else {
+    //     this.logout();
+    //   }
+    // });
   }
 
   /* ======================
@@ -84,17 +93,17 @@ export class FireAuth {
           }
 
           // Récupérer les données utilisateur depuis Firestore
-          const userDoc = await getDoc(doc(this.firestore, 'users', firebaseUser.uid));
+          const userDoc = await getDoc(doc(this.firestore, 'profiles', firebaseUser.uid));
           const userData = userDoc.data() as any;
 
           if (!userData) {
-            throw new Error('USER_NOT_FOUND');
+            throw new Error('PROFILE_NOT_FOUND');
           }
 
           // Vérification du statut du compte
-          if (userData.status !== 'active') {
-            throw new Error('ACCOUNT_INACTIVE');
-          }
+          // if (!firebaseUser.emailVerified) {
+          //   throw new Error('ACCOUNT_INACTIVE');
+          // }
 
           // Réinitialisation des tentatives en cas de succès
           this.loginAttempts.delete(email);
@@ -102,8 +111,8 @@ export class FireAuth {
           const authUser: AuthUser = {
             id: firebaseUser.uid,
             email: firebaseUser.email!,
-            user_type: userData.user_type || 'user',
-            status: userData.status || 'active',
+            user_type: userData.type || 'user',
+            status: firebaseUser.emailVerified ? 'active' : 'unactive',
             readonly: userData.readonly || false,
             displayName: firebaseUser.displayName || undefined,
             photoURL: firebaseUser.photoURL || undefined
@@ -147,6 +156,12 @@ export class FireAuth {
             case 'auth/too-many-requests':
               errorMessage = 'TOO_MANY_REQUESTS';
               break;
+            case 'auth/email-already-in-use':
+              errorMessage = 'EMAIL_ALREADY_EXISTS';
+              break;
+              case 'auth/network-request-failed':
+                errorMessage = 'NETWORK_REQUEST_FAILED';
+                break;
           }
           
           observer.error(new Error(errorMessage));
@@ -159,232 +174,36 @@ export class FireAuth {
     );
   }
 
-  /* ======================
-     GOOGLE SIGN-IN
-     ====================== */
-
-  async signInWithGoogle(): Promise<{ user: FirebaseUser; isNewUser: boolean }> {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(this.auth, provider);
-      const firebaseUser = result.user;
-
-      // Vérifier si l'utilisateur existe déjà dans Firestore
-      const userDoc = await getDoc(doc(this.firestore, 'users', firebaseUser.uid));
-      const isNewUser = !userDoc.exists();
-
-      if (isNewUser) {
-        // Créer le document utilisateur pour les nouveaux utilisateurs
-        const newUserData: AuthUser = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          user_type: 'fan', // Par défaut
-          status: 'active',
-          readonly: false,
-          displayName: firebaseUser.displayName || undefined,
-          photoURL: firebaseUser.photoURL || undefined
-        };
-
-        await setDoc(doc(this.firestore, 'users', firebaseUser.uid), {
-          ...newUserData,
-          created_at: new Date(),
-          updated_at: new Date()
-        });
-
-        // Sauvegarder dans localStorage
-        const safeUserData = {
-          ...newUserData,
-          lastLogin: new Date().toISOString(),
-          sessionId: this.generateSessionId(),
-          deviceInfo: this.getDeviceInfo(),
-          browserInfo: this.getBrowserInfo(),
-          loginTime: new Date().toISOString(),
-          isActive: true
-        };
-        
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(safeUserData));
-        this.currentUserSubject.next(newUserData);
-        
-        // Créer la session dans Firestore
-        await this.createSessionInFirestore(newUserData.id, safeUserData);
-      } else {
-        // Utilisateur existant - mettre à jour la session
-        const userData = userDoc.data() as AuthUser;
-        
-        const authUser: AuthUser = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          user_type: userData.user_type || 'fan',
-          status: userData.status || 'active',
-          readonly: userData.readonly || false,
-          displayName: firebaseUser.displayName || userData.displayName,
-          photoURL: firebaseUser.photoURL || userData.photoURL
-        };
-
-        // Sauvegarder dans localStorage
-        const safeUserData = {
-          ...authUser,
-          lastLogin: new Date().toISOString(),
-          sessionId: this.generateSessionId(),
-          deviceInfo: this.getDeviceInfo(),
-          browserInfo: this.getBrowserInfo(),
-          loginTime: new Date().toISOString(),
-          isActive: true
-        };
-        
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(safeUserData));
-        this.currentUserSubject.next(authUser);
-        
-        // Créer la session dans Firestore
-        await this.createSessionInFirestore(authUser.id, safeUserData);
-      }
-
-      return { user: firebaseUser, isNewUser };
-    } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      throw error;
-    }
-  }
-
-  /* ======================
-     GOOGLE SIGN-IN (REDIRECT)
-     ====================== */
-
-  async signInWithGoogleRedirect(): Promise<void> {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithRedirect(this.auth, provider);
-      // L'utilisateur sera redirigé vers Google, puis reviendra à l'app
-      // Le résultat sera géré par handleRedirectResult()
-    } catch (error: any) {
-      console.error('Google redirect sign-in error:', error);
-      throw error;
-    }
-  }
-
-  async handleRedirectResult(): Promise<{ user: FirebaseUser; isNewUser: boolean } | null> {
-    try {
-      const result = await getRedirectResult(this.auth);
-      
-      if (!result) {
-        return null; // Pas de redirection en cours
-      }
-
-      const firebaseUser = result.user;
-
-      // Vérifier si l'utilisateur existe déjà dans Firestore
-      const userDoc = await getDoc(doc(this.firestore, 'users', firebaseUser.uid));
-      const isNewUser = !userDoc.exists();
-
-      if (isNewUser) {
-        // Créer le document utilisateur pour les nouveaux utilisateurs
-        const newUserData: AuthUser = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          user_type: 'fan', // Par défaut
-          status: 'active',
-          readonly: false,
-          displayName: firebaseUser.displayName || undefined,
-          photoURL: firebaseUser.photoURL || undefined
-        };
-
-        await setDoc(doc(this.firestore, 'users', firebaseUser.uid), {
-          ...newUserData,
-          created_at: new Date(),
-          updated_at: new Date()
-        });
-
-        // Sauvegarder dans localStorage
-        const safeUserData = {
-          ...newUserData,
-          lastLogin: new Date().toISOString(),
-          sessionId: this.generateSessionId(),
-          deviceInfo: this.getDeviceInfo(),
-          browserInfo: this.getBrowserInfo(),
-          loginTime: new Date().toISOString(),
-          isActive: true
-        };
-        
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(safeUserData));
-        this.currentUserSubject.next(newUserData);
-        
-        // Créer la session dans Firestore
-        await this.createSessionInFirestore(newUserData.id, safeUserData);
-      } else {
-        // Utilisateur existant - mettre à jour la session
-        const userData = userDoc.data() as AuthUser;
-        
-        const authUser: AuthUser = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email!,
-          user_type: userData.user_type || 'fan',
-          status: userData.status || 'active',
-          readonly: userData.readonly || false,
-          displayName: firebaseUser.displayName || userData.displayName,
-          photoURL: firebaseUser.photoURL || userData.photoURL
-        };
-
-        // Sauvegarder dans localStorage
-        const safeUserData = {
-          ...authUser,
-          lastLogin: new Date().toISOString(),
-          sessionId: this.generateSessionId(),
-          deviceInfo: this.getDeviceInfo(),
-          browserInfo: this.getBrowserInfo(),
-          loginTime: new Date().toISOString(),
-          isActive: true
-        };
-        
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(safeUserData));
-        this.currentUserSubject.next(authUser);
-        
-        // Créer la session dans Firestore
-        await this.createSessionInFirestore(authUser.id, safeUserData);
-      }
-
-      return { user: firebaseUser, isNewUser };
-    } catch (error: any) {
-      console.error('Handle redirect result error:', error);
-      throw error;
-    }
-  }
+ 
 
   /* ======================
      REGISTER
      ====================== */
 
-  register(email: string, password: string, userData: Partial<AuthUser>): Observable<AuthUser> {
+  register(registrationData: any): Observable<AuthUser> {
     return new Observable<AuthUser>(observer => {
-      createUserWithEmailAndPassword(this.auth, email, password)
+      createUserWithEmailAndPassword(this.auth, registrationData.email, registrationData.password)
         .then(async (userCredential) => {
           const firebaseUser = userCredential.user;
           if (!firebaseUser) {
             throw new Error('REGISTRATION_FAILED');
           }
 
-          // Créer le document utilisateur dans Firestore
-          const userDocData = {
-            email: firebaseUser.email,
-            user_type: userData.user_type || 'user',
-            status: 'active',
-            readonly: userData.readonly || false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
+          // Mettre à jour le profil Firebase avec displayName et photoURL
+          const displayName = `${registrationData.first_name || ''} ${registrationData.last_name || ''}`.trim() || 'Utilisateur';
+          await updateProfile(firebaseUser, {
+            displayName: displayName,
+            photoURL: 'default/avatar-default.png'
+          });
 
-          await setDoc(doc(this.firestore, 'users', firebaseUser.uid), userDocData);
+          // Envoyer l'email de vérification
+          await sendEmailVerification(firebaseUser);
 
-          const authUser: AuthUser = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email!,
-            user_type: userDocData.user_type,
-            status: userDocData.status,
-            readonly: userDocData.readonly,
-            displayName: firebaseUser.displayName || undefined,
-            photoURL: firebaseUser.photoURL || undefined
-          };
-
-          observer.next(authUser);
+          // Créer le document profile dans Firestore
+           const userProfile = await this.createUserProfileModel(registrationData) ;
+                delete (userProfile as any).id;
+          
+          await setDoc(doc(this.firestore, 'profiles', firebaseUser.uid), userProfile);
           observer.complete();
         })
         .catch((error) => {
@@ -588,7 +407,7 @@ export class FireAuth {
 
   private async syncUserData(firebaseUser: FirebaseUser): Promise<void> {
     try {
-      const userDoc = await getDoc(doc(this.firestore, 'users', firebaseUser.uid));
+      const userDoc = await getDoc(doc(this.firestore, 'profiles', firebaseUser.uid));
       const userData = userDoc.data() as any;
 
       if (userData) {
@@ -653,7 +472,92 @@ export class FireAuth {
     const raw = localStorage.getItem(this.STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   }
+  private async createUserProfileModel(registrationData: any): Promise<UserProfile> {
+      if (!registrationData) {
+        throw new Error('Aucune donnée d\'inscription disponible');
+      }
+  
+      return {
+        id: '',
+        type: registrationData.user_type,
+        myFollows: [],
+        myBlackList: [],
+        username: await this.generateUniqueUsername(
+          registrationData.first_name || 'user',
+          registrationData.last_name || registrationData.id
+        ),
+        displayName: `${registrationData.first_name || ''} ${registrationData.last_name || ''}`.trim() || 'Utilisateur',
+        avatar: 'default/avatar-default.png',
+        coverImg: 'default/cover_image_default.png',
+        readonly: false,
+        isFollowing: false,
+        stats: {
+          posts: 0,
+          fans: 0,
+          votes: 0,
+          stars: 0
+        },
+        userInfo: {
+          first_name: registrationData.first_name || '',
+          last_name: registrationData.last_name || '',
+          gender: registrationData.gender || '',
+          birthDate: registrationData.birthDate || new Date(),
+          age: registrationData.age || 0,
+          email: registrationData.email || '',
+          phone: registrationData.phone || '',
+          address: registrationData.address || '',
+          website: registrationData.website || '',
+          memberShip: {date:registrationData.myPlan.startDate, plan: registrationData.myPlan.name},
+          bio: registrationData.bio || '',
+          school:  { id: registrationData.school.id, name: registrationData.school.name }
+        }
+      };
+    }
 
+    private async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
+      // Nettoyer les caractères spéciaux et les accents
+      const cleanString = (str: string) => {
+        return str
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '') // Garde uniquement les lettres et chiffres
+          .substring(0, 15); // Limite la longueur
+      };
+    
+      const cleanFirstName = cleanString(firstName);
+      const cleanLastName = cleanString(lastName);
+      
+      // Première tentative : prénom.nom
+      let baseUsername = `${cleanFirstName}.${cleanLastName}`;
+      let username = baseUsername;
+      let counter = 1;
+    
+      // Vérifier si le nom d'utilisateur existe déjà
+      const usernameExists = async (username: string): Promise<boolean> => {
+        try {
+          const profiles = await firstValueFrom(this.profileService.getProfiles());
+          return profiles.some(profile => profile.username === username);
+        } catch (error) {
+          console.error('Erreur lors de la vérification du nom d\'utilisateur', error);
+          return false; // En cas d'erreur, on considère que le nom est disponible
+        }
+      };
+    
+      // Tant que le nom d'utilisateur existe, on ajoute un numéro
+      while (await usernameExists(username)) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+        
+        // Limite de sécurité pour éviter les boucles infinies
+        if (counter > 1000) {
+          throw new Error('Impossible de générer un nom d\'utilisateur unique');
+        }
+      }
+    
+      return username;
+    }
+    
   getSessionInfo(): SessionData | null {
     const userData = this.loadUserFromStorage();
     return userData ? {

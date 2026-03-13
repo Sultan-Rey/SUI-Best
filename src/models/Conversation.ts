@@ -16,12 +16,23 @@ export type MessageStatus = 'pending' | 'sent' | 'read';
 /** Statut d'ouverture de conversation */
 export type ConversationStatus = 'open' | 'closed';
 
+export type GroupData = {
+  name: string;
+  avatar?: File | string;
+  participants: string[]; // IDs des participants
+  admins: string[];
+  isOnlyAdmin?:boolean;
+  isPrivate?: boolean;
+  description?: string;
+}
 // ----------------------------------------------------------------
 //  Conversation
 //  Entité propre contenant les participants et les messages
 // ----------------------------------------------------------------
 export interface Conversation {
   id: string;
+
+  groupData?: GroupData;  
   
   /** Tableau des IDs des participants - ne change jamais */
   participantIds: string[];
@@ -35,6 +46,9 @@ export interface Conversation {
   /** Messages de la conversation */
   messages: Message[];
   
+  /** Tableau des IDs d'utilisateurs ayant supprimé cette conversation */
+  deletedFor?: string[];
+  
   /** Si la conversation est en sourdine */
   isMuted?: boolean;
   
@@ -44,7 +58,7 @@ export interface Conversation {
   /** Informations sur le dernier message */
   lastMessage?: string;
   lastMessageTime?: Date;
-  lastMessageType?: 'text' | 'image' | 'video' | 'voice' | 'file';
+  lastMessageType?: 'system'|'text' | 'image' | 'video' | 'voice' | 'file';
   
   /** Stories */
   hasActiveStory?: boolean;
@@ -75,6 +89,17 @@ export interface Message {
   receiverId: string;
   content: string;
   
+  /** Type de message (par défaut: 'user') */
+  type?: 'user' | 'system';
+  
+  /** Données système pour les messages système */
+  systemData?: {
+    participantName: string;
+    action: 'joined' | 'left';
+  };
+
+  
+  
   /** Statut du message */
   status: MessageStatus;
   
@@ -86,6 +111,9 @@ export interface Message {
 
   /** Si le message a ete efface */
   isDeleted?:boolean;
+  
+  /** IDs des utilisateurs ayant effacé le message */
+  deletedFor?: string[];
   
 }
 

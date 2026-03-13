@@ -13,7 +13,7 @@ import { cardOutline, timeOutline, ticket, receiptOutline, logoPaypal, cashOutli
 import { addIcons } from 'ionicons';
 import { BuyCouponModalComponent } from '../modal-buy-coupon/buy-coupon-modal.component';
 import { TransactionHistoryModalComponent } from '../modal-transaction-history/transaction-history-modal.component';
-import { Auth } from 'src/services/AUTH/auth';
+import { Auth } from 'src/services/AUTH/local-auth/auth';
 
 @Component({
   selector: 'app-account-modal',
@@ -52,7 +52,7 @@ export class AccountModalComponent  implements OnInit {
 
   ngOnInit() {
     // Initialize observables
-    this.balance$ = this.walletService.balance$;
+    this.balance$ = this.walletService.balance$; this.balance$ = this.walletService.balance$;
     this.couponTypes$ = this.walletService.couponTypes$;
     
     // Subscribe to balance changes with animation

@@ -191,6 +191,12 @@ export class DiscoveryViewComponent implements OnInit {
     });
   }
 
+  onImageAvatarError(event: any) {
+      const imgElement = event.target as HTMLImageElement;
+      imgElement.onerror = null;
+      imgElement.src = 'assets/avatar-default.png';
+      imgElement.classList.add('is-default');
+    }
 
   formatTimeAgo(dateString?: string): string {
     if (!dateString) return 'il y a quelques instants';

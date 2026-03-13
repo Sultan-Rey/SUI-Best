@@ -11,7 +11,7 @@ import { addIcons } from 'ionicons';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { switchMap, map, forkJoin, of, catchError } from 'rxjs';
 import { IonSpinner } from '@ionic/angular/standalone';
-import { Auth, AuthUser } from 'src/services/AUTH/auth';
+import { Auth, AuthUser } from 'src/services/AUTH/local-auth/auth';
 
 // Interface pour les packs avec informations du propriétaire
 interface CouponPackWithOwner extends Pack {

@@ -78,7 +78,7 @@
         (click)="subscribe()"
       >
         <ion-icon name="rocket" slot="start"></ion-icon>
-        Commencer maintenant
+        Commencer maintenant <ion-spinner name="circle" *ngIf="isLoading"></ion-spinner>
       </ion-button>
       
       <p class="terms">

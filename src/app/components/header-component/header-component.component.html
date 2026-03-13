@@ -1,0 +1,63 @@
+<ion-header class="top-bar">
+ 
+
+  <div class="stats-container">
+
+    <!-- groupe gauche -->
+    <div class="left-group">
+ <!-- Back button - visible seulement si on n'est pas sur home -->
+  <ion-buttons slot="start" *ngIf="!isHomePage()">
+    <ion-back-button defaultHref="/home"></ion-back-button>
+  </ion-buttons>
+      <!-- XP - visible seulement sur home -->
+      <ion-chip class="xp-chip" *ngIf="isHomePage()">
+        <ion-icon name="sparkles-outline"></ion-icon>
+        <ion-label>1K • <ion-text color="primary">L1</ion-text></ion-label>
+      </ion-chip>
+
+      <!-- Coins -->
+      <ion-chip class="coin-chip">
+        <ion-img src="assets/icon/coin-collecting.png"></ion-img>
+        <ion-label [class]="'coin-count' + (showCoinAnimation ? ' animating' : '')">{{userBalance.coins | shortNumber}}</ion-label>
+        <ion-icon name="add-circle" (click)="buyCoins()"></ion-icon>
+        
+        <!-- Overlay Lottie local pour l'animation de coins -->
+        <div class="coin-lottie-overlay" *ngIf="showCoinAnimation">
+          <ng-lottie 
+            [options]="{ path: 'lottie/coin-bust.json', autoplay: true, loop: false }"
+            (animationCreated)="onCoinAnimationCreated($event)">
+          </ng-lottie>
+        </div>
+      </ion-chip>
+
+    </div>
+
+    <!-- icones droite -->
+   <div class="icons">
+      <ion-buttons>
+        <!-- Bouton ranking -->
+<button class="action-button" 
+        [class.active]="isTabActive('/ranking')"
+        (click)="navigateTo('/ranking')">
+   <ion-icon name="trophy"></ion-icon>
+</button>
+
+<!-- Bouton subscription -->
+<button class="action-button" 
+        [class.active]="isTabActive('/exclusive')"
+        (click)="navigateTo('/exclusive')">
+  <div class="led-indicator" [ngClass]="getSubscriptionStatus()"></div>
+  <ion-img class="header-icon" src="assets/icon/crown.png"></ion-img>
+</button>
+
+<!-- Bouton search -->
+<button class="action-button search-button" 
+        [class.active]="isTabActive('/search')"
+        (click)="navigateTo('/search')">
+  <ion-icon name="search" class="action-icon"></ion-icon>
+</button>
+      </ion-buttons>
+    </div>
+  </div>
+
+</ion-header>

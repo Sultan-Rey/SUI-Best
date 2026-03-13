@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonButtons, IonBackButton, IonIcon, IonBadge, IonToggle } from '@ionic/angular/standalone';
-import { Auth } from 'src/services/AUTH/auth';
+import { Auth } from 'src/services/AUTH/local-auth/auth';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { logOutOutline, chevronBackOutline, personCircleOutline, keyOutline, chevronForwardOutline, shieldCheckmarkOutline, banOutline, lockClosedOutline, locationOutline, peopleOutline, eyeOffOutline, radioOutline, notificationsOutline, settingsOutline, phonePortraitOutline, mailOutline, shieldOutline, fingerPrintOutline, desktopOutline, informationCircleOutline, documentTextOutline, openOutline, shieldHalfOutline, codeOutline, warningOutline, trashOutline } from 'ionicons/icons';
@@ -86,7 +86,7 @@ export class SettingsPage implements OnInit {
     // Si l'utilisateur n'a pas de password_hash, le récupérer depuis le service
     if (this.user && !this.user.password_hash) {
       this.userService.getUserById(this.user.id).subscribe({
-        next: (fullUser: User) => {
+        next: (fullUser: User | null) => {
           this.user = fullUser;
           //console.log('👤 UTILISATEUR COMPLET CHARGÉ:', !!fullUser.password_hash);
         },
@@ -582,7 +582,7 @@ export class SettingsPage implements OnInit {
       
       try {
         // Utiliser deleteUser de UserService
-        await this.userService.deleteUser(Number(this.user.id)).toPromise();
+        await this.userService.deleteUser(this.user.id as string).toPromise();
         
         // Simuler un délai pour l'UX
         await new Promise(resolve => setTimeout(resolve, 1200));

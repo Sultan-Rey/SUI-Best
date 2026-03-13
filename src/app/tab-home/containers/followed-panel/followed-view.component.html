@@ -25,11 +25,11 @@
       <div class="main-content">
         <div class="artist-info">
           <div class="artist-header">
-            <img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
+            <!--img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)"-->
             <div class="artist-details">
               <div class="profile-header">
                 <ion-chip *ngIf="hasActiveChallenge(post)" color="warning" >{{ currentChallenge[post.challengeId]?.name }}</ion-chip>
-                <h4 class="profile-name">{{ post.username || 'Utilisateur' }}
+                <h4 class="profile-name" (click)="showAccount(post.userId)">{{ post.username || 'Utilisateur' }}
                    <ion-icon 
             *ngIf="post?.userId && userVerified[post.userId]" 
             name="checkmark-circle" 
@@ -94,7 +94,7 @@
 
   <!-- Template pour quand il n'y a pas de posts ET aucun follow -->
   <ng-template #noPostsTemplate>
-    <div class="empty-state-container" *ngIf="currentUserProfile.myFollows.length == 0">
+    <div class="empty-state-container" *ngIf="currentUserProfile?.myFollows && currentUserProfile.myFollows.length == 0">
       <div class="empty-state-content">
         <img src="assets/icon/skateboard.gif" alt="Skateboard" class="empty-state-gif">
         <h2 class="empty-state-title">🛹 Lancez votre vibe !</h2>

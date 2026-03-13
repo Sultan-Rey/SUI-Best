@@ -1,4 +1,4 @@
-import { Auth } from '../../services/AUTH/auth';
+import { Auth } from '../../services/AUTH/local-auth/auth';
 import { PreferenceService } from '../../services/PREFERENCES/preference-service';
 import { Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -24,6 +24,8 @@ import {
   IonInput,
  
   IonContent, IonLoading, IonImg } from '@ionic/angular/standalone';
+import { FirebaseService } from 'src/services/API/firebase/firebase-service';
+import { FireAuth } from 'src/services/AUTH/fireAuth/fire-auth';
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
@@ -44,14 +46,14 @@ export class LoginPage implements OnInit {
   showPassword: boolean = false;
   isLoading: boolean = false;
   constructor(
-    private auth: Auth,
+    private fireAuth: FireAuth,
     private router: Router,
     private loadingController: LoadingController,
     private alertController: AlertController,
     private preferenceService: PreferenceService
   ) {
-    if(auth.isAuthenticated()){
-       this.router.navigateByUrl('/tabs/tabs/home');
+    if(this.fireAuth.isAuthenticated()){
+       this.router.navigateByUrl('/home');
     }
     addIcons({mailOutline,lockClosedOutline,arrowForward,logoGoogle,logoFacebook,trophyOutline,sparkles,personCircleOutline,keyOutline,helpCircleOutline,star,shieldCheckmark,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,createOutline,settingsOutline});
   }
@@ -74,7 +76,7 @@ loginWithEmail(): void {
     duration: 6000
   }).then(loading => {
     loading.present();
-     this.auth.login(this.email, this.password).subscribe({
+     this.fireAuth.login(this.email, this.password).subscribe({
     next: async (authUser) => {
       try {
         // Initialiser les préférences si elles n'existent pas
@@ -83,7 +85,7 @@ loginWithEmail(): void {
           this.preferenceService.initializeSettings(authUser.id.toString());
         }
         
-        await this.router.navigateByUrl('/tabs/tabs/home');
+        await this.router.navigateByUrl('/home');
       } catch (error) {
         console.error('Navigation error:', error);
       }finally{
@@ -91,16 +93,7 @@ loginWithEmail(): void {
       }
     },
     error: (err: Error) => {
-      let message = 'Identifiants incorrects';
-      
-      if (err.message.startsWith('TOO_MANY_ATTENTES:')) {
-        const minutes = err.message.split(':')[1];
-        message = `Trop de tentatives. Réessayez dans ${minutes} minutes.`;
-      } else if (err.message === 'ACCOUNT_INACTIVE') {
-        message = 'Ce compte est désactivé. Contactez le support.';
-      }
-
-      this.showError('Echec de la connexion', message);
+      this.showError('Echec de la connexion', this.translateErrorMessage(err));
       this.password = '';
       loading.dismiss();
     }
@@ -131,6 +124,27 @@ loginWithEmail(): void {
 
   loginWithFacebook() {
     // Implémentez la connexion Facebook
+  }
+
+  private translateErrorMessage(error: any): string {
+    const errorMessage = error.message || '';
+    
+    switch (errorMessage) {
+      case 'AUTH_FAILED':
+        return 'Mot de passe ou nom d\'utilisateur incorrecte '; 
+      case 'USER_NOT_FOUND':
+        return 'Utilisateur non trouvé. Veuillez vérifier vos informations.';
+      case 'INVALID_PASSWORD':
+        return 'Mot de passe incorrect. Veuillez réessayer.';
+      case 'ACCOUNT_DISABLED':
+        return 'Ce compte a été désactivé. Contactez le support.';
+      case 'TOO_MANY_REQUESTS':
+        return 'Trop de tentatives. Veuillez attendre avant de réessayer.';
+      case 'NETWORK_REQUEST_FAILED':
+        return 'Probleme de connéxion. verifier votre connexion internet.';  
+        default:
+        return errorMessage || 'Une erreur est survenue lors de la création du compte.';
+    }
   }
 
   navigateToForgotPassword() {

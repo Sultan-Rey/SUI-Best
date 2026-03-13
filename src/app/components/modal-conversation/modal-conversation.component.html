@@ -14,7 +14,7 @@
           [alt]="otherUser.username"
           class="user-avatar"
           (error)="onAvatarError($event)">
-        <div class="online-indicator" [class.online]="true"></div>
+        <div class="online-indicator" [class.online]="otherUserIsOnline"></div>
       </div>
       <div class="user-details">
         <div class="username">{{ otherUser.username }}
@@ -22,10 +22,18 @@
         </div>
         <div class="user-status">
           <span class="status-typing" *ngIf="otherUserIsTyping">est en train d'écrire...</span>
-          <span class="status-online" *ngIf="!otherUserIsTyping">En ligne</span>
+          <span class="status-online" *ngIf="!otherUserIsTyping && otherUserIsOnline">En ligne</span>
+          <span class="status-offline" *ngIf="!otherUserIsTyping && !otherUserIsOnline">Hors ligne</span>
         </div>
       </div>
     </div>
+    
+    <ion-buttons slot="end">
+      
+      <ion-button (click)="presentMoreOptions()" *ngIf="!isLoading">
+        <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -53,8 +61,19 @@
         <span class="date-text">{{ message.createdAt | date:'dd MMMM yyyy' }}</span>
       </div>
 
-      <!-- Bulle de message -->
+      <!-- Message système -->
       <div
+        *ngIf="message.type === 'system'"
+        class="system-message-wrapper">
+        <div class="system-message">
+          <ion-icon name="person-add-outline" class="system-icon"></ion-icon>
+          <span class="system-text">{{ message.content }}</span>
+        </div>
+      </div>
+
+      <!-- Bulle de message normal -->
+      <div
+        *ngIf="message.type !== 'system'"
         class="message-wrapper"
         [class.from-me]="isMessageFromMe(message)"
         [class.from-other]="!isMessageFromMe(message)">
@@ -122,7 +141,7 @@
 </ion-content>
 
 <!-- Footer : zone de saisie -->
-<ion-footer class="conversation-footer">
+<ion-footer class="conversation-footer" *ngIf="!conversation?.groupData || !conversation?.groupData?.admins?.length || conversation?.participantIds?.includes(currentUserId)">
   <div class="message-input-container">
 
     <!-- Actions gauche -->
@@ -185,5 +204,19 @@
       </ion-button>
     </div>
 
+  </div>
+</ion-footer>
+
+<!-- Bouton Joindre pour les groupes avec admins -->
+<ion-footer class="conversation-footer" *ngIf="conversation?.groupData && conversation?.groupData?.admins?.length && !conversation?.participantIds?.includes(currentUserId)">
+  <div class="join-group-container">
+    <ion-button 
+      expand="block" 
+      fill="outline" 
+      class="join-group-btn"
+      (click)="joinGroup()">
+      <ion-icon name="person-add" slot="start"></ion-icon>
+      Joindre
+    </ion-button>
   </div>
 </ion-footer>

@@ -2,7 +2,7 @@
 <div class="discovery-content">
 
   <!-- Filtres catégories -->
-  <div class="categories-scroll">
+  <!--div class="categories-scroll">
     <div class="categories-inner">
       <button
         *ngFor="let cat of categories"
@@ -13,7 +13,7 @@
         <span class="cat-label">{{ cat.label }}</span>
       </button>
     </div>
-  </div>
+  </div-->
 
   <!-- Mosaic Grid -->
   <div class="mosaic-grid">
@@ -61,7 +61,7 @@
       <!-- Content overlay -->
       <div class="tile-content">
         <div class="tile-meta">
-          <img class="author-avatar" [src]="item.author.avatar | mediaUrl" [alt]="item.author.name"/>
+          <img class="author-avatar" (error)="onImageAvatarError($event)" [src]="item.author.avatar | mediaUrl" [alt]="item.author.name"/>
           <span class="author-name">{{ item.author.name }}</span>
           <span class="dot-sep">·</span>
           <span class="time-ago">{{ item.timeAgo }}</span>
@@ -103,7 +103,7 @@
     <div class="stories-scroll">
       <div class="story-item" (click)="showAccount(story.id)" *ngFor="let story of stories">
         <div class="story-ring" [class.active]="story.isLive">
-          <img class="story-avatar" [src]="story.avatar | mediaUrl" [alt]="story.name"/>
+          <img class="story-avatar" (error)="onImageAvatarError($event)" [src]="story.avatar | mediaUrl" [alt]="story.name"/>
           <span class="live-badge" *ngIf="story.isLive">LIVE</span>
         </div>
         <span class="story-name">{{ story.name }}</span>

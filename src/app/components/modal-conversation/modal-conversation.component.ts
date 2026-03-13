@@ -4,10 +4,9 @@ import {
 } from '@angular/core';
 import { CommonModule, DatePipe, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController, IonContent, IonTextarea } from '@ionic/angular';
+import { IonicModule, ModalController, IonContent, IonTextarea, ActionSheetController, AlertController } from '@ionic/angular';
 import { Subscription, interval } from 'rxjs';
 import { MessageService } from '../../../services/MESSAGE_SERVICE/message-service';
-import { SocketService } from '../../../services/SOCKET/socket-service';
 import { DmTimePipe } from '../../utils/pipes/dmPipe/dmtime-pipe';
 import { MediaUrlPipe} from '../../utils/pipes/mediaUrlPipe/media-url-pipe'
 import { v4 as uuidv4 } from 'uuid';
@@ -15,7 +14,6 @@ import {
   Conversation,
   Message,
   MessageStatus,
-  ConversationStatus,
   ConversationUtils
 } from '../../../models/Conversation';
 
@@ -46,6 +44,7 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   receiverName = '';
   private conversationFromBackend = false;
   otherUserIsTyping = false;
+  otherUserIsOnline = false;
 
   // ─── UI ─────────────────────────────────────────────────────
   isLoading = false;
@@ -57,6 +56,9 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   private isTyping = false;
   private typingTimeout: ReturnType<typeof setTimeout> | null = null;
   private recordingInterval: ReturnType<typeof setInterval> | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private readonly MAX_VOICE_DURATION = 30; // 30 secondes max
   private subscriptions: Subscription[] = [];
 
   @ViewChild(IonContent) content!: IonContent;
@@ -65,8 +67,9 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
 
   constructor(
     private messageService: MessageService,
-    private socketService: SocketService,
     private modalController: ModalController,
+    private actionSheetController: ActionSheetController,
+    private alertController: AlertController,
     private cdr: ChangeDetectorRef
   ) {
     addIcons({
@@ -83,10 +86,24 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    // Nettoyer les subscriptions
     this.subscriptions.forEach(s => s.unsubscribe());
-    if (this.typingTimeout) clearTimeout(this.typingTimeout);
-    if (this.recordingInterval) clearInterval(this.recordingInterval);
-    if (this.isTyping) this.stopTyping();
+    
+    // Nettoyer l'enregistrement vocal si actif
+    if (this.isRecording) {
+      this.stopVoiceRecording();
+    }
+    
+    // Nettoyer le MediaRecorder
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      this.mediaRecorder = null;
+    }
+    
+    // Nettoyer le timeout de frappe
+    if (this.typingTimeout) {
+      clearTimeout(this.typingTimeout);
+    }
   }
 
   // ==============================================================
@@ -124,8 +141,6 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
             this.messageService.markMessageAsRead(this.conversationId, this.currentUserId);
           }
           
-          // Initialiser le socket pour cette conversation
-          this.initializeSocket();
         } else {
           // Si pas trouvée, vérifier si elle existe via l'API
           this.messageService.findExistingConversationId(
@@ -147,44 +162,22 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
               this.isLoading = false;
               this.cdr.markForCheck();
               this.scrollToBottomDeferred();
-              
-              // Initialiser le socket même pour les nouvelles conversations
-              this.initializeSocket();
             }
           });
         }
       })
     );
 
-    // Surveiller le statut de frappe de l'autre participant toutes les 3 secondes
-    this.subscriptions.push(
-      interval(3000).subscribe(() => {
-        if (this.conversationId) {
-          this.checkOtherParticipantTyping();
-        }
-      })
-    );
+    // S'abonner au statut de frappe de l'autre participant
+    this.subscribeToTypingIndicators();
+    // S'abonner au statut en ligne de l'autre participant
+    this.subscribeToOnlineStatus();
   }
 
   // ==============================================================
   //  SOCKET & TYPING
   // ==============================================================
 
-  /**
-   * Initialise le socket pour la conversation
-   */
-  private initializeSocket() {
-    if (!this.conversationId || !this.conversation) return;
-    
-    this.socketService.initializeSocket(this.conversationId, this.conversation.participantIds).subscribe({
-      next: (socket) => {
-        console.log('[ModalConversation] Socket initialized:', socket);
-      },
-      error: (error) => {
-        console.error('[ModalConversation] Error initializing socket:', error);
-      }
-    });
-  }
 
   /**
    * Configure la détection de frappe
@@ -215,22 +208,43 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Vérifie si l'autre participant est en train de taper
+   * S'abonne aux indicateurs de frappe
    */
-  private checkOtherParticipantTyping() {
+  private subscribeToTypingIndicators() {
     if (!this.conversationId) return;
     
-    this.socketService.isOtherParticipantTyping(this.conversationId, this.currentUserId).subscribe({
-      next: (isTyping) => {
-        if (isTyping !== this.otherUserIsTyping) {
-          this.otherUserIsTyping = isTyping;
-          this.cdr.markForCheck();
+    this.subscriptions.push(
+      this.messageService.isOtherUserTyping(this.conversationId, this.currentUserId).subscribe({
+        next: (isTyping) => {
+          if (isTyping !== this.otherUserIsTyping) {
+            this.otherUserIsTyping = isTyping;
+            this.cdr.markForCheck();
+          }
+        },
+        error: (error) => {
+          console.error('[ModalConversation] Error checking typing status:', error);
         }
-      },
-      error: (error) => {
-        console.error('[ModalConversation] Error checking typing status:', error);
-      }
-    });
+      })
+    );
+  }
+
+  /**
+   * S'abonne au statut en ligne de l'autre participant
+   */
+  private subscribeToOnlineStatus() {
+    if (!this.otherUser?.receiverId) return;
+    
+    this.subscriptions.push(
+      this.messageService.watchOnlineStatus(this.otherUser.receiverId).subscribe({
+        next: (status) => {
+          this.otherUserIsOnline = status.isOnline;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('[ModalConversation] Error watching online status:', error);
+        }
+      })
+    );
   }
 
   /**
@@ -239,14 +253,11 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   private notifyTyping(isTyping: boolean) {
     if (!this.conversationId) return;
     
-    this.socketService.socketPing(this.conversationId, this.currentUserId, isTyping ? 1 : 0).subscribe({
-      next: (socket) => {
-        console.log('[ModalConversation] Typing status updated:', isTyping);
-      },
-      error: (error) => {
-        console.error('[ModalConversation] Error updating typing status:', error);
-      }
-    });
+    if (isTyping) {
+      this.messageService.startTyping(this.conversationId, this.currentUserId);
+    } else {
+      this.messageService.stopTyping(this.conversationId, this.currentUserId);
+    }
   }
 
   /**
@@ -324,16 +335,6 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
           this.conversation = createdConversation;
           this.conversationId = createdConversation.id;
           
-          // Créer le socket pour cette nouvelle conversation
-          this.socketService.socketCreate(createdConversation.id, createdConversation.participantIds).subscribe({
-            next: (socket) => {
-              console.log('[ModalConversation] Socket created for new conversation:', socket);
-            },
-            error: (error) => {
-              console.error('[ModalConversation] Error creating socket:', error);
-            }
-          });
-          
           // Mettre à jour le statut du message à 'sent'
           message.status = 'sent';
           this.cdr.markForCheck();
@@ -405,14 +406,50 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   /**
    * Démarre l'enregistrement vocal
    */
-  startVoiceRecording() {
-    this.isRecording = true;
-    this.recordingDuration = 0;
-    
-    this.recordingInterval = setInterval(() => {
-      this.recordingDuration++;
-      this.cdr.markForCheck();
-    }, 1000);
+  async startVoiceRecording() {
+    try {
+      // Demander l'accès au microphone
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Créer le MediaRecorder
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.audioChunks = [];
+      
+      // Écouter les données audio
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+      
+      // Quand l'enregistrement s'arrête
+      this.mediaRecorder.onstop = () => {
+        this.handleVoiceRecordingComplete();
+      };
+      
+      // Démarrer l'enregistrement
+      this.mediaRecorder.start();
+      this.isRecording = true;
+      this.recordingDuration = 0;
+      
+      // Timer pour la durée avec limite de 30 secondes
+      this.recordingInterval = setInterval(() => {
+        this.recordingDuration++;
+        this.cdr.markForCheck();
+        
+        // Arrêter automatiquement après 30 secondes
+        if (this.recordingDuration >= this.MAX_VOICE_DURATION) {
+          //console.log(`[ModalConversation] Voice recording: ${this.MAX_VOICE_DURATION}s limit reached`);
+          this.stopVoiceRecording();
+        }
+      }, 1000);
+      
+      //console.log('[ModalConversation] Voice recording started');
+    } catch (error) {
+      console.error('[ModalConversation] Voice recording error:', error);
+      // Afficher une erreur à l'utilisateur
+      this.showRecordingError();
+    }
   }
 
   /**
@@ -424,9 +461,98 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
       this.recordingInterval = null;
     }
     
+    // Arrêter le MediaRecorder
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+      
+      // Arrêter tous les tracks audio
+      this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    
     this.isRecording = false;
     this.recordingDuration = 0;
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Gère la fin de l'enregistrement vocal
+   */
+  private handleVoiceRecordingComplete() {
+    // Créer le blob audio à partir des chunks
+    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+    const audioFile = new File([audioBlob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+    
+    console.log('[ModalConversation] Voice recording complete:', audioFile.size, 'bytes');
+    
+    // Uploader le fichier audio
+    this.uploadVoiceMessage(audioFile);
+  }
+
+  /**
+   * Uploade et envoie le message vocal
+   */
+  private uploadVoiceMessage(audioFile: File) {
+    // Uploader le fichier audio d'abord
+    this.messageService.uploadFile(audioFile, audioFile.name, this.conversationId).subscribe({
+      next: (uploadResult) => {
+        console.log('[ModalConversation] Voice uploaded:', uploadResult);
+        
+        // Créer le message avec l'URL du fichier audio
+        const tempMessage: Message = {
+          id: `temp-${Date.now()}`,
+          conversationId: this.conversationId,
+          senderId: this.currentUserId,
+          receiverId: this.otherUser.receiverId,
+          content: uploadResult.url, // URL du fichier audio uploadé
+          status: 'sent',
+          createdAt: new Date()
+        };
+
+        if (this.conversation) {
+          this.conversation.messages.push(tempMessage);
+          this.scrollToBottomDeferred();
+          this.sendMessageToBackend(tempMessage);
+        }
+      },
+      error: (error) => {
+        console.error('[ModalConversation] Voice upload error:', error);
+        // En cas d'erreur, créer un message d'erreur
+        const errorMessage: Message = {
+          id: `temp-${Date.now()}`,
+          conversationId: this.conversationId,
+          senderId: this.currentUserId,
+          receiverId: this.otherUser.receiverId,
+          content: '❌ Erreur lors de l\'envoi du message vocal',
+          status: 'pending' as MessageStatus,
+          createdAt: new Date()
+        };
+        
+        if (this.conversation) {
+          this.conversation.messages.push(errorMessage);
+          this.scrollToBottomDeferred();
+        }
+      }
+    });
+  }
+
+  /**
+   * Affiche une erreur d'enregistrement
+   */
+  private showRecordingError() {
+    const errorMessage: Message = {
+      id: `temp-${Date.now()}`,
+      conversationId: this.conversationId,
+      senderId: this.currentUserId,
+      receiverId: this.otherUser.receiverId,
+      content: '❌ Impossible d\'accéder au microphone',
+      status: 'pending' as MessageStatus,
+      createdAt: new Date()
+    };
+    
+    if (this.conversation) {
+      this.conversation.messages.push(errorMessage);
+      this.scrollToBottomDeferred();
+    }
   }
 
   /**
@@ -443,25 +569,49 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   sendImage() {
     if (this.imageInput && this.imageInput.nativeElement && this.imageInput.nativeElement.files.length > 0) {
       const file = this.imageInput.nativeElement.files[0];
-      console.log('Image selected:', file.name, file.size);
+      //console.log('Image selected:', file.name, file.size);
       
-      // TODO: Implémenter l'upload et l'envoi de l'image
-      // Pour l'instant, on simule l'envoi
-      const tempMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversationId: this.conversationId,
-        senderId: this.currentUserId,
-        receiverId: this.otherUser.receiverId,
-        content: `[Image: ${file.name}]`,
-        status: 'sent',
-        createdAt: new Date()
-      };
+      // Uploader l'image d'abord
+      this.messageService.uploadFile(file, file.name, this.conversationId).subscribe({
+        next: (uploadResult) => {
+          console.log('Image uploaded:', uploadResult);
+          
+          // Créer le message avec l'URL de l'image
+          const tempMessage: Message = {
+            id: `temp-${Date.now()}`,
+            conversationId: this.conversationId,
+            senderId: this.currentUserId,
+            receiverId: this.otherUser.receiverId,
+            content: uploadResult.url, // URL de l'image uploadée
+            status: 'sent',
+            createdAt: new Date()
+          };
 
-      if (this.conversation) {
-        this.conversation.messages.push(tempMessage);
-        this.scrollToBottomDeferred();
-        this.sendMessageToBackend(tempMessage);
-      }
+          if (this.conversation) {
+            this.conversation.messages.push(tempMessage);
+            this.scrollToBottomDeferred();
+            this.sendMessageToBackend(tempMessage);
+          }
+        },
+        error: (error) => {
+          console.error('[ModalConversation] Image upload error:', error);
+          // En cas d'erreur, créer un message d'erreur
+          const errorMessage: Message = {
+            id: `temp-${Date.now()}`,
+            conversationId: this.conversationId,
+            senderId: this.currentUserId,
+            receiverId: this.otherUser.receiverId,
+            content: '❌ Erreur lors de l\'envoi de l\'image',
+            status: 'pending' as MessageStatus,
+            createdAt: new Date()
+          };
+          
+          if (this.conversation) {
+            this.conversation.messages.push(errorMessage);
+            this.scrollToBottomDeferred();
+          }
+        }
+      });
       
       // Réinitialiser l'input
       this.imageInput.nativeElement.value = '';
@@ -511,9 +661,348 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
   /**
    * Ouvre les options supplémentaires
    */
-  openMoreOptions() {
-    // TODO: Implémenter les options supplémentaires
-    console.log('More options clicked');
+  async presentMoreOptions() {
+    if (!this.conversation) return;
+
+    const isGroup = !!this.conversation.groupData;
+    const isAdmin = this.conversation.groupData?.admins.includes(this.currentUserId) || false;
+
+    if (isGroup) {
+      // Options pour les conversations de groupe
+      const groupActions = [
+        {
+          text: 'Voir les membres',
+          icon: 'people-outline',
+          handler: () => this.viewGroupMembers()
+        },
+        {
+          text: 'Copier le lien',
+          icon: 'link-outline',
+          handler: () => this.copyGroupLink()
+        }
+      ];
+
+      // Option effacer les messages (uniquement pour les admins)
+      if (isAdmin) {
+        groupActions.push({
+          text: 'Effacer les messages',
+          icon: 'trash-outline',
+          handler: () => this.clearGroupMessages()
+        });
+      }
+
+      // Option quitter le groupe
+      groupActions.push({
+        text: 'Quitter le groupe',
+        icon: 'exit-outline',
+        handler: () => this.leaveGroup()
+      });
+
+      const actionSheet = await this.actionSheetController.create({
+        header: 'Options du groupe',
+        buttons: groupActions
+      });
+
+      await actionSheet.present();
+
+    } else {
+      // Options pour les conversations simples
+      const privateActions = [
+        {
+          text: 'Effacer pour moi',
+          icon: 'eye-off-outline',
+          handler: () => this.clearMessagesForMe()
+        },
+        {
+          text: 'Supprimer la conversation',
+          icon: 'trash-outline',
+          handler: () => this.deleteConversation()
+        }
+      ];
+
+      const actionSheet = await this.actionSheetController.create({
+        header: 'Options de la conversation',
+        buttons: privateActions
+      });
+
+      await actionSheet.present();
+    }
+  }
+
+  // ─── ACTIONS GROUPE ───────────────────────────────────────────
+
+  /**
+   * Affiche les membres du groupe
+   */
+  async viewGroupMembers() {
+    console.log('Voir les membres du groupe');
+    // TODO: Implémenter l'affichage des membres
+  }
+
+  /**
+   * Copie le lien du groupe
+   */
+  async copyGroupLink() {
+    const groupLink = `${window.location.origin}/group/${this.conversation?.id}`;
+    
+    try {
+      await navigator.clipboard.writeText(groupLink);
+      console.log('Lien du groupe copié');
+      // TODO: Afficher un toast de confirmation
+    } catch (error) {
+      console.error('Erreur lors de la copie du lien:', error);
+    }
+  }
+
+  /**
+   * Efface tous les messages du groupe (admin uniquement)
+   */
+  async clearGroupMessages() {
+    if (!this.conversation?.groupData) return;
+
+    const alert = await this.alertController.create({
+      header: 'Effacer les messages',
+      message: 'Êtes-vous sûr de vouloir effacer tous les messages du groupe ? Cette action est irréversible.',
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel'
+        },
+        {
+          text: 'Effacer',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              if (!this.conversation) return;
+
+              // Créer une conversation avec tableau de messages vide
+              const clearedConversation: Conversation = {
+                ...this.conversation,
+                messages: [], // 🔥 Supprimer tous les messages
+                lastMessage: undefined,
+                lastMessageTime: undefined,
+                lastMessageType: undefined,
+                unreadCount: 0
+              };
+
+              // Mettre à jour la conversation
+              await this.messageService.updateConversation(clearedConversation).toPromise();
+
+              // Mettre à jour la conversation locale
+              this.conversation.messages = [];
+              this.conversation.lastMessage = undefined;
+              this.conversation.lastMessageTime = undefined;
+              this.conversation.lastMessageType = undefined;
+              this.conversation.unreadCount = 0;
+
+              // Forcer la détection de changements
+              this.cdr.detectChanges();
+
+              console.log('[ModalConversation] Group messages cleared successfully');
+
+            } catch (error) {
+              console.error('[ModalConversation] clearGroupMessages error:', error);
+              // TODO: Afficher une erreur à l'utilisateur
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * Quitte le groupe
+   */
+  async leaveGroup() {
+    if (!this.conversation?.groupData || !this.currentUserId) return;
+
+    const alert = await this.alertController.create({
+      header: 'Quitter le groupe',
+      message: 'Êtes-vous sûr de vouloir quitter ce groupe ?',
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel'
+        },
+        {
+          text: 'Quitter',
+          role: 'destructive',
+          handler: () => {
+            this.messageService.removeParticipant(this.conversation!.id, this.currentUserId).subscribe({
+              next: () => {
+                console.log('Utilisateur a quitté le groupe');
+                this.dismiss();
+              },
+              error: (error) => {
+                console.error('Erreur en quittant le groupe:', error);
+              }
+            });
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  // ─── ACTIONS CONVERSATION SIMPLE ───────────────────────────────
+
+  /**
+   * Efface les messages pour l'utilisateur courant
+   */
+  async clearMessagesForMe() {
+    if (!this.conversation || !this.currentUserId) return;
+
+    const alert = await this.alertController.create({
+      header: 'Effacer mes messages',
+      message: 'Êtes-vous sûr de vouloir effacer tous vos messages dans cette conversation ? Cette action est irréversible.',
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel'
+        },
+        {
+          text: 'Effacer',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              // Ajouter l'utilisateur courant au deletedFor de ses messages
+              const updatedMessages = this.conversation?.messages.map(msg => {
+                if (msg.senderId === this.currentUserId) {
+                  return {
+                    ...msg,
+                    deletedFor: [
+                      ...(msg.deletedFor || []),
+                      this.currentUserId
+                    ]
+                  };
+                }
+                return msg;
+              });
+
+              // Mettre à jour la conversation avec les messages modifiés
+              const updatedConversation: Conversation = {
+                ...this.conversation!,
+                messages: (updatedMessages as Message[] || [])
+              };
+
+              // Mettre à jour via le service
+              await this.messageService.updateConversation(updatedConversation).toPromise();
+
+              // Mettre à jour la conversation locale
+              if (this.conversation) {
+                this.conversation.messages = (updatedMessages as Message[] || []);
+              }
+
+              // Forcer la détection de changements
+              this.cdr.detectChanges();
+
+              //console.log('[ModalConversation] Messages cleared for current user successfully');
+
+            } catch (error) {
+              console.error('[ModalConversation] clearMessagesForMe error:', error);
+              // TODO: Afficher une erreur à l'utilisateur
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * Supprime complètement la conversation
+   */
+  async deleteConversation() {
+    const alert = await this.alertController.create({
+      header: 'Supprimer la conversation',
+      message: 'Êtes-vous sûr de vouloir supprimer cette conversation ? Cette action est irréversible.',
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel'
+        },
+        {
+          text: 'Supprimer',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              if (!this.conversation || !this.currentUserId) return;
+
+              // Si un seul participant, supprimer complètement la conversation
+              if (this.conversation.participantIds.length === 1) {
+                await this.messageService.deleteConversation(this.conversation.id).toPromise();
+              } else {
+                // Sinon, soft delete : retirer l'utilisateur des participants et l'ajouter à deletedFor
+                const updatedConversation: Conversation = {
+                  ...this.conversation,
+                  participantIds: this.conversation.participantIds.filter(id => id !== this.currentUserId),
+                  deletedFor: [
+                    ...(this.conversation.deletedFor || []),
+                    this.currentUserId
+                  ]
+                };
+                
+                await this.messageService.updateConversation(updatedConversation).toPromise();
+              }
+
+              // Fermer le modal après suppression
+              await this.modalController.dismiss({
+                deleted: true,
+                conversationId: this.conversation.id
+              });
+
+            } catch (error) {
+              console.error('[ModalConversation] deleteConversation error:', error);
+              // TODO: Afficher une erreur à l'utilisateur
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * Rejoint le groupe (demande d'adhésion)
+   */
+  async joinGroup() {
+    if (!this.conversation?.groupData || !this.currentUserId) return;
+
+    try {
+      this.isLoading = true;
+      
+      // Ajouter le currentUserId aux participants du groupe
+      this.messageService.addParticipant(this.conversation.id, this.currentUserId).subscribe({
+        next: (updatedConversation) => {
+          console.log('Utilisateur ajouté au groupe avec succès');
+          
+          // Mettre à jour la conversation locale
+          this.conversation = updatedConversation;
+          this.cdr.markForCheck();
+          
+          // Fermer le modal après succès
+          this.dismiss();
+        },
+        error: (error) => {
+          console.error('[ModalConversation] Error joining group:', error);
+          // TODO: Afficher une erreur à l'utilisateur
+        },
+        complete: () => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }
+      });
+      
+    } catch (error) {
+      console.error('[ModalConversation] Error joining group:', error);
+      this.isLoading = false;
+      this.cdr.markForCheck();
+    }
   }
 
   /**
