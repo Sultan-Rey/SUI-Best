@@ -46,14 +46,10 @@ export const routes: Routes = [
     path: 'profile/:id',
     loadComponent: () => import( './tab-profile/profile.page').then(m => m.ProfilePage)
   },
-   {
-    path: 'notification',
-    loadComponent: () => import('./notification/notification.page').then( m => m.NotificationPage)
-  },
   {
     path: '**',
     redirectTo: 'login'
-  },
+  }
   
   
  

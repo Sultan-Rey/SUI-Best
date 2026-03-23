@@ -84,7 +84,7 @@
                 
                 <!-- Pack Icon -->
                 <div class="pack-icon-wrapper">
-                  <img [src]="(pack.icon | mediaUrl)" [alt]="'Pack ' + pack.amount">
+                  <img [src]="(pack.icon | mediaUrl | async)" [alt]="'Pack ' + pack.amount">
                 </div>
                 
                 <!-- Pack Amount -->

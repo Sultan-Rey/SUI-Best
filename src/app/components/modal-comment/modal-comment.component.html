@@ -45,7 +45,7 @@
           <div class="avatar-wrap">
             <img 
               class="avatar-img"
-              [src]="comment.userAvatar | mediaUrl" 
+              [src]="comment.userAvatar | mediaUrl | async" 
               (error)="onImageError($event)">
           </div>
           <!-- Fil vertical si replies visibles -->
@@ -115,7 +115,7 @@
               <div class="reply-avatars" *ngIf="comment.replies && comment.replies.length > 0 && !expandedReplies.has(comment.id!)">
                 <img *ngFor="let r of comment.replies | slice:0:2" 
                      class="mini-avatar" 
-                     [src]="r.userAvatar | mediaUrl" 
+                     [src]="r.userAvatar | mediaUrl | async" 
                      (error)="onImageError($event)">
               </div>
               <span *ngIf="!expandedReplies.has(comment.id!)">
@@ -139,7 +139,7 @@
             <div class="avatar-wrap small">
               <img 
                 class="avatar-img small"
-                [src]="reply.userAvatar | mediaUrl" 
+                [src]="reply.userAvatar | mediaUrl | async" 
                 (error)="onImageError($event)">
             </div>
           </div>

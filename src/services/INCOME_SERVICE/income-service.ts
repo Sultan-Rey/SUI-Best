@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Pack, PaymentMethod } from '../../interfaces/income.interfaces';
-import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root',
@@ -11,7 +10,7 @@ import { FirebaseService } from '../API/firebase/firebase-service';
 export class IncomeService {
   private readonly PACKS_RESOURCE = 'packs';
   
-  constructor(private api: FirebaseService) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   // ============================================
   // PACKS API METHODS
@@ -21,7 +20,7 @@ export class IncomeService {
    * Récupère tous les packs disponibles depuis l'API
    */
   getAvailablePacks(): Observable<Pack[]> {
-    return this.api.getAll<Pack>(this.PACKS_RESOURCE);
+    return this.api.get<Pack[]>(this.PACKS_RESOURCE);
   }
 
   /**

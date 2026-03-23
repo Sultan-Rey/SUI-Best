@@ -5,12 +5,13 @@
 
     <!-- groupe gauche -->
     <div class="left-group">
- <!-- Back button - visible seulement si on n'est pas sur home -->
-  <ion-buttons slot="start" *ngIf="!isHomePage()">
-    <ion-back-button defaultHref="/home"></ion-back-button>
+
+  <!-- Custom back button - visible quand goBackTarget est défini -->
+  <ion-buttons slot="start" *ngIf="goBackTarget || !isHomePage()">
+    <ion-back-button defaultHref="/home" (click)="handleGoBack()"></ion-back-button>
   </ion-buttons>
-      <!-- XP - visible seulement sur home -->
-      <ion-chip class="xp-chip" *ngIf="isHomePage()">
+      <!-- XP - visible seulement sur home et quand pas de bouton de retour -->
+      <ion-chip class="xp-chip" *ngIf="isHomePage() && !goBackTarget" id="open-modal">
         <ion-icon name="sparkles-outline"></ion-icon>
         <ion-label>1K • <ion-text color="primary">L1</ion-text></ion-label>
       </ion-chip>
@@ -18,7 +19,7 @@
       <!-- Coins -->
       <ion-chip class="coin-chip">
         <ion-img src="assets/icon/coin-collecting.png"></ion-img>
-        <ion-label [class]="'coin-count' + (showCoinAnimation ? ' animating' : '')">{{userBalance.coins | shortNumber}}</ion-label>
+        <ion-label [class]="'coin-count' + (showCoinAnimation ? ' animating' : '')">{{userBalance.coins | shortNumber | currency}}</ion-label>
         <ion-icon name="add-circle" (click)="buyCoins()"></ion-icon>
         
         <!-- Overlay Lottie local pour l'animation de coins -->
@@ -61,3 +62,45 @@
   </div>
 
 </ion-header>
+
+<ion-modal id="reward-modal" #rewardModal trigger="open-modal" [enterAnimation]="enterAnimation" [leaveAnimation]="leaveAnimation">
+  <ng-template>
+    <div class="modal-wrapper">
+      <div class="reward-header">
+        <div class="star-background">
+          <ion-icon name="star" class="bg-star-icon s1"></ion-icon>
+          <ion-icon name="star" class="bg-star-icon s2"></ion-icon>
+        </div>
+        <div class="main-reward">
+          <div class="star-container">
+            <ion-icon name="star" class="main-star"></ion-icon>
+            <span class="points-text">+100</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="reward-body">
+        <div class="progress-tracker">
+          <ng-container *ngFor="let jour of tableauJours; let i = index">
+            <div class="step" [class.completed]="recompensesQuotidiennes[jour]?.recoltee">
+              <ion-icon *ngIf="recompensesQuotidiennes[jour]?.recoltee" name="checkmark"></ion-icon>
+              <span *ngIf="!recompensesQuotidiennes[jour]?.recoltee">DAY {{ i + 1 }}</span>
+            </div>
+            <div *ngIf="i < 4" class="line" [class.active]="recompensesQuotidiennes[jour]?.recoltee"></div>
+          </ng-container>
+        </div>
+
+        <h2>DAILY REWARDS</h2>
+        <p>{{ getMessageRecompense() }}</p>
+
+        <ion-button 
+          expand="block" 
+          class="claim-button" 
+          [disabled]="!peutReclamerAujourdHui || estWeekend"
+          (click)="reclamerRecompenseQuotidienne(rewardModal)">
+          {{ getTexteBouton() }}
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>

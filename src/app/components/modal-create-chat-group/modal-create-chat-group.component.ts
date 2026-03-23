@@ -315,8 +315,7 @@ export class ModalCreateChatGroupComponent implements OnInit {
       if (this.groupAvatar) {
         const uploadResult = await this.messageService.uploadFile(
           this.groupAvatar, 
-          this.groupAvatar.name, 
-          'group-avatar'
+          "profiles", 
         ).toPromise();
         
         if (uploadResult) {
@@ -347,7 +346,7 @@ export class ModalCreateChatGroupComponent implements OnInit {
           participantIds: groupData.participants,
           messages: [],
           status: 'open',
-          createdAt: new Date()
+          created_at: new Date()
         };
 
         result = await this.messageService.createConversation(newConversation).toPromise() || newConversation;

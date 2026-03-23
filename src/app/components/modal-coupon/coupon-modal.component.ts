@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { Coupon } from '../../../models/Coupon';
-import { Auth } from '../../../services/AUTH/local-auth/auth';
+import { Auth } from '../../../services/AUTH/auth';
 import { ProfileService } from '../../../services/PROFILE_SERVICE/profile-service';
 import { WalletService } from '../../../services/WALLET_SERVICE/wallet-service';
 import { switchMap, map, catchError, filter } from 'rxjs/operators';

@@ -1,15 +1,15 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy, Input, Output, EventEmitter, OnDestroy, OnChanges, SimpleChanges, ViewChildren, QueryList } from '@angular/core';
-import { NgFor, NgIf, DatePipe } from '@angular/common';
+import { NgFor, NgIf, DatePipe, AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ShortNumberPipe } from '../../../utils/pipes/shortNumberPipe/short-number-pipe.js';
 import { MediaUrlPipe } from '../../../utils/pipes/mediaUrlPipe/media-url-pipe';
-import { ToastController, ModalController } from '@ionic/angular';
+import { ToastController, ModalController, ActionSheetController, LoadingController } from '@ionic/angular';
 import { 
   IonChip,
   IonIcon, 
   IonButton, 
   IonContent,
-  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonInput, IonSpinner } from '@ionic/angular/standalone';
+  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonInput, IonSpinner, IonItem, IonLabel } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   play, 
@@ -23,27 +23,29 @@ import {
   thumbsUp,
   bookmark,
   chatbubbleEllipses,  
-  share, chevronUp, chevronDown, trophyOutline, peopleOutline, timeOutline, playCircle, add, checkmarkCircle, close, happyOutline, send, compass } from 'ionicons/icons';
-import { Content } from 'src/models/Content.js';
+  share, chevronUp, chevronDown, trophyOutline, peopleOutline, timeOutline, playCircle, add, checkmarkCircle, close, happyOutline, send, arrowForward, refresh } from 'ionicons/icons';
+import { Content, ContentStatus } from 'src/models/Content.js';
 import { CreationService } from 'src/services/CREATION_SERVICE/creation-service.js';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
-import { Challenge } from 'src/models/Challenge';
+import { Challenge, ParticipantType } from 'src/models/Challenge';
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service.js';
 import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize, count, take } from 'rxjs';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
 import { SideActionsComponent } from './components/side-actions/side-actions.component';
-import { QuickCommentComponent } from './components/quick-comment/quick-comment.component.js';
+import { ModalSelectPostComponent } from 'src/app/components/modal-select-post/modal-select-post.component.js';
+import { Segment } from 'src/models/Segment.js';
+
 @Component({
   selector: 'app-followed-view',
   templateUrl: './followed-view.component.html',
   styleUrls: ['./followed-view.component.scss'],
   standalone: true,
-  providers: [ModalController],
+  providers: [ModalController, ActionSheetController, LoadingController],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonSpinner, IonContent, DatePipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
-    IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, IonChip, FormsModule, SideActionsComponent, QuickCommentComponent]
+  imports: [IonLabel, IonItem, IonSpinner, IonContent, DatePipe, AsyncPipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
+    IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, FormsModule, SideActionsComponent]
 })
 export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   //#region Component Configuration
@@ -55,6 +57,13 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   @Input() posts: Content[] = [];
   @Input() challengeName: string = "";
   @Output() refreshComplete = new EventEmitter<void>();
+  @Output() navigateToTab = new EventEmitter<{
+      args?: any[];
+      extras ?: any;
+      targetSegment: Segment;
+      targetReturn: Segment;
+    }>();
+  @Output() navigateToProfile = new EventEmitter<{userId:string}>();
   //#endregion
 
   //#region Private Properties
@@ -64,7 +73,6 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   private viewTimers: { [contentId: string]: any } = {};
   private viewedContent: Set<string> = new Set();
   private intersectionObserver?: IntersectionObserver;
-   private scrollTimeout: any;
 private snapRevealTimeout: any;
 private lastIndex = -1;
   //#endregion
@@ -96,6 +104,8 @@ private lastIndex = -1;
     private challengeService: ChallengeService,
     private commentService: CommentService,
     private profileService: ProfileService,
+    private actionSheetController: ActionSheetController,
+    private loadingController: LoadingController
   ) {
     //this.initializeUserProfile();
     this.setupIcons();
@@ -105,12 +115,39 @@ private lastIndex = -1;
 
   //#region Lifecycle Hooks
   ngAfterViewInit() {
-    // Petit délai pour laisser Ionic finir son rendu
-    setTimeout(() => this.initIntersectionObserver(), 300);
+    // Attendre que le DOM soit complètement initialisé
+    setTimeout(() => {
+      // Vérifier que les éléments DOM sont disponibles avant d'initialiser
+      if (!this.postsContainer?.nativeElement) {
+        console.warn('Posts container not available in ngAfterViewInit, retrying...');
+        // Réessayer après un délai plus long
+        setTimeout(() => {
+          this.initializeWhenReady();
+        }, 500);
+        return;
+      }
+      
+      this.initializeWhenReady();
+    }, 300);
+    
     // Observer les nouveaux posts ajoutés (infinite scroll)
     this.postElements.changes.subscribe(() => {
-      this.observeAllPosts();
+      // Attendre un peu que les nouveaux éléments soient dans le DOM
+      setTimeout(() => {
+        this.observeAllPosts();
+      }, 100);
     });
+  }
+
+  private initializeWhenReady() {
+    if (!this.postsContainer?.nativeElement) {
+      console.error('Posts container still not available, skipping initialization');
+      return;
+    }
+    
+    this.initIntersectionObserver();
+    this.setupScrollListener();
+    this.observeAllPosts();
   }
 
   async ngOnInit() {
@@ -144,10 +181,13 @@ private lastIndex = -1;
 
  ngOnDestroy() {
     this.intersectionObserver?.disconnect();
-  clearTimeout(this.snapRevealTimeout);
-  // Retirer le listener scroll
-  this.postsContainer?.nativeElement
-    .removeEventListener('scroll', this.onScroll);
+    clearTimeout(this.snapRevealTimeout);
+    
+    // Retirer le listener scroll en toute sécurité
+    if (this.postsContainer?.nativeElement) {
+      this.postsContainer.nativeElement.removeEventListener('scroll', this.onScroll);
+    }
+    
     this.cleanup();
   }
   //#endregion
@@ -159,7 +199,7 @@ private lastIndex = -1;
     addIcons({
       close, checkmarkCircle, chevronBack, happyOutline, send, peopleOutline, thumbsUp, timeOutline,
       playCircle, heart, people, add, trophy, star, chatbubble, bookmark, trophyOutline,
-      play, chevronUp, chevronDown, gift, chatbubbleEllipses, share
+      play, chevronUp, chevronDown, gift, chatbubbleEllipses, share,arrowForward
     });
   }
 
@@ -185,51 +225,72 @@ private lastIndex = -1;
   //    visible à 70% → lecture / pause automatique
   // -------------------------------------------------------
   private initIntersectionObserver() {
-  this.intersectionObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach(entry => {
-        const postEl = entry.target as HTMLElement;
-        const index = parseInt(postEl.getAttribute('data-index') || '0', 10);
-        const video = postEl.querySelector('video') as HTMLVideoElement | null;
-
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
-          
-          // ✅ Nouveau post visible
-          if (this.lastIndex !== index) {
-            this.lastIndex = index;
-            this.currentIndex = index;
-
-            // ✅ Reset le tap-hide du post précédent
-            const prevPostId = this.posts[index > 0 ? index - 1 : 0]?.id;
-            if (prevPostId) this.uiHidden[prevPostId] = false;
-
-            // ✅ UI cachée pendant le scroll → réapparaît avec animation
-            this.triggerSnapReveal(postEl);
-          }
-
-          if (video) this.playVideo(video, this.posts[index]?.id as string);
-
-        } else {
-          if (video) {
-            video.pause();
-            video.currentTime = 0;
-          }
-        }
-      });
-    },
-    {
-      root: this.postsContainer.nativeElement,
-      threshold: 0.7
+    // Vérifier si IntersectionObserver est supporté
+    if (typeof IntersectionObserver === 'undefined') {
+      console.warn('IntersectionObserver is not supported in this environment');
+      return;
     }
-  );
+
+    // Vérifier si le container est disponible
+    if (!this.postsContainer?.nativeElement) {
+      console.warn('Posts container not available for IntersectionObserver');
+      return;
+    }
+
+    try {
+      this.intersectionObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            const postEl = entry.target as HTMLElement;
+            const index = parseInt(postEl.getAttribute('data-index') || '0', 10);
+            const video = postEl.querySelector('video') as HTMLVideoElement | null;
+
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
+              
+              // ✅ Nouveau post visible
+              if (this.lastIndex !== index) {
+                this.lastIndex = index;
+                this.currentIndex = index;
+
+                // ✅ Reset le tap-hide du post précédent
+                const prevPostId = this.posts[index > 0 ? index - 1 : 0]?.id;
+                if (prevPostId) this.uiHidden[prevPostId] = false;
+
+                // ✅ UI cachée pendant le scroll → réapparaît avec animation
+                this.triggerSnapReveal(postEl);
+              }
+
+              if (video) this.playVideo(video, this.posts[index]?.id as string);
+
+            } else {
+              if (video) {
+                video.pause();
+                video.currentTime = 0;
+              }
+            }
+          });
+        },
+        {
+          root: this.postsContainer.nativeElement,
+          threshold: 0.7
+        }
+      );
+    } catch (error) {
+      console.error('Failed to initialize IntersectionObserver:', error);
+    }
+  }
 
   // ✅ Cacher l'UI pendant le scroll
-  this.postsContainer.nativeElement.addEventListener('scroll', () => {
-    this.onScroll();
-  }, { passive: true });
-
-  this.observeAllPosts();
-}
+  private setupScrollListener() {
+    if (!this.postsContainer?.nativeElement) {
+      console.warn('Posts container not available for scroll listener setup');
+      return;
+    }
+    
+    this.postsContainer.nativeElement.addEventListener('scroll', () => {
+      this.onScroll();
+    }, { passive: true });
+  }
 
 // -------------------------------------------------------
 // ✅ Pendant le scroll → UI disparaît
@@ -265,11 +326,25 @@ private triggerSnapReveal(postEl: HTMLElement) {
   // ✅ Observe tous les éléments .post actuels
   // -------------------------------------------------------
   private observeAllPosts() {
+    if (!this.intersectionObserver) {
+      console.warn('IntersectionObserver not available, skipping observation');
+      return;
+    }
+
     // Déconnecter les anciens
     this.intersectionObserver?.disconnect();
 
+    if (!this.postElements || this.postElements.length === 0) {
+      console.log('No post elements to observe');
+      return;
+    }
+
     this.postElements.forEach(ref => {
-      this.intersectionObserver?.observe(ref.nativeElement);
+      if (ref?.nativeElement) {
+        this.intersectionObserver?.observe(ref.nativeElement);
+      } else {
+        console.warn('Post element reference is null or undefined');
+      }
     });
   }
 
@@ -337,8 +412,13 @@ private triggerSnapReveal(postEl: HTMLElement) {
   }
 
   private observePostElements() {
+    // Initialiser l'observer si ce n'est pas déjà fait
     if (!this.intersectionObserver) {
-      console.error('IntersectionObserver is not initialized');
+      this.initIntersectionObserver();
+    }
+    
+    if (!this.intersectionObserver) {
+      console.error('IntersectionObserver initialization failed');
       return;
     }
     
@@ -370,7 +450,7 @@ private triggerSnapReveal(postEl: HTMLElement) {
         const exists = this.posts.some(p => p.id === newContent.id);
         if (!exists) {
           this.posts = [newContent, ...this.posts];
-          this.loadAvatarForPost(newContent);
+          //this.loadAvatarForPost(newContent);
           this.cdr.markForCheck();
         }
       }
@@ -396,11 +476,9 @@ private triggerSnapReveal(postEl: HTMLElement) {
       if (post.challengeId && this.currentChallenge[post.challengeId] === undefined) {
         this.getCurrentChallenge(post);
       }
-      const commentCount = await this.commentService.getCommentCount(post.id as string).toPromise() || 0;
-      
+    
       return {
         ...post,
-        commentCount: commentCount,
         username: username,
         isVotedByUser: this.currentUserProfile?.id 
           ? post.votersList?.some(vote => 
@@ -423,9 +501,9 @@ private triggerSnapReveal(postEl: HTMLElement) {
       this.posts = [...this.posts, ...postsWithUser];
        }
 
-    postsWithUser.forEach(post => {
-      this.loadAvatarForPost(post);
-    });
+    // postsWithUser.forEach(post => {
+    //   this.loadAvatarForPost(post);
+    // });
     
     this.cdr.markForCheck();
      
@@ -539,7 +617,7 @@ private triggerSnapReveal(postEl: HTMLElement) {
     if (!this.viewedContent.has(content.id)) {
        this.viewTimers[content.id] = setTimeout(() => {
         const currentViewCount = content.viewCount || 0;
-        this.incrementContentView(content.id!, currentViewCount + 1);
+        this.incrementContentView(content.id!);
       }, 30000);
     }
   }
@@ -557,11 +635,11 @@ private triggerSnapReveal(postEl: HTMLElement) {
     }
   }
 
-  private incrementContentView(contentId: string, viewCount: number) {
+  private incrementContentView(contentId: string) {
    
     if (!contentId || this.viewedContent.has(contentId)) return;
      
-    this.creationService.incrementViewCount(contentId, viewCount).subscribe({
+    this.creationService.incrementViewCount(contentId).subscribe({
       next: (updatedContent) => {
         this.viewedContent.add(updatedContent.id!);
         this.clearViewTimer(updatedContent.id!);
@@ -601,6 +679,104 @@ private triggerSnapReveal(postEl: HTMLElement) {
         }
       }
 
+      async presentParticipateOptions(challenge: Challenge) {
+          const actionSheet = await this.actionSheetController.create({
+            header: 'Participer au challenge',
+            buttons: [
+              {
+                text: 'Ajouter un post existant',
+                icon: 'add-sharp',
+                handler: () => {
+                  this.addPost(challenge);
+                }
+              },
+              {
+                text: 'Creer un post',
+                icon: 'create',
+                handler: () => {
+                this.createPost(challenge);
+                }
+              },
+              {
+                text: 'Annuler',
+                icon: 'close',
+                role: 'cancel'
+              }
+            ]
+          });
+          await actionSheet.present();
+        }
+      
+        async addPost(challenge: Challenge) {
+               const modal = await this.modalController.create({
+              component: ModalSelectPostComponent,
+              componentProps: { currentUserProfile: this.currentUserProfile },
+              handle: true
+            });
+        
+            await modal.present();
+            const { data } = await modal.onDidDismiss();
+            
+            if (data && data.selected) {
+              // Afficher le loading seulement si des données sont sélectionnées
+              const loading = await this.loadingController.create({
+                message: 'Chargement...',
+                spinner: 'crescent'
+              });
+              await loading.present();
+        
+              try {
+                // Vérifier si le défi est complet
+                if (challenge?.entries_count && typeof challenge.entries_count === 'number') {
+                 
+                  if (challenge.participants_count && challenge.participants_count >= challenge.entries_count) {
+                    this.showToast('Le défi est complet', 'danger');
+                    return;
+                  }
+                }
+                
+                const choosenPost = data.post as Content;
+                choosenPost.challengeId = challenge?.id || '';
+                choosenPost.status = challenge?.is_acceptance_automatic ? ContentStatus.DRAFT : ContentStatus.PUBLISHED;
+                this.creationService.updateContentChallengeId(choosenPost);
+                
+                if (challenge?.is_acceptance_automatic) {
+                  this.showToast('Félicitation! vous faites desormais partie de '+challenge.name);
+                 
+                } else {
+                  // Mise à jour du loading pendant la création de la notification
+                  loading.message = 'Envoi de la notification...';
+                
+                 
+                }
+              } catch (error) {
+                console.error('Erreur lors de l\'ajout du post:', error);
+                this.showToast('Une erreur est survenue', 'danger');
+              } finally {
+                // Masquer le loading dans tous les cas
+                await loading.dismiss();
+              }
+            }
+          }
+      
+          createPost(challenge: Challenge){
+              this.navigateToTab.emit({
+                args:[challenge],
+                extras: true,
+                targetSegment: 'upload',
+                targetReturn: 'challenge'
+              })
+          }
+
+          private async showToast(message: string, color: 'success' | 'danger' | 'warning' = 'success'): Promise<void> {
+            const toast = await this.toastController.create({
+              message,
+              duration: 3000,
+              color,
+              position: 'top'
+            });
+            await toast.present();
+          }
   //#endregion
 
   //#region Utility Methods
@@ -647,6 +823,24 @@ showAccount(userId:string){
       }
  hasActiveChallenge(post: Content): boolean {
     return !!(post.challengeId && this.currentChallenge[post.challengeId]);
+  }
+
+  canParticipateInChallenge(post: Content): boolean {
+    const challenge = this.currentChallenge[post.challengeId];
+    if (!challenge || !this.currentUserProfile?.type) return false;
+    
+    switch (challenge.allowed_participants) {
+      case ParticipantType.ALL:
+        return true;
+      case ParticipantType.FANS_ONLY:
+        return this.currentUserProfile.type === 'fan';
+      case ParticipantType.ARTISTS_ONLY:
+        return this.currentUserProfile.type === 'artist';
+      case ParticipantType.CREATORS_ONLY:
+        return this.currentUserProfile.type === 'creator';
+      default:
+        return true; // Par défaut, autoriser si non spécifié
+    }
   }
 
   onImageAvatarError(event: any) {
@@ -705,12 +899,7 @@ showAccount(userId:string){
             this.cdr.markForCheck();
           }
           
-          const toast = await this.toastController.create({
-            message: 'Bravo vous suivez une nouvelle personne!',
-            duration: 2000,
-            color: 'dark'
-          });
-          await toast.present();
+          this.showToast('Bravo vous suivez une nouvelle personne!', 'success');
           
         } catch (error) {
           console.error('Erreur lors de l\'abonnement:', error);

@@ -56,28 +56,32 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  will-change: transform, opacity; // ← Optimisation GPU
+  backface-visibility: hidden; // ← Éviter le scintillement
+  transform: translateZ(0); // ← Forcer l'accélération GPU
 
   .item-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
-  }
 
-  svg {
-    width: 22px;
-    height: 22px;
-    stroke: rgba(255, 255, 255, 0.3);
-    transition: stroke 0.3s ease;
-    display: block;
+    .badge-wrap svg {
+      width: 22px;
+      height: 22px;
+      stroke: rgba(255, 255, 255, 0.3); // dark par défaut
+      transition: stroke 0.3s ease;
+      display: block;
+    }
   }
 
   .item-label {
+    display: block;
     font-family: var(--font-nav);
     font-size: 10.5px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.3); // dark par défaut
     letter-spacing: 0.2px;
     transition: color 0.3s ease;
     white-space: nowrap;
@@ -85,14 +89,39 @@
 
   // Item adjacent — légèrement plus lumineux
   &.near {
-    svg         { stroke: rgba(255, 255, 255, 0.6); }
-    .item-label { color: rgba(255, 255, 255, 0.6); }
+    .badge-wrap svg { stroke: rgba(255, 255, 255, 0.6); }
+    .item-label     { color: rgba(255, 255, 255, 0.6); }
   }
 
   // Item capturé — invisible dans la bande
   &.captured {
     opacity: 0;
     pointer-events: none;
+  }
+}
+
+// ── Theme light (ex: segment Challenges clair) ─
+:host.theme-light {
+
+  .nav-item {
+    .badge-wrap svg { stroke:  var(--orange) }
+    .item-label     { color: var(--orange) }
+
+    &.near {
+      .badge-wrap svg { stroke:  var(--orange) }
+      .item-label     { color: var(--orange) }
+    }
+  }
+
+  // Icône dans le cercle aussi en sombre
+  .circle-action-btn svg { stroke: #1a1a1a; }
+
+  // Corde : glassmorphisme clair
+  .circle-chord {
+    background: rgba(0, 0, 0, 0.06);
+    border-top: 0.5px solid rgba(0, 0, 0, 0.12);
+
+    span { color: rgba(0, 0, 0, 0.75); }
   }
 }
 

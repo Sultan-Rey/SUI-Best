@@ -1,6 +1,9 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://firebasestorage.googleapis.com/v0/b/bestfire-681e8/o/',
+ apiUrl: 'http://localhost/best_backend_ML',  // URL de votre API PHP
+  wsUrl: 'ws://localhost/best_backend_ML',
+  authToken: 'demo-client-key-123',
+  adminUID:'uid_of_bestacademy',
   firebase: {
   apiKey: "AIzaSyCEFjACaqVbWIdxcnoZ080MlokHpF-uY7c",
   authDomain: "datafire-681e8.firebaseapp.com",

@@ -1,22 +1,28 @@
-import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import {  Router, ActivatedRoute } from '@angular/router';
-import { IonHeader, IonChip, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton } from "@ionic/angular/standalone";
+import { IonHeader, IonChip, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, IonModal, IonButton } from "@ionic/angular/standalone";
 import { Observable, shareReplay, Subject, takeUntil } from 'rxjs';
-import { NgClass, NgIf } from '@angular/common';
-import { FireAuth } from 'src/services/AUTH/fireAuth/fire-auth';
+import { NgClass, NgFor, NgIf } from '@angular/common';
+import { addIcons } from 'ionicons';
+import { checkmark } from 'ionicons/icons';
+import { Auth } from 'src/services/AUTH/auth';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { RewardService } from 'src/services/Rewards/reward-service';
+import { DailyRewards } from 'src/services/Rewards/daily-rewards';
 import { AnimationService } from 'src/services/ANIMATION_SERVICE/animation-service';
 import { BuyCoinModalComponent } from '../modal-buy-coin/buy-coin-modal.component';
-import { ModalController, ToastController} from '@ionic/angular';
+import { ModalController, ToastController, AnimationController} from '@ionic/angular';
 import { UserBalance, WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
 import { LottieComponent } from 'ngx-lottie';
 import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
+import { CurrencyPipe } from '@angular/common';
+import { Segment } from 'src/models/Segment';
 @Component({
   selector: 'app-header-component',
   templateUrl: './header-component.component.html',
   styleUrls: ['./header-component.component.scss'],
   providers: [ModalController],
-  imports: [NgClass,NgIf, IonHeader, IonChip, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, LottieComponent, ShortNumberPipe]
+  imports: [IonButton, IonModal, NgClass,NgIf, NgFor, IonHeader, IonChip, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, LottieComponent, ShortNumberPipe, CurrencyPipe]
 })
 export class HeaderComponentComponent  implements OnInit {
   public environmentInjector = inject(EnvironmentInjector);
@@ -27,11 +33,25 @@ export class HeaderComponentComponent  implements OnInit {
    subscriptionStatus: 'active' | 'expiring' | 'expired' | 'inactive' = 'inactive';
    // Animation Lottie pour les coins
    showCoinAnimation: boolean = false;
+   
+   // Propriétés pour gérer le retour
+   @Input() goBackTarget: Segment | undefined;
+   @Output() goBack = new EventEmitter<{ target: Segment }>();
+
+   // Propriétés pour les récompenses quotidiennes
+   recompensesQuotidiennes: Record<string, any> = {};
+   tableauJours: string[] = [];
+   indexJourActuel = 0;
+   estWeekend = false;
+   peutReclamerAujourdHui = false;
   constructor(private router: Router,
       private route: ActivatedRoute, 
      private profileService: ProfileService, 
-      private authService: FireAuth,
+      private authService: Auth,
+      private rewardService: RewardService,
+      private dailyRewards: DailyRewards,
       public animService: AnimationService,
+      private animationCtrl: AnimationController,
      private modalController: ModalController, 
       private toastController: ToastController,
      private walletService: WalletService
@@ -49,6 +69,7 @@ export class HeaderComponentComponent  implements OnInit {
    }
 
   ngOnInit() {
+    addIcons({checkmark});
      this.balance$ = this.walletService.balance$;
       this.balance$.subscribe(balance => {
         const previousCoins = this.userBalance.coins || 0;
@@ -61,8 +82,38 @@ export class HeaderComponentComponent  implements OnInit {
           setTimeout(() => this.showCoinAnimation = false, 800);
         }
       });
+      
+      // Initialiser les récompenses quotidiennes
+      this.initialiserRecompenses();
     }
 
+     enterAnimation = (baseEl: HTMLElement) => {
+        const root = baseEl.shadowRoot;
+    
+        const backdropAnimation = this.animationCtrl
+          .create()
+          .addElement(root!.querySelector('ion-backdrop')!)
+          .fromTo('opacity', '0.01', 'var(--backdrop-opacity)');
+    
+        const wrapperAnimation = this.animationCtrl
+          .create()
+          .addElement(root!.querySelector('.modal-wrapper')!)
+          .keyframes([
+            { offset: 0, opacity: '0', transform: 'scale(0)' },
+            { offset: 1, opacity: '0.99', transform: 'scale(1)' },
+          ]);
+    
+        return this.animationCtrl
+          .create()
+          .addElement(baseEl)
+          .easing('ease-out')
+          .duration(500)
+          .addAnimation([backdropAnimation, wrapperAnimation]);
+      };
+    
+      leaveAnimation = (baseEl: HTMLElement) => {
+        return this.enterAnimation(baseEl).direction('reverse');
+      };
 
   // Callback pour l'animation Lottie
   onCoinAnimationCreated(animationItem: any) {
@@ -101,7 +152,13 @@ export class HeaderComponentComponent  implements OnInit {
     });
   }
 
-   openSearch() {
+   // Méthode pour gérer le retour
+  handleGoBack(): void {
+    this.goBack.emit({ target: this.goBackTarget as Segment });
+    
+  }
+
+  openSearch() {
    this.router.navigate(['/search']);
   }
 
@@ -160,6 +217,92 @@ private isExpiringSoon(endDate: Date): boolean {
 getSubscriptionStatus() {
    
     return this.subscriptionStatus;
+  }
+
+  // Méthodes pour les récompenses quotidiennes
+  
+  /**
+   * Initialise les récompenses quotidiennes
+   */
+  private async initialiserRecompenses() {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (!currentUser?.id) {
+        console.warn('Utilisateur non connecté pour les récompenses quotidiennes');
+        return;
+      }
+
+      // Utiliser le service DailyRewards
+      const etat = await this.dailyRewards.chargerStatutRecompenses(currentUser.id);
+      
+      this.recompensesQuotidiennes = etat.recompenses;
+      this.tableauJours = this.dailyRewards.getTableauJours();
+      this.indexJourActuel = etat.indexJourActuel;
+      this.estWeekend = etat.estWeekend;
+      this.peutReclamerAujourdHui = etat.peutReclamerAujourdHui;
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'initialisation des récompenses quotidiennes:', error);
+    }
+  }
+  
+  /**
+   * Réclame la récompense quotidienne
+   */
+  async reclamerRecompenseQuotidienne(modalElement: any) {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (!currentUser?.id) {
+        await this.showToast('Utilisateur non connecté', 'error');
+        return;
+      }
+
+      // Utiliser le service DailyRewards
+      const resultat = await this.dailyRewards.reclamerRecompenseQuotidienne(
+        currentUser.id, 
+        this.indexJourActuel
+      );
+      
+      if (resultat.succes) {
+        // Ajouter 100 XP via RewardService
+        await this.rewardService.updateRewardsForLevel(
+          currentUser.id.toString(),
+          0, 
+          100 
+        ).toPromise();
+        
+        // Mettre à jour l'état local
+        if (resultat.recompensesMisesAJour) {
+          this.recompensesQuotidiennes = resultat.recompensesMisesAJour;
+        }
+        this.peutReclamerAujourdHui = false;
+        
+        await this.showToast(resultat.message, 'success');
+        
+        // Fermeture auto
+        setTimeout(() => modalElement.dismiss(), 800);
+      } else {
+        await this.showToast(resultat.message, 'warning');
+      }
+      
+    } catch (error) {
+      console.error('Erreur lors de la réclamation de la récompense:', error);
+      await this.showToast('Erreur lors de la réclamation', 'error');
+    }
+  }
+  
+  /**
+   * Obtient le message des récompenses
+   */
+  getMessageRecompense(): string {
+    return this.dailyRewards.getMessageRecompense(this.peutReclamerAujourdHui, this.estWeekend);
+  }
+  
+  /**
+   * Obtient le texte du bouton
+   */
+  getTexteBouton(): string {
+    return this.dailyRewards.getTexteBouton(this.peutReclamerAujourdHui, this.estWeekend);
   }
 
 }

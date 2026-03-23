@@ -10,7 +10,7 @@
     <div class="user-info" slot="start">
       <div class="user-avatar-wrapper">
         <img
-          [src]="otherUser.avatar | mediaUrl"
+          [src]="otherUser.avatar | mediaUrl | async"
           [alt]="otherUser.username"
           class="user-avatar"
           (error)="onAvatarError($event)">
@@ -18,13 +18,13 @@
       </div>
       <div class="user-details">
         <div class="username">{{ otherUser.username }}
-          <ion-icon name="checkmark-circle" *ngIf="otherUser.IsVerified"></ion-icon>
+          <ion-icon name="checkmark-circle" *ngIf="otherUser.isVerified"></ion-icon>
         </div>
-        <div class="user-status">
+        <!-- <div class="user-status">
           <span class="status-typing" *ngIf="otherUserIsTyping">est en train d'écrire...</span>
           <span class="status-online" *ngIf="!otherUserIsTyping && otherUserIsOnline">En ligne</span>
           <span class="status-offline" *ngIf="!otherUserIsTyping && !otherUserIsOnline">Hors ligne</span>
-        </div>
+        </div> -->
       </div>
     </div>
     

@@ -1,10 +1,11 @@
 // src/app/services/PROFILE_SERVICE/profile.service.ts
-import { Injectable } from '@angular/core';
+import { EventEmitter, Injectable } from '@angular/core';
 import { Observable, of, EMPTY, throwError, BehaviorSubject, from } from 'rxjs';
-import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError, expand, reduce, takeWhile, scan } from 'rxjs/operators';
-import { ApiJSON} from '../API/LOCAL/api-json';
+import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError, expand, reduce, takeWhile, scan, filter } from 'rxjs/operators';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { UserProfile } from '../../models/User';
-import { FirebaseService } from '../API/firebase/firebase-service';
+import { User } from 'firebase/auth';
+import { options } from 'ionicons/icons';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +15,8 @@ export class ProfileService {
   private readonly uploadResource = 'storage/profiles';
   private searchQuery$ = new BehaviorSubject<string>('');
   private searchResults$ = new BehaviorSubject<UserProfile[]>([]);
-
+   // EventEmitter pour les erreurs de connexion
+  public connectionError = new EventEmitter<boolean>();
   /**
    * Configure le flux de recherche en temps réel
    */
@@ -28,16 +30,21 @@ export class ProfileService {
     });
   }
 
-  constructor(private api: FirebaseService) {
+  constructor(private api: ApiJSON) { // ✅ Migration vers notre ApiJSON unifié
     this.setupSearchStream();
-  }
+    // Écouter les événements de connexion du service API
+    this.api.connectionError.subscribe((isConnected: boolean) => {
+      this.connectionError.emit(isConnected);
+    });
+    
+   }
 
  
   
   /* =====================
      CREATE
      ===================== */
-  createProfile(profile: Omit<UserProfile, 'id'>): Observable<UserProfile> {
+  createProfile(profile:UserProfile): Observable<UserProfile> {
     return this.api.create<UserProfile>(this.resource, profile);
   }
 
@@ -45,14 +52,27 @@ export class ProfileService {
      READ
      ===================== */
   getProfiles(): Observable<UserProfile[]> {
-    return this.api.getAll<UserProfile>(this.resource);
+    return this.api.get<UserProfile[]>(this.resource);
   }
 
   getProfileById(id: string): Observable<UserProfile | null> {
     return this.api.getById<UserProfile | null>(this.resource, id);
   }
 
-
+  getProfileByUsername(username: string): Observable<UserProfile | null> {
+    return this.api.filter<UserProfile>(this.resource, {filters: {username: username}}).pipe(
+      map(profiles => {
+        if (profiles && profiles.data.length > 0) {
+          return profiles.data[0]; // Retourne le premier profil trouvé
+        }
+        return null; // Aucun profil trouvé
+      }),
+      catchError(error => {
+        console.error('Erreur lors de la recherche du profil par username:', error);
+        return of(null); // Retourne null en cas d'erreur
+      })
+    );
+  }
 
   /* =====================
      UPDATE
@@ -74,11 +94,9 @@ export class ProfileService {
   ): Observable<UserProfile> {
   
    
-    return this.api.upload<{ file: { path: string } }>(
-      this.uploadResource, 
+    return this.api.upload<{ file: { path: string } }>( 
       file, 
-      'file',
-      !!progressCallback
+      'profiles',
     ).pipe(
       switchMap((event: any) => {
     // Handle progress events
@@ -139,11 +157,9 @@ export class ProfileService {
         const file = new File([blob], fileName, { type: mimeType });
 
         // Utiliser la méthode upload de l'API avec gestion de progression
-        this.api.upload<{ url: string }>(
-          this.uploadResource, 
+        this.api.upload<{ url: string }>( 
           file, 
-          'file',
-          !!progressCallback
+          'profiles',
         ).pipe(
           switchMap((event: any) => {
             // Handle progress events
@@ -346,10 +362,10 @@ async unblackListProfile(userId: string, profileIdToUnblackList: string): Promis
    * @returns Un Observable contenant un tableau des 12 profils d'artistes les plus populaires
    */
   getTopArtists(limit: number = 12): Observable<UserProfile[]> {
-    return this.api.getAll<UserProfile>(this.resource).pipe(
+    return this.api.filter<UserProfile>(this.resource, {}, {cache:false}).pipe(
       map(profiles => {
         // Filtrer pour ne garder que les artistes
-        const artists = profiles.filter(profile => profile.type === 'artist');
+        const artists = profiles.data.filter(profile => profile.type === 'artist');
         
         // Trier par nombre de fans décroissant
         return artists.sort((a, b) => {
@@ -369,10 +385,10 @@ async unblackListProfile(userId: string, profileIdToUnblackList: string): Promis
    * @returns Un Observable contenant un tableau des profils de créateurs les plus actifs
    */
   getTopCreators(limit: number = 12): Observable<UserProfile[]> {
-    return this.api.getAll<UserProfile>(this.resource).pipe(
+    return this.api.filter<UserProfile>(this.resource,{}, {cache:false}).pipe(
       map(profiles => {
         // Filtrer pour ne garder que les créateurs
-        const creators = profiles.filter(profile => profile.type === 'creator');
+        const creators = profiles.data.filter(profile => profile.type === 'creator');
         
         // Trier par nombre de publications décroissant
         return creators.sort((a, b) => {
@@ -392,10 +408,10 @@ async unblackListProfile(userId: string, profileIdToUnblackList: string): Promis
  * @returns Un Observable contenant un tableau des profils des meilleurs fans
  */
 getTopFans(limit: number = 10): Observable<UserProfile[]> {
-  return this.api.getAll<UserProfile>(this.resource).pipe(
+  return this.api.filter<UserProfile>(this.resource, {}, {cache:false}).pipe(
     map(profiles => {
       // Filtrer pour ne garder que les fans (pas les artistes)
-      const fans = profiles.filter(profile => 
+      const fans = profiles.data.filter(profile => 
         profile.type === 'fan' || !profile.type
       );
 

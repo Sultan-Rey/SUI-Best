@@ -70,7 +70,7 @@
           <img [src]="participant.avatar || 'assets/avatar-default.png'" [alt]="participant.username">
           <div class="participant-details">
             <h3>{{ participant.username }}</h3>
-            <p>{{ participant.userInfo?.first_name || '' }} {{ participant.userInfo?.last_name || '' }}</p>
+            <p>{{ participant.userInfo.first_name || '' }} {{ participant.userInfo.last_name || '' }}</p>
           </div>
         </div>
         <div class="participant-checkbox">

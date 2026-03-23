@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonButtons, IonBackButton, IonIcon, IonBadge, IonToggle } from '@ionic/angular/standalone';
-import { Auth } from 'src/services/AUTH/local-auth/auth';
+import { Auth } from 'src/services/AUTH/auth';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { logOutOutline, chevronBackOutline, personCircleOutline, keyOutline, chevronForwardOutline, shieldCheckmarkOutline, banOutline, lockClosedOutline, locationOutline, peopleOutline, eyeOffOutline, radioOutline, notificationsOutline, settingsOutline, phonePortraitOutline, mailOutline, shieldOutline, fingerPrintOutline, desktopOutline, informationCircleOutline, documentTextOutline, openOutline, shieldHalfOutline, codeOutline, warningOutline, trashOutline } from 'ionicons/icons';

@@ -65,8 +65,6 @@ interface ChallengeRanking {
     CommonModule,
     FormsModule,
     HeaderComponentComponent,
-    IonHeader,
-    IonToolbar,
     IonContent,
     IonButton,
     IonIcon,
@@ -274,7 +272,7 @@ export class RankingPage implements OnInit {
         }
 
         // Étape 2: Récupérer tous les contenus du défi pour calculer les votes
-        return this.creationService.getContentsByChallenge(challenge.id).pipe(
+        return this.creationService.getContents({ChallengeId:challenge.id}).pipe(
           switchMap((contents: any[]) => {
             // Étape 3: Calculer les votes pour chaque participant
             const participantsWithVotes$ = participants.map((participant: any) => {

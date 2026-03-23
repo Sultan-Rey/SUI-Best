@@ -1,6 +1,17 @@
 <!-- discovery-view.component.html -->
 <div class="discovery-content">
 
+  <!-- Loading global -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-content">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p class="loading-text">Chargement du contenu...</p>
+    </div>
+  </div>
+
+  <!-- Contenu seulement si pas en chargement -->
+  <ng-container *ngIf="!isLoading">
+
   <!-- Filtres catégories -->
   <!--div class="categories-scroll">
     <div class="categories-inner">
@@ -31,7 +42,7 @@
       </div>
 
       <!-- Media background -->
-      <div class="tile-media" [style.background-image]="'url(' + (item.thumbnail | mediaUrl) + ')'">
+      <div class="tile-media" [style.background-image]="'url(' + (item.thumbnail | mediaUrl | async) + ')'">
         <div class="tile-gradient"></div>
       </div>
 
@@ -61,7 +72,7 @@
       <!-- Content overlay -->
       <div class="tile-content">
         <div class="tile-meta">
-          <img class="author-avatar" (error)="onImageAvatarError($event)" [src]="item.author.avatar | mediaUrl" [alt]="item.author.name"/>
+          <img class="author-avatar" (error)="onImageAvatarError($event)" [src]="item.author.avatar | mediaUrl | async" [alt]="item.author.name"/>
           <span class="author-name">{{ item.author.name }}</span>
           <span class="dot-sep">·</span>
           <span class="time-ago">{{ item.timeAgo }}</span>
@@ -94,8 +105,31 @@
     </div>
   </div>
 
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && filteredItems.length === 0">
+    <div class="empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+        <line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    </div>
+    <h3 class="empty-title">Aucun contenu trouvé</h3>
+    <p class="empty-description">
+      <span *ngIf="activeCategory === 'all'">
+        Explorez les créations de notre communauté ou revenez plus tard pour découvrir du nouveau contenu.
+      </span>
+      <span *ngIf="activeCategory !== 'all'">
+        Il n'y a pas encore de contenu dans la catégorie "{{ getCategoryLabel(activeCategory) }}".
+      </span>
+    </p>
+    <button class="empty-action" (click)="setCategory('all')" *ngIf="activeCategory !== 'all'">
+      Voir tout le contenu
+    </button>
+  </div>
+
   <!-- Stories section -->
-  <div class="stories-section">
+  <div class="stories-section" *ngIf="!isLoading && stories.length!==0">
     <div class="section-header">
       <h2 class="section-title">Top stars</h2>
       <a class="section-more">Tout voir</a>
@@ -103,7 +137,7 @@
     <div class="stories-scroll">
       <div class="story-item" (click)="showAccount(story.id)" *ngFor="let story of stories">
         <div class="story-ring" [class.active]="story.isLive">
-          <img class="story-avatar" (error)="onImageAvatarError($event)" [src]="story.avatar | mediaUrl" [alt]="story.name"/>
+          <img class="story-avatar" (error)="onImageAvatarError($event)" [src]="story.avatar | mediaUrl | async" [alt]="story.name"/>
           <span class="live-badge" *ngIf="story.isLive">LIVE</span>
         </div>
         <span class="story-name">{{ story.name }}</span>
@@ -112,4 +146,5 @@
   </div>
 
   <div style="height: 120px"></div>
+  </ng-container>
 </div>

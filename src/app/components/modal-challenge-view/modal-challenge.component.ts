@@ -20,8 +20,6 @@ import { FollowedViewComponent } from '../../tab-home/containers/followed-panel/
 import { Content, ContentStatus } from 'src/models/Content';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
 import { ModalSelectPostComponent } from '../modal-select-post/modal-select-post.component';
-import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service';
-import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller';
 
 interface ParticipantWithStats extends UserProfile {
   voteCount?: number;
@@ -56,10 +54,10 @@ export class ModalChallengeComponent  implements OnInit {
               private alertController: AlertController,
               private toastController: ToastController,
               private loadingController: LoadingController,
-              private notificationController: NotificationController,
+              
               private creationService: CreationService,
               private profileService: ProfileService,
-              private notificationService: NotificationService,
+             
               private router: Router) { addIcons({
                 'link': link,
                 'share-social':shareSocial,
@@ -292,7 +290,7 @@ export class ModalChallengeComponent  implements OnInit {
       }
 
       // Récupérer tous les contenus du challenge
-      const challengeContents = await this.creationService.getContentsByChallenge(challengeId).toPromise();
+      const challengeContents = await this.creationService.getContents({challengeId}).toPromise();
       
       if (!challengeContents || challengeContents.length === 0) {
         this.showToast('Aucun contenu trouvé pour ce challenge', 'warning');
@@ -386,13 +384,13 @@ export class ModalChallengeComponent  implements OnInit {
       console.log(`Disqualification du participant ${participant.id}`);
       
       // Récupérer tous les contenus de cet utilisateur associés au challenge
-      const userContents = await this.creationService.getContentsByChallenge(challengeId).toPromise();
+      const userContents = await this.creationService.getContents({challengeId:challengeId}).toPromise();
       const participantContents = userContents?.filter((content: any) => content.userId === participant.id) || [];
       
       if (participantContents.length > 0) {
         // Retirer le challengeId de tous les contenus de cet utilisateur
         const updatePromises = participantContents.map((content: any) => 
-          this.creationService['api'].patch(this.creationService['contentResource'], content.id, { challengeId: null }).toPromise()
+          this.creationService['api'].patch('contents', content.id, { challengeId: null }).toPromise()
         );
         
         await Promise.all(updatePromises);
@@ -494,19 +492,8 @@ export class ModalChallengeComponent  implements OnInit {
         } else {
           // Mise à jour du loading pendant la création de la notification
           loading.message = 'Envoi de la notification...';
-          
-          const notify = await this.notificationService.createNotification(this.notificationController.notifyChallengeCreator(this.challenge?.creator_id as string ,choosenPost.id as string)).toPromise();
-          
-          if (notify) {
-            this.alertController.create({
-              header: 'Participation a ' + this.challenge?.name,
-              subHeader: 'Traitement d\'acceptation au défi.',
-              message: 'Attendez de recevoir votre ticket d\'entrée',
-              buttons: ['Merci !']
-            }).then((alert) => {
-              alert.present();
-            });
-          }
+        
+         
         }
       } catch (error) {
         console.error('Erreur lors de l\'ajout du post:', error);

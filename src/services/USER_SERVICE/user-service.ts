@@ -1,9 +1,8 @@
 // src/app/services/user.service.ts
 import { Injectable } from '@angular/core';
 import { map, Observable, of, switchMap } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { User } from '../../models/User';
-import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root',
@@ -12,7 +11,7 @@ export class UserService {
 
   private readonly resource = 'users';
 
-  constructor(private api: FirebaseService) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   /* =====================
      CREATE
@@ -26,23 +25,23 @@ export class UserService {
      READ
      ===================== */
 
-  getUsers(): Observable<User[]> {
-    return this.api.getAll<User>(this.resource);
+  getUser(): Observable<User> {
+    return this.api.get<User>(this.resource);
   }
 
   getUserById(id: string | number): Observable<User | null> {
     return this.api.getById<User | null>(this.resource, id as string);
   }
 
-  getUserByEmail(email: string): Observable<User> {
+  getUserByEmail(email: string): Observable<User[]> {
   return this.api
-    .filter<User>(this.resource, { email })
+    .filter<User>(this.resource,  { filters: {email: email}, options:{ limit:1} })
     .pipe(
-      map(users => {
-        if (!users.length) {
+      map(user => {
+        if (!user) {
           throw new Error('USER_NOT_FOUND');
         }
-        return users[0];
+        return user.data;
       })
     );
 }

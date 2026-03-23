@@ -51,7 +51,7 @@ export class ModalSelectPostComponent implements OnInit {
     }
 
     this.isLoading = true;
-    this.creationService.getUserContents(this.currentUserProfile.id).subscribe({
+    this.creationService.getContents({userId: this.currentUserProfile.id}).subscribe({
       next: (posts) => {
         this.userPosts = posts;
         this.filteredPosts = posts;

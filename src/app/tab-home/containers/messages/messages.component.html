@@ -18,19 +18,7 @@
     </ion-buttons>
   </ion-toolbar>
 
-  <!-- Barre de demandes en attente -->
-  <div class="requests-bar" *ngIf="pendingRequestsCount > 0" (click)="openRequests()">
-    <div class="requests-avatars">
-      <!-- Plus de pendingRequests dans la nouvelle architecture -->
-    </div>
-    <div class="requests-text">
-      <span class="requests-label">Demandes de messages</span>
-      <span class="requests-sub">
-        {{ pendingRequestsCount }} demande{{ pendingRequestsCount > 1 ? 's' : '' }}
-      </span>
-    </div>
-    <ion-icon name="chevron-forward" class="requests-chevron"></ion-icon>
-  </div>
+ 
 </ion-header>
 
 <ion-content class="dm-content" [scrollEvents]="true" (ionScroll)="onScroll($event)">
@@ -108,7 +96,7 @@
             [class.has-story]="conversation.hasActiveStory"
             [class.seen-story]="conversation.storySeen">
             <img
-              [src]="conversation.participant?.avatar | mediaUrl"
+              [src]="conversation.participant?.avatar | mediaUrl | async"
               [alt]="conversation.participant?.username"
               class="dm-avatar"
               (error)="onAvatarError($event)">
@@ -219,7 +207,7 @@
                 class="read-receipt"
                 *ngIf="isLastMessageFromMe(conversation) && (!conversation.unreadCount || conversation.unreadCount === 0)">
                 <img
-                  [src]="conversation.participant?.avatar | mediaUrl"
+                  [src]="conversation.participant?.avatar | mediaUrl | async"
                   class="receipt-avatar"
                   (error)="onAvatarError($event)">
               </div>

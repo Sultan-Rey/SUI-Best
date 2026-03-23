@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Vote } from '../../models/Vote';
 import { Challenge, VoteRule } from '../../models/Challenge';
 import { Content } from 'src/models/Content';
 import { Observable, of, throwError } from 'rxjs';
 import { map, switchMap, catchError, tap, take } from 'rxjs/operators';
 import { ChallengeService } from '../CHALLENGE_SERVICE/challenge-service';
-import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root',
@@ -27,7 +26,7 @@ export class VoteService {
     };
   }
 
-  constructor(private api: FirebaseService, private challengeService: ChallengeService) {}
+  constructor(private api: ApiJSON, private challengeService: ChallengeService) {} // ✅ Migration vers notre ApiJSON unifié
 
   /**
    * Définit la règle de vote

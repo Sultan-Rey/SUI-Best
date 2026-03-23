@@ -1,10 +1,10 @@
 // src/services/COMMENT/comment.service.ts
 import { Injectable } from '@angular/core';
-import { Observable, switchMap, take, tap, Subject, map, forkJoin } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { Observable, of, Subject } from 'rxjs';
+import { map, catchError, switchMap, tap, take } from 'rxjs/operators';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Comment } from '../../models/Comment';
 import { Content } from 'src/models/Content';
-import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +12,7 @@ import { FirebaseService } from '../API/firebase/firebase-service';
 export class CommentService {
   private readonly resource = 'comments';
 
-  constructor(private api: FirebaseService) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   private commentAdded = new Subject<{contentId: string, increment: number}>();
   commentAdded$ = this.commentAdded.asObservable();
@@ -22,7 +22,7 @@ export class CommentService {
    */
   getComments(contentId: string, limit: number = 10, offset: number = 0, currentUserId?: string): Observable<Comment[]> {
     return this.api.filter<Comment>(this.resource, 
-      {"contentId": contentId}).pipe(
+      {filters: {contentId: contentId}}).pipe(
       map((comments: any) => {
         // Convertir l'objet avec clés numériques en tableau si nécessaire
         if (!Array.isArray(comments) && typeof comments === 'object') {
@@ -182,7 +182,7 @@ export class CommentService {
    * Compte le nombre de commentaires pour un contenu
    */
   getCommentCount(contentId: string): Observable<number> {
-    return this.api.filter<Comment>(this.resource, {"contentId": contentId}).pipe(
+    return this.api.filter<Comment>(this.resource, {filters:{contentId: contentId}}).pipe(
       map((comments: any) => {
         // Convertir l'objet avec clés numériques en tableau si nécessaire
         if (!Array.isArray(comments) && typeof comments === 'object') {

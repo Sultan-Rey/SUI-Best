@@ -179,3 +179,129 @@ ion-chip{
     text-shadow: none;
   }
 }
+
+#reward-modal {
+  --width: 90%;
+  --height: fit-content;
+  --border-radius: 16px;
+  --background: transparent;
+
+  .modal-wrapper {
+    overflow: hidden;
+    border-radius: 20px;
+    background: white;
+  }
+
+  /* --- Section Haute --- */
+  .reward-header {
+    background: linear-gradient(135deg, #ffcc33 0%, #ffb300 100%);
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+
+    .star-background {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      .bg-star-icon {
+        position: absolute;
+        color: rgba(255, 255, 255, 0.2);
+        &.s1 { font-size: 150px; top: -20px; left: -20px; transform: rotate(-15deg); }
+        &.s2 { font-size: 120px; bottom: -10px; right: -20px; transform: rotate(20deg); }
+      }
+    }
+
+    .main-reward {
+      z-index: 2;
+      .star-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .main-star {
+          font-size: 160px;
+          color: white;
+          filter: drop-shadow(0 4px 10px rgba(0,0,0,0.1));
+        }
+
+        .points-text {
+          position: absolute;
+          font-size: 2.8rem;
+          font-weight: 900;
+          color: #ff9800;
+          margin-top: 5px;
+        }
+      }
+    }
+  }
+
+  /* --- Section Basse --- */
+  .reward-body {
+    background: #f0f0f0;
+    padding: 24px;
+    text-align: center;
+
+    h2 {
+      font-weight: 800;
+      font-size: 1.5rem;
+      margin: 20px 0 8px;
+      color: #000;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 1.1rem;
+    }
+
+    .claim-button {
+      --background: #000;
+      --color: #fff;
+      --border-radius: 12px;
+      --padding-top: 18px;
+      --padding-bottom: 18px;
+      font-weight: bold;
+      text-transform: lowercase;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+  }
+
+  /* --- Tracker de progression --- */
+  .progress-tracker {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5px;
+
+    .line {
+      flex-grow: 1;
+      height: 4px;
+      background: #000;
+    }
+
+    .step {
+      width: 50px;
+      height: 28px;
+      border: 2px solid #000;
+      border-radius: 20px;
+      background: #1a1818;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: bold;
+      z-index: 2;
+
+      &.completed {
+        background: #000;
+        color: white;
+        width: 35px; // Plus petit comme sur l'image
+      }
+    }
+  }
+}

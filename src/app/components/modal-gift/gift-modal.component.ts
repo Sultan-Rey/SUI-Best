@@ -6,8 +6,6 @@ import { LottieComponent } from 'ngx-lottie';
 import { IonIcon } from '@ionic/angular/standalone';
 import { globeOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
-import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller';
-import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service';
 import { Content } from 'src/models/Content';
 import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
 
@@ -21,8 +19,6 @@ import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
 export class GiftModalComponent {
   constructor(
     private modalCtrl: ModalController,
-    private notificationController: NotificationController,
-    private notificationService: NotificationService,
     private animService: AnimationService 
   ) { addIcons({ globeOutline }); }
   @Input() post!: Content;
@@ -70,8 +66,6 @@ export class GiftModalComponent {
 
     // 2. Déclencher l'animation plein écran
     this.animService.playAnimation(this.selectedGift.lottie);
-
-   const notified =  this.notificationService.createNotification(this.notificationController.notifyChallengerForGift(this.post.userId, this.post.id as string, this.selectGift)).toPromise();
   
   }
 }

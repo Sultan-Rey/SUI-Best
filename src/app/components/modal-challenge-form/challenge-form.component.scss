@@ -400,6 +400,69 @@ $transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
+// Options de participants
+.participant-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.participant-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: $card-bg;
+  padding: 16px;
+  border-radius: $border-radius-sm;
+  border: 2px solid rgba($primary, 0.2);
+  cursor: pointer;
+  transition: $transition;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  
+  > ion-icon {
+    font-size: 28px;
+    color: $gray;
+    min-width: 28px;
+  }
+  
+  .participant-info {
+    flex: 1;
+    
+    h4 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: $white;
+    }
+  }
+  
+  .participant-check {
+    ion-icon {
+      font-size: 24px;
+      color: $primary;
+    }
+  }
+  
+  &.selected {
+    border-color: $primary;
+    background: linear-gradient(135deg, rgba($primary, 0.15) 0%, rgba($dark, 0.8) 100%);
+    box-shadow: 0 4px 16px rgba($primary, 0.3);
+    
+    > ion-icon {
+      color: $primary;
+    }
+    
+    .participant-info h4 {
+      color: $primary;
+    }
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
 // Liste de règles
 .rules-list {
   display: flex;

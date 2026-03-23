@@ -1,0 +1,1 @@
+export type Segment =  'discovery' | 'followed' | 'message' | 'upload' | 'challenge';

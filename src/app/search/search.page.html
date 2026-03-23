@@ -49,7 +49,7 @@
 
       <div class="avatar-wrap">
         <img
-          [src]="profile.avatar || 'assets/avatar-default.png' | mediaUrl"
+          [src]="profile.avatar || 'assets/avatar-default.png' | mediaUrl | async"
           [alt]="profile.displayName"
           class="profile-avatar"
           (error)="onAvatarError($event)">
@@ -95,7 +95,7 @@
 
       <div class="avatar-wrap">
         <img
-          [src]="profile.avatar || 'assets/avatar-default.png' | mediaUrl"
+          [src]="profile.avatar || 'assets/avatar-default.png' | mediaUrl | async"
           [alt]="profile.displayName"
           class="profile-avatar"
           (error)="onAvatarError($event)">

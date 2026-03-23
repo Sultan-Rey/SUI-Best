@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, Output, EventEmitter, Input, HostBinding, ChangeDetectorRef } from '@angular/core';
 import { SafeHtmlPipe } from './safe-html.pipe';
 import { Router } from '@angular/router';
 import { NgFor, NgIf} from '@angular/common';
@@ -40,7 +40,7 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
       label: 'Explorez',
       emoji: '✨',
       route: '/explorez',
-      iconPath: `<path d="M15 4l5 5-9.5 9.5-5-5L15 4z"/><line x1="4" y1="20" x2="9" y2="15"/>`,
+      iconPath: `<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>`,
     },
     {
       idx: 2,
@@ -57,7 +57,6 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
       emoji: '💬',
       route: '/messages',
       iconPath: `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
-      badge: 4,
     },
     {
       idx: 4,
@@ -74,6 +73,24 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
 
   // Output pour envoyer l'activeItem au parent
   @Output() activeItemChange = new EventEmitter<NavItem>();
+
+  // Theme : 'dark' (défaut) | 'light' — posé depuis le parent selon le segment actif
+  @Input() set theme(value: 'dark' | 'light') {
+    this._theme = value;
+  }
+  get theme(): 'dark' | 'light' { return this._theme; }
+  private _theme: 'dark' | 'light' = 'dark';
+
+  // Messages non lus
+  @Input() set unreadCount(value: number | undefined) {
+    const messagesItem = this.navItems.find(item => item.page === 'messages');
+    if (messagesItem) {
+      messagesItem.badge = value && value > 0 ? value : undefined;
+    }
+  }
+
+  @HostBinding('class.theme-light') get isLight() { return this._theme === 'light'; }
+  @HostBinding('class.theme-dark')  get isDark()  { return this._theme === 'dark'; }
 
   // DOM state
   private offsetX: number = 0;
@@ -95,30 +112,40 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
   private onTouchMove!: (e: TouchEvent) => void;
   private onTouchEnd!: () => void;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
     this.activeItem = this.navItems[this.activeIdx];
   }
 
+  // ─── État de chargement ───────────────────────────
+  isLoading = true;
+
   ngAfterViewInit() {
-    // Measure actual nav width
-    const track = this.navTrackRef.nativeElement;
-    this.NAV_W = track.offsetWidth || 390;
-    this.CIRCLE_X = this.NAV_W / 2;
+    // Attendre que le DOM soit complètement rendu avant les mesures
+    setTimeout(() => {
+      const track = this.navTrackRef.nativeElement;
+      this.NAV_W = track.offsetWidth || 390;
+      this.CIRCLE_X = this.NAV_W / 2;
 
-    // Init position
-    this.offsetX = this.CIRCLE_X - this.activeIdx * this.ITEM_W - this.ITEM_W / 2;
-    this.applyTransform(false);
+      // Initialiser la position seulement si les mesures sont valides
+      if (this.NAV_W > 0) {
+        this.offsetX = this.CIRCLE_X - this.activeIdx * this.ITEM_W - this.ITEM_W / 2;
+        this.applyTransform(false);
+      }
 
-    // Bind global events
-    this.onMouseMove = (e: MouseEvent) => this.pointerMove(e.clientX);
-    this.onMouseUp   = () => this.pointerUp();
-    this.onTouchMove = (e: TouchEvent) => { e.preventDefault(); this.pointerMove(e.touches[0].clientX); };
-    this.onTouchEnd  = () => this.pointerUp();
+      this.isLoading = false;
+      this.cdr.markForCheck();
+      
+      // Bind global events après l'initialisation
+      this.onMouseMove = (e: MouseEvent) => this.pointerMove(e.clientX);
+      this.onMouseUp   = () => this.pointerUp();
+      this.onTouchMove = (e: TouchEvent) => { e.preventDefault(); this.pointerMove(e.touches[0].clientX); };
+      this.onTouchEnd  = () => this.pointerUp();
 
-    window.addEventListener('mousemove', this.onMouseMove);
-    window.addEventListener('mouseup',   this.onMouseUp);
+      window.addEventListener('mousemove', this.onMouseMove);
+      window.addEventListener('mouseup',   this.onMouseUp);
+    }, 50); // Attendre 50ms pour le rendu
   }
 
   ngOnDestroy() {
@@ -137,18 +164,43 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
 
   private snapToIndex(idx: number) {
     idx = Math.max(0, Math.min(idx, this.navItems.length - 1));
-    this.offsetX = this.CIRCLE_X - idx * this.ITEM_W - this.ITEM_W / 2;
-    this.applyTransform(true);
+    
+    const targetOffset = this.CIRCLE_X - idx * this.ITEM_W - this.ITEM_W / 2;
+    this.smoothScrollToOffset(targetOffset, idx);
+  }
 
-    if (idx !== this.activeIdx) {
-      this.activeIdx  = idx;
-      this.activeItem = this.navItems[idx];
+  private smoothScrollToOffset(targetOffset: number, targetIdx: number) {
+    const startOffset = this.offsetX;
+    const distance = targetOffset - startOffset;
+    const duration = 300;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = this.easeOutCubic(progress);
       
-      // Émettre l'activeItem vers le parent
-      this.activeItemChange.emit(this.activeItem);
-      
-      this.triggerSnapPulse();
-    }
+      this.offsetX = startOffset + distance * easedProgress;
+      this.applyTransform(false);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Finalisation
+        if (targetIdx !== this.activeIdx) {
+          this.activeIdx = targetIdx;
+          this.activeItem = this.navItems[targetIdx];
+          this.activeItemChange.emit(this.activeItem);
+          this.triggerSnapPulse();
+        }
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+
+  private easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
   }
 
   private triggerSnapPulse() {

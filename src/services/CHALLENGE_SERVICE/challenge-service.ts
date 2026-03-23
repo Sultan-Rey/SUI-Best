@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, throwError, forkJoin } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON, FilterResult } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Challenge } from '../../models/Challenge';
-import { FirebaseService } from '../API/firebase/firebase-service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +11,7 @@ export class ChallengeService {
   private readonly challengeResource = 'challenges';
   private readonly uploadResource = 'api/upload';
 
-  constructor(private api: FirebaseService) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   createChallenge(challengeData: Omit<Challenge, 'id' | 'created_at' | 'is_active'>): Observable<Challenge> {
     const challenge = {
@@ -30,10 +29,8 @@ export class ChallengeService {
   ): Observable<Challenge> {
     return new Observable(observer => {
       this.api.upload<{ file: { path: string } }>(
-        this.uploadResource,
         coverImage,
-        'file',
-        !!progressCallback
+        'challenges',
       ).subscribe({
         next: (event: any) => {
           if (event.type === 1 && event.loaded && event.total && progressCallback) {
@@ -71,7 +68,7 @@ export class ChallengeService {
   }
 
   getActiveChallenges(): Observable<Challenge[]> {
-    return this.api.get<Challenge>(this.challengeResource, {
+    return this.api.get<Challenge[]>(this.challengeResource, {
       is_active: 'true'});
   }
 
@@ -83,8 +80,36 @@ export class ChallengeService {
     return this.api.getById<Challenge | null>(this.challengeResource, id);
   }
 
-  getChallengesByCreator(creatorId: string): Observable<Challenge[]> {
-    return this.api.get<Challenge>(this.challengeResource, {
+  getChallengesByCreator(creatorIds: string[]): Observable<Challenge[]> {
+    if (creatorIds.length === 0) return of([]);
+    
+    // Solution 1: Requêtes multiples en parallèle
+    const requests = creatorIds.map(id => 
+      this.api.filter<Challenge>(this.challengeResource, { filters: {creator_id: id} })
+    );
+    
+    return forkJoin(requests).pipe(
+      map(results => {
+        // Aplatir tous les tableaux manuellement (compatibilité ES2018)
+        const flattened: Challenge[] = [];
+        results.forEach((result: FilterResult<Challenge>) => {
+          flattened.push(...result.data);
+        });
+        return flattened;
+      }),
+      map(challenges => {
+        // Supprimer les doublons basés sur l'ID
+        const unique = challenges.filter((challenge: Challenge, index: number, self: Challenge[]) =>
+          index === self.findIndex((c: Challenge) => c.id === challenge.id)
+        );
+        return unique;
+      })
+    );
+  }
+
+  // Méthode de commodité pour un seul creator_id (compatibilité descendante)
+  getChallengesBySingleCreator(creatorId: string): Observable<Challenge[]> {
+    return this.api.get<Challenge[]>(this.challengeResource, {
       creator_id: creatorId
     });
   }

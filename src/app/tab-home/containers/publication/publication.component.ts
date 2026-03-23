@@ -1,452 +1,357 @@
-import { Component, OnDestroy, Input, OnInit } from '@angular/core';
-import { ActionSheetController, AlertController, LoadingController, ToastController } from '@ionic/angular';
-import { CameraService } from '../../../../services/CAMERA_SERVICE/camera-service'
+import { Component, OnDestroy, Input, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import {
+  ActionSheetController, AlertController,
+  LoadingController, ToastController, ModalController
+} from '@ionic/angular';
+import { CameraService, MediaFile } from '../../../../services/CAMERA_SERVICE/camera-service';
 import { CreationService } from '../../../../services/CREATION_SERVICE/creation-service';
-import { Content, ContentSource, ContentStatus, ContentType } from '../../../../models/Content';
-import { GalleryPhoto } from '@capacitor/camera';
-import { IonButton,IonChip, IonToggle, IonTextarea, IonItem, IonContent, IonIcon, IonLabel, IonHeader, IonProgressBar, IonList, IonToolbar, IonTitle, IonRadioGroup, IonButtons, IonListHeader, IonRadio, IonSpinner } from "@ionic/angular/standalone";
+import { Content, ContentSource, ContentStatus } from '../../../../models/Content';
+import {
+  IonButton, IonChip, IonToggle, IonTextarea, IonIcon,
+  IonHeader, IonToolbar, IonTitle, IonButtons,
+  IonRadioGroup, IonRadio, IonSpinner
+} from '@ionic/angular/standalone';
 import { NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
-import { camera, arrowBack, close, settings, checkmarkCircle, images, closeCircle, globe, lockClosed, download, heartOutline, chatbubbleOutline, shareOutline, expand, contract, imageOutline, cameraOutline, imagesOutline, phonePortraitOutline, closeCircleOutline, trophyOutline, arrowRedoOutline, expandOutline, contractOutline } from 'ionicons/icons';
+import {
+  camera, arrowBack, close, settings, checkmarkCircle, image, images, closeCircle,
+  globe, lockClosed, download, heartOutline, chatbubbleOutline, shareOutline,
+  expand, contract, imageOutline, cameraOutline, imagesOutline, videocam,
+  phonePortraitOutline, closeCircleOutline, trophyOutline, arrowRedoOutline,
+  expandOutline, contractOutline, checkmark
+} from 'ionicons/icons';
 import { Challenge } from '../../../../models/Challenge';
-import { Auth } from '../../../../services/AUTH/local-auth/auth';
+import { Auth } from '../../../../services/AUTH/auth';
 import { ProfileService } from '../../../../services/PROFILE_SERVICE/profile-service';
 import { Router } from '@angular/router';
 import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
-import { ModalController } from '@ionic/angular';
-import { NotificationService } from 'src/services/NOTIFICATION_SERVICES/Api/notification-service';
-import { NotificationController } from 'src/services/NOTIFICATION_SERVICES/Controller/notification-controller';
+import { UserProfile } from 'src/models/User';
+import { isNullOrUndefined } from 'html5-qrcode/esm/core';
+import { SystemMessenger } from 'src/services/MESSAGE_SERVICE/system-messenger';
 
 @Component({
   selector: 'app-publication',
   templateUrl: './publication.component.html',
   styleUrls: ['./publication.component.scss'],
   providers: [ModalController],
-  imports:[NgIf, NgFor, FormsModule, IonChip, IonToggle, IonTextarea, IonButton, IonContent, IonIcon, IonHeader, IonButtons, IonToolbar, IonTitle, IonRadio, IonRadioGroup]
-  
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    NgIf, NgFor, FormsModule, IonToggle, IonTextarea, IonButton,
+    IonIcon, IonHeader, IonButtons, IonToolbar, IonTitle, IonRadio, IonRadioGroup,
+    IonSpinner
+  ]
 })
-export class PublicationComponent  implements OnInit {
-@Input() creatorId?: string;
-  @Input() challengeId?: string;
-  @Input() isAutomaticAcceptance?: boolean;
-  @Input() isModalMode!: boolean;
-  
-  private _selectedChallengeId: string | null = null;
+export class PublicationComponent implements OnInit, OnDestroy {
 
-  // Getter et setter pour selectedChallengeId
-  get selectedChallengeId(): string | null {
-    return this._selectedChallengeId;
+  @Input() CurrentUserProfile!: UserProfile;
+  @Input() challenges: Challenge[] = [];
+  @Input() isChallenging!: boolean;
+  // ─── Challenge ────────────────────────────────────────────────
+  private _selectedChallenge: Challenge | null = null;
+
+  get selectedChallenge(): Challenge | null { return this._selectedChallenge; }
+  set selectedChallenge(value: Challenge | null) {
+    this._selectedChallenge = value;
+    if (this.content && value) this.content.challengeId = value.id ?? '';
   }
 
-  set selectedChallengeId(value: string | null) {
-    this._selectedChallengeId = value;
-    if (this.content) {
-      this.content.challengeId = value || '';
-    }
-  }
-
-  // État du formulaire
+  // ─── Formulaire ───────────────────────────────────────────────
   content: Partial<Content> = {
-    description: '',
-    isPublic: true,
+    description:    '',
+    isPublic:       true,
     allowDownloads: true,
-    allowComments: true,
-    likedIds: [],
-    commentIds: [],
-    challengeId: '', // Sera mis à jour par le setter
-    status: ContentStatus.PUBLISHED,
-    userId: this.authService.getCurrentUser()?.id?.toString() || '',
-    source: ContentSource.CAMERA
+    allowComments:  true,
+    likedIds:       [],
+    commentIds:     [],
+    challengeId:    '',
+    status:         ContentStatus.PUBLISHED,
+    userId:         this.CurrentUserProfile?.id ?? '',
+    source:         ContentSource.CAMERA,
   };
-  challenges: Challenge[] = [];  // Liste des challenges
-  
 
-  selectedFile: File | null = null;
-  previewUrl: string | null = null;
-  isUploading = false;
-  currentStep = 1;
-  totalSteps = 4;
+
+
+  // ─── Médias + carrousel ───────────────────────────────────────
+  selectedMedia: MediaFile[] = [];
+  activeIndex   = 0;  // index du média affiché en preview
+
+  get activeMedia(): MediaFile | null { return this.selectedMedia[this.activeIndex] ?? null; }
+  get hasMedia(): boolean             { return this.selectedMedia.length > 0; }
+
+  // ─── UI ───────────────────────────────────────────────────────
+  currentStep     = 1;
+  totalSteps      = 4;
   imageFitMode: 'default' | 'fit' = 'default';
-  
-  // Galerie de photos
-  galleryPhotos: GalleryPhoto[] = [];
-  selectedGalleryPhoto: GalleryPhoto | null = null;
-  isLoadingGallery = false;
-
+  isPickingMedia  = false;
+  isUploading     = false;
+  isPublic        = true;
+  isLocked        = false;
   constructor(
-    private cameraService: CameraService,
-    private creationService: CreationService,
+    private cameraService:    CameraService,
+    private creationService:  CreationService,
     private challengeService: ChallengeService,
-    private authService: Auth,
-    private profileService: ProfileService,
-    private notificationService: NotificationService,
-    private notificationController: NotificationController,
-    private loadingCtrl: LoadingController,
-    private actionSheetCtrl: ActionSheetController,
-    private alertCtrl: AlertController,
-    private toastCtrl: ToastController,
-    private routeur: Router,
-    private modalCtrl: ModalController
-  ) { 
-    
-    addIcons({arrowBack,close,imageOutline,cameraOutline,imagesOutline,phonePortraitOutline,closeCircleOutline,trophyOutline,heartOutline,chatbubbleOutline,arrowRedoOutline,expandOutline,contractOutline,settings,checkmarkCircle,images,camera,closeCircle,shareOutline,expand,contract,globe,lockClosed,download});
-  }
-
-  ngOnInit(){
-    this.initializeMode();
-    this.loadGalleryPhotos();
-  }
-
-   private async initializeMode() {
-    // Vérifier si nous sommes en mode modal
-   
-    if (this.isModalMode) {
-        const theChallenge = await this.challengeService.getChallengeById(this.challengeId as string).toPromise();
-        if(!theChallenge) return;
-
-        this.content.challengeId = theChallenge.id;
-    
-      theChallenge.is_acceptance_automatic ?
-        this.content.status = ContentStatus.PUBLISHED:
-          this.content.status = ContentStatus.DRAFT;
-      
-      // En mode modal, on a 3 étapes: média → description → vérification
-      this.totalSteps = 3;
-    } else {
-      // Mode normal: charger les challenges
-      this.loadChallenges();
-      this.totalSteps = 4;
-    }
-    
-   
-  }
-
-  async loadChallenges() {
-  try {
-    // Supprimez le await inutile car on utilise subscribe
-    this.challengeService.getChallengesByCreator(
-      this.authService.getCurrentUser()?.id as string || ''
-    ).subscribe({
-      next: (challenges: Challenge[]) => {
-        const activeChallenges = challenges.filter((challenge)=> challenge.end_date && challenge.end_date <= new Date(Date.now()))
-        this.challenges = activeChallenges;
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des challenges:', error);
-        this.showError('Tableau des défis vide');
-      }
+    private profileService:   ProfileService,
+    private systemMessenger:  SystemMessenger,
+    private loadingCtrl:      LoadingController,
+    private alertCtrl:        AlertController,
+    private toastCtrl:        ToastController,
+    private cdr:              ChangeDetectorRef
+  ) {
+    addIcons({
+      arrowBack, close, image, imageOutline, cameraOutline, imagesOutline, videocam,
+      phonePortraitOutline, closeCircleOutline, trophyOutline, heartOutline,
+      chatbubbleOutline, arrowRedoOutline, expandOutline, contractOutline,
+      settings, checkmarkCircle, checkmark, images, camera, closeCircle,
+      shareOutline, expand, contract, globe, lockClosed, download
     });
-  } catch (error) {
-    console.error('Erreur inattendue lors du chargement des challenges:', error);
-    this.showError('Une erreur inattendue est survenue');
-  }
-}
-
-
-  isImage(): boolean {
-  if (!this.selectedFile) return false;
-  return this.selectedFile.type.startsWith('image/');
+   
   }
 
-  isVideo(): boolean {
-  if (!this.selectedFile) return false;
-  return this.selectedFile.type.startsWith('video/');
-}
+  ngOnInit(): void { 
+    // Initialiser le userId avec l'utilisateur courant
+  this.content.userId = this.CurrentUserProfile?.id ?? '';
+  
+    if(!isNullOrUndefined(this.isChallenging) )
+      this.selectedChallenge = this.challenges[0];
+    else
+       this.loadChallenges(); 
+     
+    if(this.CurrentUserProfile.type == 'admin'){
+      this.isPublic = true;
+      this.content.isPublic = true;
+    }else{
+      this.isPublic = false;
+      this.content.isPublic = false;
+      this.isLocked        = true;
 
-  // Charger les photos de la galerie
-  async loadGalleryPhotos() {
-    this.isLoadingGallery = true;
-    try {
-      this.galleryPhotos = await this.cameraService.getGalleryPhotos();
-    } catch (error) {
-      console.error('Erreur lors du chargement de la galerie:', error);
-      this.showError('Impossible de charger la galerie');
-    } finally {
-      this.isLoadingGallery = false;
     }
   }
 
-  // Sélectionner une photo de la galerie
-  async selectGalleryPhoto(photo: GalleryPhoto) {
-    try {
-      this.selectedGalleryPhoto = photo;
-      this.selectedFile = await this.cameraService.convertPhotoToFile(photo as any);
-      this.previewUrl = photo.webPath || null;
-      this.content.source = ContentSource.GALLERY;
-    } catch (error) {
-      console.error('Erreur lors de la sélection de la photo:', error);
-      this.showError('Impossible de sélectionner cette photo');
-    }
+  ngOnDestroy(): void {
+    this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
   }
 
-  // Gestion de la galerie (à implémenter plus tard)
-  async manageGallery() {
-    // Logique de gestion à implémenter
-    console.log('Gestion de la galerie - à implémenter');
+  // ==============================================================
+  //  INIT
+  // ==============================================================
+
+  
+
+  loadChallenges(): void {
+    const creatorIds = [
+      this.CurrentUserProfile?.['id'] || '',
+      ...(this.CurrentUserProfile?.['myFollows'] || [])
+    ];
+    this.challengeService.getChallengesByCreator(creatorIds).subscribe({
+      next: challenges => {
+        this.challenges = challenges.filter(c =>
+          c.end_date && new Date(c.end_date) >= new Date()
+        );
+        this.cdr.markForCheck();
+      },
+      error: () => this.showError('Tableau des défis vide')
+    });
   }
 
-  // Prendre une photo avec la caméra
-  async takePhoto() {
+  // ==============================================================
+  //  SÉLECTION MÉDIAS
+  // ==============================================================
+
+  async takePhoto(): Promise<void> {
+    this.isPickingMedia = true;
+    this.cdr.markForCheck();
     try {
-      const photo = await this.cameraService.takePhoto();
-      this.selectedFile = await this.cameraService.convertPhotoToFile(photo);
-      this.previewUrl = photo.webPath || null;
+      const media = await this.cameraService.takePhoto();
+      this.setMedia([media]);
       this.content.source = ContentSource.CAMERA;
-    } catch (error) {
-      console.error('Erreur avec la caméra:', error);
+    } catch {
       this.showError('Impossible d\'accéder à la caméra');
+    } finally {
+      this.isPickingMedia = false;
+      this.cdr.markForCheck();
     }
   }
 
-  // Choisir depuis la galerie
-  async pickFromGallery() {
+  async pickFromGallery(): Promise<void> {
+    this.isPickingMedia = true;
+    this.cdr.markForCheck();
     try {
-      const photo = await this.cameraService.pickFromGallery();
-      this.selectedFile = await this.cameraService.convertPhotoToFile(photo);
-      this.previewUrl = photo.webPath || null;
-      this.content.source = ContentSource.GALLERY;
-    } catch (error) {
-      console.error('Erreur avec la galerie:', error);
+      const mediaFiles = await this.cameraService.pickMultiple();
+      if (mediaFiles.length) {
+        this.setMedia(mediaFiles);
+        this.content.source = ContentSource.GALLERY;
+      }
+    } catch {
       this.showError('Interruption du chargement de la galerie');
+    } finally {
+      this.isPickingMedia = false;
+      this.cdr.markForCheck();
     }
   }
 
-  // Méthodes de navigation
-canProceed(): boolean {
+  removeMedia(event: Event): void {
+    event.stopPropagation();
+    this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+    this.selectedMedia = [];
+    this.activeIndex   = 0;
+    this.cdr.markForCheck();
+  }
+
+  /** Passe au média suivant dans le carrousel */
+  selectMedia(index: number): void {
+    if (index < 0 || index >= this.selectedMedia.length) return;
+    this.activeIndex = index;
+    this.cdr.markForCheck();
+  }
+
+  private setMedia(mediaFiles: MediaFile[]): void {
+    this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+    this.selectedMedia = mediaFiles;
+    this.activeIndex   = 0; // toujours repartir du premier
+  }
+
+  // ==============================================================
+  //  GETTERS TEMPLATE
+  // ==============================================================
+
+  isImage(): boolean { return this.activeMedia?.isImage ?? false; }
+  isVideo(): boolean { return this.activeMedia?.isVideo ?? false; }
+
+  // ==============================================================
+  //  NAVIGATION ÉTAPES
+  // ==============================================================
+
+  canProceed(): boolean {
     switch (this.currentStep) {
-      case 1: return !!this.selectedFile || !!this.selectedGalleryPhoto;
-      case 2: return !!this.content.description?.trim();
-      case 3: return true;  // L'étape de sélection du challenge (mode normal)
+      case 1:  return this.hasMedia;
+      case 2:  return !!this.content.description?.trim();
       default: return true;
     }
   }
 
-canSubmit(): boolean {
-  return (!!this.selectedFile || !!this.selectedGalleryPhoto) && !!this.content.description?.trim();
-}
-
-// Pour fermer le formulaire
-async close() {
-  if (this.isModalMode) {
-    await this.modalCtrl.dismiss();
-  } else {
-    this.routeur.navigate(['/tabs/tabs/home']);
-  }
-}
-
-// Pour afficher les options de média
-async presentMediaOptions() {
-  if (this.selectedFile) return;
-  
-  const actionSheet = await this.actionSheetCtrl.create({
-    header: 'Ajouter des médias',
-    buttons: [
-      {
-        text: 'Prendre une photo',
-        icon: 'camera',
-        handler: () => this.takePhoto()
-      },
-      {
-        text: 'Choisir depuis la galerie',
-        icon: 'images',
-        handler: () => this.pickFromGallery()
-      },
-      {
-        text: 'Annuler',
-        icon: 'close',
-        role: 'cancel'
-      }
-    ]
-  });
-  
-  await actionSheet.present();
-}
-
-  // Méthode pour changer le mode de cadrage de l'image
-  setImageFitMode(mode: 'default' | 'fit') {
-    this.imageFitMode = mode;
+  canSubmit(): boolean {
+    return this.hasMedia && !!this.content.description?.trim();
   }
 
-// Mettez à jour removeMedia
-removeMedia(event: Event) {
-  event.stopPropagation();
-  this.selectedFile = null;
-  this.previewUrl = null;
-}
-
-  // Soumettre le formulaire
- async submit() {
-  if (!this.selectedFile && !this.selectedGalleryPhoto) {
-    this.showError('Veuillez sélectionner un fichier');
-    return;
-  }
-
-  if (!this.content.description?.trim()) {
-    this.showError('Veuillez ajouter un titre');
-    return;
-  }
-
-  const loading = await this.loadingCtrl.create({
-    message: 'Publication en cours...'
-  });
-  await loading.present();
- 
-  try {
-  
+  nextStep(): void {
+    if (this.currentStep >= this.totalSteps) return;
+   
+      this.currentStep++;
     
-    const userType = this.authService.getCurrentUser()?.user_type;
-    if(this.isModalMode && userType !== 'admin') this.content.isPublic = false;
-    
-    // Création du contenu
-    const newContent = await this.creationService.createContentWithFile(
-      this.selectedFile!, // On est sûr que selectedFile n'est pas null grâce à la vérification ci-dessus
-      {
-        userId: this.content.userId || '',
-        description: this.content.description,
-        isPublic: this.content.isPublic ?? true,
-        allowDownloads: this.content.allowDownloads ?? true,
-        allowComments: this.content.allowComments ?? false,
-        challengeId: this.content.challengeId,
-        cadrage: this.imageFitMode,
-        status: this.content.status as ContentStatus,
-        likedIds: [],
-        commentIds: [],
-        source: this.content.source || ContentSource.CAMERA
-      }
-    ).toPromise();
-
-    // Mise à jour des statistiques du profil utilisateur
-    if (newContent && this.content.userId) {
-      try {
-        this.notificationFor(newContent);
-        // Récupérer le profil utilisateur
-const userProfile = await this.profileService.getProfileById(this.content.userId).toPromise();
-
-if (userProfile) {
-  // Initialiser les stats si elles n'existent pas
-  const currentStats = userProfile.stats || { 
-    posts: 0, 
-    fans: 0, 
-    votes: 0, 
-    stars: 0 
-  };
-  
-  // Créer l'objet de mise à jour avec les nouvelles stats
-  const updates = {
-    stats: {
-      ...currentStats,
-      posts: (currentStats.posts || 0) + 1
-    }
-  };
-  
-  // Mettre à jour le profil utilisateur avec la nouvelle signature
-  await this.profileService.updateProfile(userProfile.id, updates).toPromise();
-}
-      } catch (error) {
-        console.error('Erreur lors de la mise à jour du profil:', error);
-        // Ne pas bloquer le flux en cas d'échec de la mise à jour des stats
-      }
-    }
-
-    await loading.dismiss();
-    
-    // Message de succès selon le cas
-    if (this.isModalMode && !this.isAutomaticAcceptance) {
-      
-      this.alertCtrl.create({
-          header:'Participation au défis',
-          subHeader:'Acceptation en cours de traitement',
-          message:'Attendez de recevoir votre ticket d\'acceptance.',
-          buttons: ['Merci !']
-        }).then((alert) => {
-          alert.present();
-        });
-    } else {
-      this.showSuccess('Contenu publié avec succès!');
-    }
-    
-    this.resetForm();
-  } catch (error) {
-    console.error('Erreur lors de la publication:', error);
-    await loading.dismiss();
-    this.showError('Erreur lors de la publication');
+    this.cdr.markForCheck();
   }
-}
 
-  private async notificationFor(uploadedPost: any){
-    if(this.isModalMode && !this.isAutomaticAcceptance){
-       const notified = await this.notificationService.createNotification(this.notificationController.notifyChallengeCreator(this.creatorId as string ,uploadedPost.id as string)).toPromise();
-         
-          if(notified){
-          this.showSuccess("Votre demande participation est en cours de traitement...");
+  prevStep(): void {
+    if (this.currentStep <= 1) return;
+    this.currentStep = this.currentStep - 1;
+    this.cdr.markForCheck();
+  }
+
+  // ==============================================================
+  //  SOUMISSION — uploade le média actif (choisi dans le carrousel)
+  // ==============================================================
+
+  async submit(): Promise<void> {
+    if (!this.hasMedia)                    { this.showError('Veuillez sélectionner un fichier'); return; }
+    if (!this.content.description?.trim()) { this.showError('Veuillez ajouter un titre'); return; }
+
+    this.isUploading = true;
+    this.cdr.markForCheck();
+
+    const loading = await this.loadingCtrl.create({ message: 'Publication en cours...' });
+    await loading.present();
+
+    try {
+      const challengeId = this.selectedChallenge?.creator_id !== this.CurrentUserProfile.id &&
+                          !this.selectedChallenge?.is_acceptance_automatic ? '' : this.content.challengeId;
+      const newContent = await this.creationService.createContentWithFile(
+        this.activeMedia!.file,   // ← le média sélectionné dans le carrousel
+        {
+          userId:         this.content.userId ?? '',
+          description:    this.content.description,
+          isPublic:       this.content.isPublic ?? true,
+          allowDownloads: this.content.allowDownloads ?? true,
+          allowComments:  this.content.allowComments ?? false,
+          challengeId:    challengeId ,
+          cadrage:        this.imageFitMode,
+          status:         this.content.status as ContentStatus,
+          likedIds:       [],
+          commentIds:     [],
+          source:         this.content.source ?? ContentSource.CAMERA,
+        }
+      ).toPromise();
+
+      if (newContent && this.content.userId) {
+        try {
+          const profile = await this.profileService.getProfileById(this.content.userId).toPromise();
+          if (profile) {
+            const stats = profile.stats ?? { posts: 0, fans: 0, votes: 0, stars: 0 };
+            await this.profileService.updateProfile(profile.id, {
+              stats: { ...stats, posts: (stats.posts ?? 0) + 1 }
+            }).toPromise();
           }
-    }
-  }
-
-  // Navigation entre les étapes
-  nextStep() {
-    
-    if (this.currentStep < this.totalSteps) {
-      // En mode modal, sauter l'étape 3 (challenge)
-      if (this.isModalMode && this.currentStep === 2) {
-        this.currentStep = 3; // Passer directement à la vérification
-        this.totalSteps = 3
-      } else {
-        this.currentStep++;
+        } catch { /* non bloquant */ }
       }
-    console.log("step"+this.currentStep);
-    }
-  }
 
-  prevStep() {
-    if (this.currentStep > 1) {
-      // En mode modal, si on revient depuis l'étape 3, retourner à l'étape 2
-      if (this.isModalMode && this.currentStep === 3) {
-        this.currentStep = 2;
-      } else {
-        this.currentStep--;
+      await loading.dismiss();
+     
+      if(this.isChallenging && this.selectedChallenge && this.selectedChallenge.participants_count){
+        this.selectedChallenge.participants_count +=1;
+        this.challengeService.updateChallenge(this.selectedChallenge.id, this.selectedChallenge)
+       
+        if(!this.selectedChallenge.is_acceptance_automatic)
+        this.systemMessenger.sendParticipationRequired_msg(`${this.CurrentUserProfile.displayName} souhaite participer a ${this.selectedChallenge.name} cliquer pour plus d'options`, this.CurrentUserProfile.id, this.CurrentUserProfile.username);
+        const alert = await this.alertCtrl.create({
+          header:    'Participation au défi',
+          subHeader: 'Acceptation en cours de traitement',
+          message:   'Attendez de recevoir votre ticket d\'acceptation.',
+          buttons:   ['Merci !']
+        });
+        await alert.present();
+
+    } else {
+        this.showSuccess('Contenu publié avec succès !');
       }
+
+      this.resetForm();
+
+    } catch {
+      await loading.dismiss();
+      this.showError('Erreur lors de la publication');
+    } finally {
+      this.isUploading = false;
+      this.cdr.markForCheck();
     }
   }
 
-  // Réinitialisation du formulaire
-  private resetForm() {
-    this.content = {
-      description: '',
-      isPublic: true,
-      allowDownloads: true,
-      allowComments: false,
-    };
-    this.selectedFile = null;
-    this.previewUrl = null;
-    this.selectedGalleryPhoto = null;
-    this.currentStep = 1;
+  // ==============================================================
+  //  UTILS
+  // ==============================================================
+
+
+
+  setImageFitMode(mode: 'default' | 'fit'): void {
+    this.imageFitMode = mode;
+    this.cdr.markForCheck();
   }
 
-  // Affichage des messages
-  private async showError(message: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 3000,
-      color: 'danger'
-    });
-    await toast.present();
+  private resetForm(): void {
+    this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+    this.selectedMedia = [];
+    this.activeIndex   = 0;
+    this.content       = { description: '', isPublic: true, allowDownloads: true, allowComments: false };
+    this.currentStep   = 1;
+    this.cdr.markForCheck();
   }
 
-  private async showSuccess(message: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 3000,
-      color: 'success'
-    });
-    await toast.present();
+  private async showError(message: string): Promise<void> {
+    const t = await this.toastCtrl.create({ message, duration: 3000, color: 'danger' });
+    await t.present();
   }
 
-  // Nettoyage
-  ngOnDestroy() {
-    if (this.previewUrl) {
-      URL.revokeObjectURL(this.previewUrl);
-    }
+  private async showSuccess(message: string): Promise<void> {
+    const t = await this.toastCtrl.create({ message, duration: 3000, color: 'success' });
+    await t.present();
   }
 }

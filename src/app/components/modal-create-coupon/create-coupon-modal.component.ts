@@ -5,7 +5,7 @@ import { ModalController, AlertController } from '@ionic/angular';
 import { IncomeService } from 'src/services/INCOME_SERVICE/income-service';
 import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
 import { CouponType } from 'src/models/Coupon';
-import { Auth } from 'src/services/AUTH/local-auth/auth';
+import { Auth } from 'src/services/AUTH/auth';
 
 export interface CouponPackConfig {
   type: CouponType;

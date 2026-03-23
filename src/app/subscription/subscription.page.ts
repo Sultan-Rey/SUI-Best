@@ -32,7 +32,7 @@ import { SubscriptionService } from 'src/services/SUBSCRIPTION_SERVICE/subscript
 import { User } from 'src/models/User';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
 import { firstValueFrom, map, tap } from 'rxjs';
-import { FireAuth } from 'src/services/AUTH/fireAuth/fire-auth';
+import { Auth } from 'src/services/AUTH/auth';
 import { environment } from 'src/environments/environment.prod';
 import { FirebaseService } from 'src/services/API/firebase/firebase-service';
 
@@ -71,7 +71,7 @@ export class SubscriptionPage implements OnInit {
   private alertController = inject(AlertController);
   private loadingController = inject(LoadingController);
   private subscriptionService = inject(SubscriptionService);
-  private fireAuth = inject(FireAuth);
+  private auth = inject(Auth);
   private firebaseService = inject(FirebaseService);
 
   constructor() {
@@ -98,26 +98,6 @@ export class SubscriptionPage implements OnInit {
     }
    
   
-  }
-
-  // Traduire les codes d'erreur Firebase en messages conviviaux
-  private translateErrorMessage(error: any): string {
-    const errorMessage = error.message || '';
-    
-    switch (errorMessage) {
-      case 'USER_NOT_FOUND':
-        return 'Utilisateur non trouvé. Veuillez vérifier vos informations.';
-      case 'INVALID_PASSWORD':
-        return 'Mot de passe incorrect. Veuillez réessayer.';
-      case 'ACCOUNT_DISABLED':
-        return 'Ce compte a été désactivé. Contactez le support.';
-      case 'TOO_MANY_REQUESTS':
-        return 'Trop de tentatives. Veuillez attendre avant de réessayer.';
-      case 'EMAIL_ALREADY_EXISTS':
-        return 'L\' adresse email '+this.registrationData.email+' est déjà utilisée. Veuillez vous connecter ou utiliser une autre adresse.';
-      default:
-        return errorMessage || 'Une erreur est survenue lors de la création du compte.';
-    }
   }
 
   async ngOnInit() {
@@ -212,64 +192,89 @@ this.registrationData.myPlan = {
 
  
     try {
-     this.isLoading = true;
+      this.isLoading = true;
 
-      this.fireAuth.register(this.registrationData).subscribe({
-        next: async ()=>{
-              this.isLoading = false;
-              this.registrationData.password_hash = "";
-              this.registrationData.QR_proof = "";
-              this.registrationData.status = "pending";
-              this.registrationData.first_name = "";
-              this.registrationData.last_name = "";
-              this.registrationData.gender = "";
-              this.registrationData.birthDate = new Date();
-              this.registrationData.age = 0;
-              this.registrationData.email = "";
-              this.registrationData.password = "";
-              this.registrationData.user_type = "fan";
-              this.registrationData.user_status = "other";
-              this.registrationData.registration_date = "";
-              
+      // Utilisation propre du service Auth avec gestion d'erreurs
+      const signupResponse = await firstValueFrom(this.auth.signup(this.registrationData));
+      
+      if (!signupResponse.success) {
+        throw new Error(signupResponse.error || signupResponse.message || 'Échec de l\'inscription');
+      }else{
+         // Afficher le message de succès
       const successAlert = await this.alertController.create({
         header: 'Succès',
-        message: 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.',
+        message: signupResponse.message || 'Votre compte a été créé avec succès ! Veuillez vérifier votre email pour activer votre compte.',
         buttons: [{
           text: 'Se connecter',
           handler: async () => {
-            // 7️⃣ Rediriger vers la page de connexion
+            // Rediriger vers la page de connexion
             await this.router.navigate(['/login']);
           }
         }]
       });
       await successAlert.present();
-        },
-        error: async (error)=>{
-          const faillureAlert = await this.alertController.create({
-        header: 'Echec de la creation',
-        message: this.translateErrorMessage(error),
-        buttons: ['Recommencer']
-      });
-      await faillureAlert.present();
-        }
       }
-      )
+     
+      // Réinitialiser les données du formulaire
+      this.registrationData.password_hash = "";
+      this.registrationData.QR_proof = "";
+      this.registrationData.status = "pending";
+      this.registrationData.first_name = "";
+      this.registrationData.last_name = "";
+      this.registrationData.gender = "";
+      this.registrationData.birthDate = new Date();
+      this.registrationData.age = 0;
+      this.registrationData.email = "";
+      this.registrationData.password = "";
+      this.registrationData.user_type = "fan";
+      this.registrationData.user_status = "other";
+      this.registrationData.registration_date = "";
       
      
-
-    } catch (error) {
-      const errorAlert = await this.alertController.create({
-        header: 'Erreur',
-        message: error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'inscription',
-        buttons: ['OK']
+      
+    } catch (error: any) {
+      console.error('Erreur d\'inscription:', error);
+      
+      // Traduction des messages d'erreur
+      const errorMessage = this.translateErrorMessage(error);
+      
+      const failureAlert = await this.alertController.create({
+        header: 'Échec de la création',
+        message: errorMessage,
+        buttons: ['Recommencer']
       });
-      await errorAlert.present();
+      await failureAlert.present();
+      
     } finally {
       this.isLoading = false;
     }
   }
+
 }
-
-
-
+  /**
+   * Traduit les messages d'erreur du service Auth en messages utilisateur
+   */
+  private translateErrorMessage(error: any): string {
+    const message = error?.error || error;
+    console.log(message);
+    // Messages d'erreur spécifiques du service Auth
+    if (message.error === 'MISSING_CREDENTIALS') {
+      return 'Veuillez remplir tous les champs obligatoires';
+    }
+    if (message.error === 'INVALID_EMAIL') {
+      return 'Veuillez saisir un email valide';
+    }
+    if (message.error === 'PASSWORD_TOO_SHORT') {
+      return 'Le mot de passe doit contenir au moins 8 caractères';
+    }
+    if (message.error === 'EMAIL_ALREADY_EXISTS') {
+      return 'Cet email est déjà utilisé. Veuillez en choisir un autre.';
+    }
+    if (message.error === 'USERNAME_ALREADY_EXISTS') {
+      return 'Ce nom d\'utilisateur est déjà utilisé. Veuillez en choisir un autre.';
+    }
+    
+    // Message par défaut
+    return message || 'Une erreur est survenue lors de l\'inscription';
+  }
 }

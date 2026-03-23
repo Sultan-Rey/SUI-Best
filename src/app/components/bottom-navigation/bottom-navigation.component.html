@@ -11,13 +11,15 @@
   >
     <div class="nav-strip" #navStrip>
 
-      <div
-        *ngFor="let item of navItems"
-        class="nav-item"
-        [class.captured]="isCapture(item)"
-        [class.near]="isNear(item)"
-        [attr.data-idx]="item.idx"
-      >
+      <!-- Afficher seulement si pas en chargement -->
+      <ng-container *ngIf="!isLoading">
+        <div
+          *ngFor="let item of navItems"
+          class="nav-item"
+          [class.captured]="isCapture(item)"
+          [class.near]="isNear(item)"
+          [attr.data-idx]="item.idx"
+        >
         <div class="item-inner">
           <!-- Badge (optional) -->
           <div class="badge-wrap">
@@ -30,6 +32,7 @@
           <span class="item-label">{{ item.label }}</span>
         </div>
       </div>
+      </ng-container>
 
     </div>
   </div>

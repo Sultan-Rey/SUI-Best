@@ -149,7 +149,7 @@ export class SearchPage implements OnInit, OnDestroy, AfterViewInit {
       await this.modalController.dismiss();
       
       // Rechercher s'il existe une conversation entre les deux utilisateurs
-      const conversationId = await this.messageService.findExistingConversationId([this.currentUserId, profile.id], this.currentUserId).toPromise();
+      const conversationId = await this.messageService.findExistingConversationId(this.currentUserId, profile.id).toPromise();
 
       // Ouvrir ModalConversationComponent pour une nouvelle conversation
       const modal = await this.modalController.create({

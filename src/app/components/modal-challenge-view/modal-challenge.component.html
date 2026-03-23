@@ -3,14 +3,14 @@
   <!-- Video / Media Preview -->
   <div class="media-wrapper">
     <img
-      [src]="(challenge?.cover_image_url || '' | mediaUrl)"
+      [src]="(challenge?.cover_image_url || '' | mediaUrl | async)"
       alt="Challenge preview"
     />
 
     <!-- Overlay info -->
     <div class="overlay-top">
       <div class="creator">
-        <img class="avatar" [src]="(currentUserProfile.avatar || '' | mediaUrl)" (error)="onImageAvatarError($event)"/>
+        <img class="avatar" [src]="(currentUserProfile.avatar || '' | mediaUrl | async)" (error)="onImageAvatarError($event)"/>
         <span class="username">{{challenge?.name}}</span>
       </div>
       <ion-button fill="clear" (click)="dismiss()" class="follow-btn"><ion-icon name="close"></ion-icon></ion-button>
@@ -82,7 +82,7 @@
         <ng-container *ngIf="!isLoadingParticipants">
           <img 
             *ngFor="let participant of getDisplayParticipants()" 
-            [src]="(participant.avatar || '' | mediaUrl)" 
+            [src]="(participant.avatar || '' | mediaUrl | async)" 
             [alt]="participant.displayName || participant.username" 
             [title]="participant.displayName || participant.username"
             loading="lazy"
@@ -165,7 +165,7 @@
           <ion-item>
             <ion-avatar>
               <img 
-                [src]="(participant.avatar || '' | mediaUrl)" 
+                [src]="(participant.avatar || '' | mediaUrl | async)" 
                 [alt]="participant.displayName || participant.username"
                 (error)="onImageError($event)"
               />

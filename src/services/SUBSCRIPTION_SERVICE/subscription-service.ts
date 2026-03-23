@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, map, tap, switchMap } from 'rxjs/operators';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Plan } from 'src/models/Plan';
-import { FirebaseService } from '../API/firebase/firebase-service';
-import { catchError, tap } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -12,11 +10,11 @@ import { throwError } from 'rxjs';
 export class SubscriptionService {
   private readonly resource = 'plans'; // Même ressource que dans votre API
 
-  constructor(private api: FirebaseService) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   // Récupérer tous les plans depuis l'API
   getAvailablePlans(): Observable<Plan[]> { 
-    return this.api.getAll<Plan>(this.resource);
+    return this.api.get<Plan[]>(this.resource);
   }
 
   // Mettre à jour le plan de l'utilisateur

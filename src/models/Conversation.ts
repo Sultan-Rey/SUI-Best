@@ -38,7 +38,7 @@ export interface Conversation {
   participantIds: string[];
   
   /** Date de création - ne change jamais */
-  createdAt: Date;
+  created_at: Date;
   
   /** Statut d'ouverture - variable */
   status: ConversationStatus;
@@ -95,7 +95,7 @@ export interface Message {
   /** Données système pour les messages système */
   systemData?: {
     participantName: string;
-    action: 'joined' | 'left';
+    action: 'joined' | 'left' | 'requirement' | 'info';
   };
 
   
