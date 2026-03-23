@@ -3,7 +3,7 @@ import { Coupon, CouponType } from '../models/Coupon';
 // Interfaces communes pour les services financiers
 
 export interface Pack {
-  id: number;
+  id: string;
   name: string;
   ownerId : string;
   amount: number;

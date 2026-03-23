@@ -1,63 +1,87 @@
-<!-- Header natif HTML - pas de balises Ionic -->
-<div class="native-header">
-  <div class="header-container">
-    <!-- Icône search à gauche -->
-    <button class="action-button search-button" (click)="openSearch()">
-      <ion-icon name="search" class="action-icon"></ion-icon>
-    </button>
+<!-- Header natif HTML - pas de balises Ionic --
+... (inchangé) -->
 
-    <!-- Système de tabs custom -->
-    <div class="tabs-system">
-      <div class="tabs-track">
-        
-        <button class="tab-item" 
-                [class.active]="selectedSegment === 'discovery'"
-                (click)="switchTab('discovery')">
-          <span class="tab-label">Découverte</span>
-        </button>
-        
-        <button class="tab-item" 
-                [class.active]="selectedSegment === 'followed'"
-                (click)="switchTab('followed')">
-          <span class="tab-label">Suivis</span>
-        </button>
-        
-        <!-- Indicateur orbital -->
-        
-      </div>
-    </div>
-
-    <!-- Bouton notification à droite -->
-    <button class="action-button notification-button" (click)="openNotifications()">
-      <ion-icon name="notifications-outline" class="action-icon"></ion-icon>
-      <span class="notification-badge" *ngIf="hasNotifications"></span>
-    </button>
-  </div>
-  
-  <!-- Gradient de fusion -->
-  <div class="header-fade"></div>
-</div>
+<app-header-component [goBackTarget]="goBackTarget" (goBack)="onGoBack($event)"></app-header-component>
 
 <!-- Contenu Ionic simplifié -->
-<ion-content [fullscreen]="true" class="home-content">
-  <!-- Padding top pour compenser le header fixed -->
+<ion-content [fullscreen]="true" class="home-content" #contentRef>
   <div class="content-spacer"></div>
   
-  <!-- Container swipeable -->
-  <div class="views-container" [class.show-followed]="selectedSegment === 'followed'">
+  <div class="views-container" [ngSwitch]="selectedSegment">
+    <!-- Affiche les vues même offline - les composants géreront le cache -->
     
-    <!-- Vue Découverte -->
-    <div class="view-panel discovery-panel">
+    <div class="view-panel challenge-panel" *ngSwitchCase="'challenge'">
+      <app-challenge (navigateToTab)="onNavigate($event)"  [CurrentUserProfile]="currentUserProfile"></app-challenge>
+    </div>
+
+    <div class="view-panel discovery-panel" *ngSwitchCase="'discovery'">
       <app-discovery-view 
-        [currentUserProfile]="currentUserProfile">
+        [currentUserProfile]="currentUserProfile"
+        (navigateToTab)="onNavigate($event)">
       </app-discovery-view>
     </div>
 
-    <!-- Vue Suivis -->
-    <div class="view-panel followed-panel">
+    <div class="view-panel followed-panel" *ngSwitchCase="'followed'">
       <app-followed-view 
-        [currentUserProfile]="currentUserProfile">
+        [currentUserProfile]="currentUserProfile"
+        [posts]="args">
       </app-followed-view>
     </div>
+
+    <div class="view-panel message-panel" *ngSwitchCase="'message'">
+      <app-messages [currentUserId]="currentUserProfile.id || ''" [currentUsername]="currentUserProfile.displayName || ''"></app-messages>
+    </div>
+
+    <div class="view-panel upload-panel" *ngSwitchCase="'upload'">
+      <app-publication [challenges]="args" [isChallenging]="navigationExtra" [CurrentUserProfile]="currentUserProfile"></app-publication>
+    </div>
+
   </div>
+
+  <!-- Empty state uniquement si pas de connexion ET pas de données cached -->
+  <div class="empty-state-container" *ngIf="!isOnline && !hasCachedData">
+    <div class="empty-state-content">
+      <img src="assets/icon/no-internet.gif" alt="no-internet" class="empty-state-gif">
+      <h2 class="empty-state-title"><ion-icon name="cloud-offline" slot="start"></ion-icon> Hors ligne !</h2>
+      <p class="empty-state-text">
+        Votre connexion a dérapé !<br>
+        <strong>Reconnectez-vous</strong> pour retrouver les contenus<br>
+        qui vont vous faire flipper !<br>
+        <small>Les données cached sont disponibles...</small>
+      </p>
+      <ion-button 
+        expand="block" 
+        fill="solid" 
+        color="gif" 
+        class="empty-state-button"
+        (click)="retryConnection($event)">
+        <ion-icon name="refresh" slot="start"></ion-icon>
+        Réessayer
+      </ion-button>
+    </div>
+  </div>
+
+  <div class="smoke-overlay"></div>
 </ion-content>
+
+<!-- Floating Avatar Button -->
+<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id">
+  <!-- Affiche même offline pour accès au profil cached -->
+  <img 
+  [src]="currentUserProfile.avatar || 'assets/avatar-default.png'" 
+  [alt]="currentUserProfile.displayName || 'Profile'"
+  class="avatar-img"
+  (load)="onAvatarLoad($event)"
+  (error)="onAvatarError($event)"
+/>
+  <div class="avatar-ring"></div>
+  <div class="avatar-dot"></div>
+</div>
+
+<ion-footer>
+  <app-bottom-navigation
+    (activeItemChange)="onNavigationChange($event)"
+    [theme]="'dark'"
+    [unreadCount]="countUnreadMessages">
+  </app-bottom-navigation>
+</ion-footer>

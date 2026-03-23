@@ -28,7 +28,7 @@
           <ion-avatar class="avatar-premium" (click)="selectAvatar()">
             <ion-img 
               *ngIf="avatarPreview === profile.avatar"
-              [src]="avatarPreview  | mediaUrl" 
+              [src]="avatarPreview  | mediaUrl | async" 
               alt="Profile avatar"
               (ionError)="onImageAvatarError($event)"
             ></ion-img>.

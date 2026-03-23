@@ -1,380 +1,537 @@
-import { Injectable } from '@angular/core';
-import { Firestore, collection, addDoc, collectionData, doc, deleteDoc, updateDoc, query, where, getDocs, getDoc, setDoc, limit, orderBy, startAfter, endBefore, Timestamp, QueryConstraint, Query, CollectionReference } from '@angular/fire/firestore';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { inject, Injectable, Injector, runInInjectionContext } from '@angular/core';
+import {
+  Firestore, collection, addDoc, doc, deleteDoc, updateDoc,
+  query, where, getDocs, getDoc, setDoc, limit, orderBy,
+  startAfter, endBefore, Timestamp, QueryConstraint, Query,
+  CollectionReference, QueryDocumentSnapshot, DocumentData,
+  serverTimestamp, onSnapshot, getCountFromServer
+} from '@angular/fire/firestore';
+import { from, Observable, of, throwError } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Storage, ref, uploadString, getDownloadURL, deleteObject, uploadBytes } from '@angular/fire/storage';
+import { FirebaseError } from '@angular/fire/app';
+
+// ─────────────────────────────────────────────
+//  Types internes du cache
+// ─────────────────────────────────────────────
+interface CacheEntry<T> {
+  data: T[];
+  ts: number;
+}
+
+interface CacheStats {
+  hits: number;
+  misses: number;
+  hitRate: string;
+}
+
+// ─────────────────────────────────────────────
+//  TTL par collection (en ms)
+//  Ajuster selon la volatilité de chaque collection
+// ─────────────────────────────────────────────
+const COLLECTION_TTL: Record<string, number> = {
+  profiles:   10 * 60 * 1000,  // 5 min  — profils changent rarement
+  posts:   30 * 1000,       // 30 sec — contenu plus dynamique
+  default: 60 * 1000,       // 1 min  — fallback pour toute autre collection
+};
+
+// Nombre max de documents retournés si aucun limit() explicite
+const DEFAULT_LIMIT = 50;
 
 @Injectable({
   providedIn: 'root',
 })
 export class FirebaseService {
+  private firestore = inject(Firestore);
+  private storage   = inject(Storage);
+  private injector  = inject(Injector);
 
-  constructor(
-    private firestore: Firestore,
-    private storage: Storage
-  ) {}
+  // ─────────────────────────────────────────────
+  //  CACHE
+  // ─────────────────────────────────────────────
+  private readonly MAX_CACHE_SIZE = 100;
+  private cache = new Map<string, CacheEntry<any>>();
+  private _hits   = 0;
+  private _misses = 0;
 
-  
-  /* ========= CREATE ========= */
+  /** Durée de vie pour une collection donnée */
+  private getTTL(resource: string): number {
+    return COLLECTION_TTL[resource] ?? COLLECTION_TTL['default'];
+  }
+
+  /** Clé de cache unique pour une collection + ses filtres */
+  private cacheKey(resource: string, filters?: Record<string, any>): string {
+    return `${resource}::${JSON.stringify(filters ?? {})}`;
+  }
+
+  /** Lire le cache — retourne null si absent ou expiré */
+  private getCache<T>(key: string, resource: string): T[] | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    const expired = Date.now() - entry.ts > this.getTTL(resource);
+    if (expired) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data as T[];
+  }
+
+  /** Écrire dans le cache avec LRU */
+  private setCache<T>(key: string, data: T[]): void {
+    // Si le cache est plein, supprimer la première entrée (LRU simple)
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(key, { data, ts: Date.now() });
+  }
+
+  /**
+   * Invalider toutes les entrées d'une collection.
+   * À appeler après chaque create / update / delete.
+   */
+  invalidateCache(resource: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(`${resource}::`)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  /** Stats de cache — utile en dev pour mesurer l'efficacité */
+  getCacheStats(): CacheStats {
+    const total = this._hits + this._misses;
+    return {
+      hits: this._hits,
+      misses: this._misses,
+      hitRate: total === 0 ? '0%' : `${((this._hits / total) * 100).toFixed(1)}%`,
+    };
+  }
+
+  /** Vider tout le cache (ex: logout) */
+  clearCache(): void {
+    this.cache.clear();
+    this._hits   = 0;
+    this._misses = 0;
+  }
+
+  // ─────────────────────────────────────────────
+  //  DIAGNOSTIC (Phase 1)
+  //  Mettre enableDiagnostic = true en dev pour
+  //  tracer chaque appel Firestore et son origine.
+  //  Remettre à false avant de déployer en prod.
+  // ─────────────────────────────────────────────
+  private enableDiagnostic = true;
+
+  private logRead(resource: string, source: 'CACHE' | 'FIRESTORE'): void {
+    if (!this.enableDiagnostic) return;
+    const style = source === 'CACHE'
+      ? 'color: #1D9E75; font-weight: bold'
+      : 'color: #E24B4A; font-weight: bold';
+    console.warn(
+      `%c[${source}] ${resource}`,
+      style,
+      new Error().stack?.split('\n').slice(2, 5).join('\n')
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  CREATE
+  // ─────────────────────────────────────────────
   create<T>(resource: string, payload: Partial<T>): Observable<T> {
-    return new Observable<T>(observer => {
+    try {
       const colRef = collection(this.firestore, resource);
-      addDoc(colRef, {
+      const docPayload = {
         ...payload,
         created_at: Timestamp.now(),
-        updated_at: Timestamp.now()
-      })
-        .then(docRef => {
-          // Récupérer le document créé avec son ID
-          getDoc(docRef).then(docSnapshot => {
-            const data = { id: docSnapshot.id, ...docSnapshot.data() } as T;
-            observer.next(data);
-            observer.complete();
-          });
+        updated_at: Timestamp.now(),
+      };
+
+      return from(
+        runInInjectionContext(this.injector, () => addDoc(colRef, docPayload))
+      ).pipe(
+        map(docRef => ({ id: docRef.id, ...payload } as T)),
+        tap(() => this.invalidateCache(resource)),   // ← invalider après write
+        catchError(error => {
+          console.error('💥 [FirebaseService/create]', resource, error);
+          return throwError(() => error);
         })
-        .catch(error => {
-          console.error('Create error:', error);
-          observer.error(error);
-        });
-    }).pipe(
+      );
+    } catch (error) {
+      return throwError(() => error);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  READ — get()
+  // ─────────────────────────────────────────────
+  get<T>(
+    resource: string,
+    params?: Record<string, string | number | boolean>,
+    maxResults: number = DEFAULT_LIMIT
+  ): Observable<T[]> {
+    const key = this.cacheKey(resource, params);
+    const cached = this.getCache<T>(key, resource);
+
+    if (cached) {
+      this._hits++;
+      this.logRead(resource, 'CACHE');
+      return of(cached);
+    }
+
+    this._misses++;
+    this.logRead(resource, 'FIRESTORE');
+
+    const collectionRef = collection(this.firestore, resource);
+    const constraints: QueryConstraint[] = [];
+
+    if (params && Object.keys(params).length > 0) {
+      Object.entries(params).forEach(([k, v]) => {
+        constraints.push(where(k, '==', v));
+      });
+    }
+
+    constraints.push(limit(maxResults)); // ← plafond de sécurité
+
+    const q = query(collectionRef, ...constraints);
+
+    return from(
+      runInInjectionContext(this.injector, () => getDocs(q))
+    ).pipe(
+      map(snapshot =>
+        snapshot.docs.map(d => ({ ...(d.data() as T), id: d.id }))
+      ),
+      tap(data => this.setCache(key, data)),
       catchError(error => {
-        console.error('Error creating document:', error);
+        console.error('💥 [FirebaseService/get]', resource, error);
         return throwError(() => error);
       })
     );
   }
 
-  /* ========= READ ========= */
-  get<T>(
-    resource: string,
-    params?: {
-      limit?: number;
-      orderByField?: string;
-      orderByDirection?: 'asc' | 'desc';
-      startAfter?: any;
-      endBefore?: any;
-    }
-  ): Observable<T[]> {
-    const colRef = collection(this.firestore, resource);
-    
-    // Construire la requête avec tous les paramètres
-    const queryConstraints: QueryConstraint[] = [];
-    
-    if (params?.orderByField) {
-      queryConstraints.push(orderBy(params.orderByField, params.orderByDirection || 'asc'));
-    }
-    
-    if (params?.limit) {
-      queryConstraints.push(limit(params.limit));
-    }
-    
-    if (params?.startAfter) {
-      queryConstraints.push(startAfter(params.startAfter));
-    }
-    
-    if (params?.endBefore) {
-      queryConstraints.push(endBefore(params.endBefore));
-    }
-
-    const q = query(colRef, ...queryConstraints);
-
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(data => data as T[]),
-      catchError(error => {
-        console.error('Error getting collection:', error);
-        return of([] as T[]);
-      })
-    );
-  }
-
-  /**
-   * Récupère une liste d'éléments
-   */
   getAll<T>(resource: string): Observable<T[]> {
     return this.get<T>(resource);
   }
 
-  /**
-   * Filtre les éléments d'une collection selon les critères fournis
-   * @param resource Nom de la collection
-   * @param filters Critères de filtrage
-   * @returns Observable avec les résultats filtrés
-   */
+  // ─────────────────────────────────────────────
+  //  READ — filter()
+  // ─────────────────────────────────────────────
   filter<T>(
     resource: string,
-    filters?: Record<string, any>
+    filters?: Record<string, any>,
+    maxResults: number = DEFAULT_LIMIT
   ): Observable<T[]> {
-    console.log('🔍 FILTER CALL - Resource:', resource);
-    console.log('Filters:', filters);
-    
     if (!filters || Object.keys(filters).length === 0) {
-      return this.getAll(resource);
+      return this.get<T>(resource, undefined, maxResults);
     }
 
-    // Construire la requête avec les filtres
-    const queryConstraints: QueryConstraint[] = [];
+    const key = this.cacheKey(resource, filters);
+    const cached = this.getCache<T>(key, resource);
+
+    if (cached) {
+      this._hits++;
+      this.logRead(resource, 'CACHE');
+      return of(cached);
+    }
+
+    this._misses++;
+    this.logRead(resource, 'FIRESTORE');
+
     const colRef = collection(this.firestore, resource);
-    
+    const constraints: QueryConstraint[] = [];
+
     Object.entries(filters).forEach(([field, value]) => {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        // Support pour les opérateurs avancés
-        Object.entries(value).forEach(([operator, operatorValue]) => {
-          switch (operator) {
-            case '==':
-              queryConstraints.push(where(field, '==', operatorValue));
-              break;
-            case '!=':
-              queryConstraints.push(where(field, '!=', operatorValue));
-              break;
-            case '>':
-              queryConstraints.push(where(field, '>', operatorValue));
-              break;
-            case '>=':
-              queryConstraints.push(where(field, '>=', operatorValue));
-              break;
-            case '<':
-              queryConstraints.push(where(field, '<', operatorValue));
-              break;
-            case '<=':
-              queryConstraints.push(where(field, '<=', operatorValue));
-              break;
-            case 'in':
-              queryConstraints.push(where(field, 'in', operatorValue));
-              break;
-            case 'array-contains':
-              queryConstraints.push(where(field, 'array-contains', operatorValue));
-              break;
+        Object.entries(value).forEach(([op, val]) => {
+          switch (op) {
+            case '==':             constraints.push(where(field, '==', val)); break;
+            case '!=':             constraints.push(where(field, '!=', val)); break;
+            case '>':              constraints.push(where(field, '>', val)); break;
+            case '>=':             constraints.push(where(field, '>=', val)); break;
+            case '<':              constraints.push(where(field, '<', val)); break;
+            case '<=':             constraints.push(where(field, '<=', val)); break;
+            case 'in':             constraints.push(where(field, 'in', val)); break;
+            case 'array-contains': constraints.push(where(field, 'array-contains', val)); break;
           }
         });
       } else {
-        // Filtre simple par égalité
-        queryConstraints.push(where(field, '==', value));
+        constraints.push(where(field, '==', value));
       }
     });
 
-    const q = query(colRef, ...queryConstraints);
+    constraints.push(limit(maxResults)); // ← plafond de sécurité
 
-    return collectionData(q, { idField: 'id' }).pipe(
-      map(data => {
-        console.log('✅ Filter success:', data);
-        return data as T[];
-      }),
+    const q = query(colRef, ...constraints);
+
+    return from(
+      runInInjectionContext(this.injector, () => getDocs(q))
+    ).pipe(
+      map(snapshot =>
+        snapshot.docs.map(d => ({ id: d.id, ...(d.data() as T) }))
+      ),
+      tap(data => this.setCache(key, data)),
       catchError(error => {
-        console.error('❌ Filter error:', error);
+        console.error('💥 [FirebaseService/filter]', resource, error);
         return of([] as T[]);
       })
     );
   }
 
+  // ─────────────────────────────────────────────
+  //  READ — getById()
+  // ─────────────────────────────────────────────
   getById<T>(resource: string, id: string): Observable<T | null> {
+    // Cache doc individuel sous une clé dédiée
+    const key = `${resource}::id::${id}`;
+    const entry = this.cache.get(key);
+
+    if (entry && Date.now() - entry.ts < this.getTTL(resource)) {
+      this._hits++;
+      this.logRead(resource, 'CACHE');
+      return of(entry.data[0] as T);
+    }
+
+    this._misses++;
+    this.logRead(resource, 'FIRESTORE');
+
     const docRef = doc(this.firestore, `${resource}/${id}`);
-    
-    return new Observable<T | null>(observer => {
-      getDoc(docRef)
-        .then(docSnapshot => {
-          if (docSnapshot.exists()) {
-            const data = { id: docSnapshot.id, ...docSnapshot.data() } as T;
-            observer.next(data);
-          } else {
-            observer.next(null);
+
+    return from(
+      runInInjectionContext(this.injector, () => getDoc(docRef))
+    ).pipe(
+      map(snapshot => {
+        if (!snapshot.exists()) return null;
+        const data = { id: snapshot.id, ...snapshot.data() } as T;
+        
+        // Appliquer LRU si nécessaire pour getById aussi
+        if (this.cache.size >= this.MAX_CACHE_SIZE) {
+          const firstKey = this.cache.keys().next().value;
+          if (firstKey) {
+            this.cache.delete(firstKey);
           }
-          observer.complete();
-        })
-        .catch(error => {
-          console.error('Error getting document:', error);
-          observer.error(error);
-        });
-    }).pipe(
-      catchError(error => {
-        console.error('Error getting document by ID:', error);
+        }
+        
+        this.cache.set(key, { data: [data], ts: Date.now() });
+        return data;
+      }),
+      catchError((error: FirebaseError) => {
+        console.error('💥 [FirebaseService/getById]', resource, id, error);
         return of(null);
       })
     );
   }
 
-  /* ========= UPDATE ========= */
-  update<T>(
-    resource: string,
-    id: string,
-    payload: Partial<T>
-  ): Observable<T> {
-    return new Observable<T>(observer => {
-      const docRef = doc(this.firestore, `${resource}/${id}`);
-      updateDoc(docRef, {
-        ...payload,
-        updated_at: Timestamp.now()
-      })
-        .then(async () => {
-          // Récupérer le document mis à jour
-          const updatedDoc = await getDoc(docRef);
-          const data = { id: updatedDoc.id, ...updatedDoc.data() } as T;
-          observer.next(data);
-          observer.complete();
-        })
-        .catch(error => {
-          console.error('Update error:', error);
-          observer.error(error);
-        });
-    }).pipe(
+  // ─────────────────────────────────────────────
+  //  UPDATE — sans double lecture
+  // ─────────────────────────────────────────────
+  update<T>(resource: string, id: string, payload: Partial<T>): Observable<T> {
+    const docRef = doc(this.firestore, `${resource}/${id}`);
+
+    return from(
+      runInInjectionContext(this.injector, () =>
+        updateDoc(docRef, { ...payload, updated_at: Timestamp.now() })
+      )
+    ).pipe(
+      map(() => {
+        const updated = { id, ...payload } as T;
+
+        // Mettre à jour l'entrée individuelle dans le cache
+        const key = `${resource}::id::${id}`;
+        const existing = this.cache.get(key);
+        if (existing) {
+          // Appliquer LRU si nécessaire
+          if (this.cache.size >= this.MAX_CACHE_SIZE) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey) {
+              this.cache.delete(firstKey);
+            }
+          }
+          this.cache.set(key, {
+            data: [{ ...existing.data[0], ...payload, updated_at: Timestamp.now() }],
+            ts: Date.now(),
+          });
+        }
+
+        // Invalider les listes (elles contiennent peut-être ce doc)
+        this.invalidateCache(resource);
+
+        return updated;
+      }),
       catchError(error => {
-        console.error('Error updating document:', error);
+        console.error('💥 [FirebaseService/update]', resource, id, error);
         return throwError(() => error);
       })
     );
   }
 
-  patch<T>(
-    resource: string,
-    id: string,
-    payload: Partial<T>
-  ): Observable<T> {
+  patch<T>(resource: string, id: string, payload: Partial<T>): Observable<T> {
     return this.update(resource, id, payload);
   }
 
-  /* ========= DELETE ========= */
+  // ─────────────────────────────────────────────
+  //  DELETE
+  // ─────────────────────────────────────────────
   delete(resource: string, id: string): Observable<void> {
-    return new Observable<void>(observer => {
-      const docRef = doc(this.firestore, `${resource}/${id}`);
-      deleteDoc(docRef)
-        .then(() => {
-          observer.next();
-          observer.complete();
-        })
-        .catch(error => {
-          console.error('Delete error:', error);
-          observer.error(error);
-        });
-    }).pipe(
+    const docRef = doc(this.firestore, `${resource}/${id}`);
+
+    return from(
+      runInInjectionContext(this.injector, () => deleteDoc(docRef))
+    ).pipe(
+      tap(() => {
+        this.cache.delete(`${resource}::id::${id}`);
+        this.invalidateCache(resource);
+      }),
       catchError(error => {
-        console.error('Error deleting document:', error);
+        console.error('💥 [FirebaseService/delete]', resource, id, error);
         return throwError(() => error);
       })
     );
   }
 
-  /* ========= UPLOAD ========= */
+  // ─────────────────────────────────────────────
+  //  COUNT — sans charger les documents
+  // ─────────────────────────────────────────────
+
+  exists(resource: string, id: string): Observable<boolean> {
+    return this.getById(resource, id).pipe(map(data => data !== null));
+  }
+
+  // ─────────────────────────────────────────────
+  //  CONNECTION TEST
+  // ─────────────────────────────────────────────
+  testConnection(): Observable<boolean> {
+    const testRef  = collection(this.firestore, 'plans');
+    const testQuery = query(testRef, limit(1));
+
+    return from(getDocs(testQuery)).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  UPLOAD
+  // ─────────────────────────────────────────────
+  private async compressImage(file: File): Promise<File> {
+    return new Promise(resolve => {
+      const canvas = document.createElement('canvas');
+      const ctx    = canvas.getContext('2d');
+      const img    = new Image();
+
+      img.onload = () => {
+        let { width, height } = img;
+        const maxSize = 2000;
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = (height * maxSize) / width; width = maxSize; }
+          else                { width  = (width  * maxSize) / height; height = maxSize; }
+        }
+        canvas.width  = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          blob => resolve(blob ? new File([blob], file.name, { type: file.type, lastModified: Date.now() }) : file),
+          file.type,
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  private async compressFile(file: File): Promise<File> {
+    if (file.type.startsWith('image/')) return this.compressImage(file);
+    return file;
+  }
+
   upload<T>(
-    resource: string, 
-    file: File | string, 
+    resource: string,
+    file: File | string,
     fieldName: string = 'file',
     metadata?: any
   ): Observable<{ url: string; data: T }> {
-    return new Observable<{ url: string; data: T }>(observer => {
-      const fileName = typeof file === 'string' 
+    const uploadProcess = async () => {
+      let processedFile: File | string = file;
+      if (file instanceof File) {
+        processedFile = await this.compressFile(file);
+      }
+
+      const fileName = typeof processedFile === 'string'
         ? `${Date.now()}_${fieldName}`
-        : `${Date.now()}_${file.name}`;
-      
-      const storageRef = ref(this.storage, `${resource}/${fileName}`);
-      
-      const uploadPromise = typeof file === 'string'
-        ? uploadString(storageRef, file, 'data_url', metadata)
-        : uploadBytes(storageRef, file, metadata);
-      
-      uploadPromise
-        .then(async (snapshot) => {
-          const url = await getDownloadURL(snapshot.ref);
-          
-          // Créer un document dans Firestore pour enregistrer l'upload
-          const uploadData = {
-            url,
-            fileName,
-            size: typeof file === 'string' ? file.length : file.size,
-            type: typeof file === 'string' ? 'data_url' : file.type,
-            fieldName,
-            ...metadata
-          };
-          
-          this.create(resource, uploadData as any).subscribe({
-            next: (data: any) => {
-              observer.next({ url, data });
-              observer.complete();
-            },
-            error: (error) => {
-              observer.error(error);
-            }
-          });
-        })
-        .catch(error => {
-          console.error('Upload error:', error);
-          observer.error(error);
-        });
-    }).pipe(
+        : `${Date.now()}_${processedFile.name}`;
+
+      const storageRef   = ref(this.storage, `${resource}/${fileName}`);
+      const uploadPromise = typeof processedFile === 'string'
+        ? uploadString(storageRef, processedFile, 'data_url', metadata)
+        : uploadBytes(storageRef, processedFile);
+
+      const snapshot = await uploadPromise;
+      const url      = await getDownloadURL(snapshot.ref);
+      return { url, data: { url, fileName } as unknown as T };
+    };
+
+    return from(
+      runInInjectionContext(this.injector, () => uploadProcess())
+    ).pipe(
       catchError(error => {
-        console.error('Error uploading file:', error);
+        console.error('💥 [FirebaseService/upload]', error);
         return throwError(() => error);
       })
     );
   }
 
-  /**
-   * Récupère un fichier depuis Firebase Storage
-   * @param filePath Chemin du fichier dans Storage
-   * @returns Observable avec l'URL de téléchargement
-   */
-  getFile(filePath: string): Observable<string> {
-    const storageRef = ref(this.storage, filePath);
-    
-    return new Observable<string>(observer => {
-      getDownloadURL(storageRef)
-        .then(url => {
-          observer.next(url);
-          observer.complete();
-        })
-        .catch(error => {
-          console.error('Erreur lors de la récupération du fichier:', error);
-          observer.error(error);
-        });
-    }).pipe(
-      catchError(error => {
-        console.error('Error getting file:', error);
-        return throwError(() => error);
-      })
-    );
-  }
 
-  /**
-   * Supprime un fichier de Firebase Storage
-   * @param filePath Chemin du fichier dans Storage
-   * @returns Observable
-   */
   deleteFile(filePath: string): Observable<void> {
     const storageRef = ref(this.storage, filePath);
-    
-    return new Observable<void>(observer => {
-      deleteObject(storageRef)
-        .then(() => {
-          observer.next();
-          observer.complete();
-        })
-        .catch(error => {
-          console.error('Erreur lors de la suppression du fichier:', error);
-          observer.error(error);
-        });
-    }).pipe(
-      catchError(error => {
-        console.error('Error deleting file:', error);
-        return throwError(() => error);
+    return from(
+      runInInjectionContext(this.injector, () => deleteObject(storageRef))
+    ).pipe(
+      catchError(error => throwError(() => error))
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  PRÉSENCE EN LIGNE
+  // ─────────────────────────────────────────────
+  setUserOnline(userId: string): Observable<void> {
+    return from(
+      runInInjectionContext(this.injector, async () => {
+        const userRef = doc(this.firestore, `online-users/${userId}`);
+        await setDoc(userRef, { isOnline: true, lastSeen: serverTimestamp(), userId });
       })
-    );
+    ).pipe(catchError(error => throwError(() => error)));
   }
 
-  /* ========= UTILITIES ========= */
-
-  /**
-   * Compte le nombre de documents dans une collection
-   */
-  count(resource: string, filters?: Record<string, any>): Observable<number> {
-    return this.filter(resource, filters).pipe(
-      map(data => data.length)
-    );
+  setUserOffline(userId: string): Observable<void> {
+    return from(
+      runInInjectionContext(this.injector, async () => {
+        const userRef = doc(this.firestore, `online-users/${userId}`);
+        await updateDoc(userRef, { isOnline: false, lastSeen: serverTimestamp() });
+      })
+    ).pipe(catchError(error => throwError(() => error)));
   }
 
-  /**
-   * Vérifie si un document existe
-   */
-  exists(resource: string, id: string): Observable<boolean> {
-    return this.getById(resource, id).pipe(
-      map(data => data !== null)
+  watchOnlineStatus(userId: string): Observable<{ isOnline: boolean; lastSeen: any }> {
+    const userRef = doc(this.firestore, `online-users/${userId}`);
+    return new Observable(subscriber => {
+      const unsub = onSnapshot(
+        userRef,
+        snap => subscriber.next({
+          isOnline: snap.exists() ? (snap.data()?.['isOnline'] ?? false) : false,
+          lastSeen: snap.exists() ? (snap.data()?.['lastSeen'] ?? null) : null,
+        }),
+        err => subscriber.error(err)
+      );
+      return () => unsub();
+    });
+  }
+
+  getOnlineStatus(userId: string): Observable<{ isOnline: boolean; lastSeen: any }> {
+    return this.getById<{ isOnline: boolean; lastSeen: any }>('online-users', userId).pipe(
+      map(data => ({ isOnline: data?.isOnline ?? false, lastSeen: data?.lastSeen ?? null })),
+      catchError(() => of({ isOnline: false, lastSeen: null }))
     );
   }
 }

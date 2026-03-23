@@ -9,7 +9,7 @@ import { VoteService } from '../../services/VOTE_SERVICE/vote-service';
 import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service';
 import { forkJoin, Observable, of } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
-
+import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import { 
   IonContent, 
   IonHeader, 
@@ -64,8 +64,7 @@ interface ChallengeRanking {
   imports: [
     CommonModule,
     FormsModule,
-    IonHeader,
-    IonToolbar,
+    HeaderComponentComponent,
     IonContent,
     IonButton,
     IonIcon,
@@ -273,7 +272,7 @@ export class RankingPage implements OnInit {
         }
 
         // Étape 2: Récupérer tous les contenus du défi pour calculer les votes
-        return this.creationService.getContentsByChallenge(challenge.id).pipe(
+        return this.creationService.getContents({ChallengeId:challenge.id}).pipe(
           switchMap((contents: any[]) => {
             // Étape 3: Calculer les votes pour chaque participant
             const participantsWithVotes$ = participants.map((participant: any) => {

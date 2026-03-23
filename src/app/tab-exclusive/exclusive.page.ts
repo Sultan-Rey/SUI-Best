@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import {
   IonContent,
   IonIcon,
@@ -17,6 +18,10 @@ import {
   videocamOutline,
   imagesOutline,
 } from 'ionicons/icons';
+import { Observable, combineLatest, of } from 'rxjs';
+import { map, switchMap, catchError } from 'rxjs/operators';
+import { ExclusiveService } from '../../services/EXCLUSIVE_SERVICE/exclusive-service';
+import { ExclusiveContent, Series } from '../../models/Content';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -26,93 +31,12 @@ export interface Author {
   color: string; // CSS gradient string
 }
 
-export interface ExclusiveContent {
-  id: string;
-  title: string;
-  author: Author;
-  views: string;
-  duration?: string;
-  thumbnail?: string;
-  locked: boolean;
-  price?: number;
-  isLive?: boolean;
-  type: 'video' | 'behind' | 'masterclass';
-}
-
 export interface FilterTab {
   id: string;
   label: string;
   icon?: string;
   prefix?: string;
 }
-
-// ─── Mock data ─────────────────────────────────────────────────────────────────
-
-const MOCK_FEATURED: ExclusiveContent[] = [
-  {
-    id: 'f1',
-    title: 'Masterclass: Techniques de Sculpture Moderne',
-    author: { name: 'Sophie Martin', initials: 'SM', color: 'linear-gradient(135deg,#EF4444,#B91C1C)' },
-    views: '2.3k',
-    duration: '45:30',
-    locked: true,
-    price: 15,
-    type: 'masterclass',
-  },
-  {
-    id: 'f2',
-    title: 'Dans l\'Atelier de Laurent Beaumont',
-    author: { name: 'Laurent B.', initials: 'LB', color: 'linear-gradient(135deg,#14B8A6,#0F766E)' },
-    views: '4.1k',
-    duration: '28:15',
-    thumbnail: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=70',
-    locked: false,
-    type: 'behind',
-  },
-  {
-    id: 'f3',
-    title: 'Aquarelle: Paysages Lumineux',
-    author: { name: 'Chloé Renard', initials: 'CR', color: 'linear-gradient(135deg,#EC4899,#9D174D)' },
-    views: '1.8k',
-    duration: '22:45',
-    locked: true,
-    price: 9,
-    type: 'video',
-  },
-];
-
-const MOCK_ALL: ExclusiveContent[] = [
-  {
-    id: 'a1',
-    title: 'Session Live: Peinture en Direct',
-    author: { name: 'Thomas Bernard', initials: 'TB', color: 'linear-gradient(135deg,#FF8C00,#E05000)' },
-    views: '0.9k',
-    thumbnail: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=70',
-    locked: false,
-    isLive: true,
-    type: 'video',
-  },
-  {
-    id: 'a2',
-    title: 'Exploration du Mixed Media',
-    author: { name: 'Julie Moreau', initials: 'JM', color: 'linear-gradient(135deg,#8B5CF6,#5B21B6)' },
-    views: '1.6k',
-    duration: '38:20',
-    locked: true,
-    price: 15,
-    type: 'video',
-  },
-  {
-    id: 'a3',
-    title: 'Perspective & Profondeur – Cours Complet',
-    author: { name: 'Arnaud Dubois', initials: 'AD', color: 'linear-gradient(135deg,#14B8A6,#0F766E)' },
-    views: '3.2k',
-    duration: '1:12:00',
-    locked: true,
-    price: 20,
-    type: 'masterclass',
-  },
-];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -121,9 +45,9 @@ const MOCK_ALL: ExclusiveContent[] = [
   templateUrl: 'exclusive.page.html',
   styleUrls: ['exclusive.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonIcon],
+  imports: [CommonModule, FormsModule, IonContent, IonIcon, HeaderComponentComponent],
 })
-export class ExclusivePage {
+export class ExclusivePage implements OnInit {
 
   searchQuery = '';
   activeFilter = 'all';
@@ -133,12 +57,18 @@ export class ExclusivePage {
     { id: 'video',      label: 'Vidéos',    icon: 'videocam-outline' },
     { id: 'behind',     label: 'Coulisses', icon: 'images-outline' },
     { id: 'masterclass',label: 'Masterclass',icon: 'star-outline' },
+    { id: 'series',     label: 'Séries',    icon: 'play' },
   ];
 
-  featuredItems: ExclusiveContent[] = MOCK_FEATURED;
-  allContents:   ExclusiveContent[] = MOCK_ALL;
+  // Données observables
+  featuredItems$!: Observable<ExclusiveContent[]>;
+  allContents$!: Observable<ExclusiveContent[]>;
+  series$!: Observable<Series[]>;
 
-  constructor(private toastCtrl: ToastController) {
+  constructor(
+    private toastCtrl: ToastController,
+    private exclusiveService: ExclusiveService
+  ) {
     addIcons({
       searchOutline,
       eyeOutline,
@@ -151,20 +81,39 @@ export class ExclusivePage {
     });
   }
 
+  ngOnInit() {
+    this.loadData();
+  }
+
+  // ── Data Loading ─────────────────────────────────────────────────────────────
+
+  loadData(): void {
+    this.featuredItems$ = this.exclusiveService.getFeaturedContents();
+    this.allContents$ = this.exclusiveService.getAllContents();
+    this.series$ = this.exclusiveService.getSeries();
+  }
+
   // ── Filter ──────────────────────────────────────────────────────────────────
 
   setFilter(filterId: string): void {
     this.activeFilter = filterId;
-    const source = [...MOCK_FEATURED];
-
-    this.featuredItems = filterId === 'all'
-      ? source
-      : source.filter(i => i.type === filterId);
-
-    const sourceAll = [...MOCK_ALL];
-    this.allContents = filterId === 'all'
-      ? sourceAll
-      : sourceAll.filter(i => i.type === filterId);
+    
+    // Mettre à jour les observables avec les filtres
+    if (filterId === 'series') {
+      // Afficher les séries
+      this.featuredItems$ = this.exclusiveService.getSeries().pipe(
+        map(series => series.map(s => this.convertSeriesToContent(s)))
+      );
+      this.allContents$ = this.exclusiveService.getSeries().pipe(
+        map(series => series.map(s => this.convertSeriesToContent(s)))
+      );
+    } else {
+      // Filtrer les contenus par type
+      this.featuredItems$ = this.exclusiveService.getFeaturedContents().pipe(
+        map(contents => filterId === 'all' ? contents : contents.filter(c => c.type === filterId))
+      );
+      this.allContents$ = this.exclusiveService.getAllContents({ type: filterId === 'all' ? undefined : filterId as any });
+    }
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────────
@@ -173,9 +122,12 @@ export class ExclusivePage {
     this.showToast('Redirection vers l\'abonnement Premium…');
   }
 
-  onContentTap(item: ExclusiveContent): void {
-    if (item.locked) {
+  onContentTap(item: ExclusiveContent | Series): void {
+    if ('locked' in item && item.locked) {
       this.showToast(`Acheter pour déverrouiller : ${item.title}`);
+    } else if ('episodeNumber' in item && item.episodeNumber) {
+      // C'est un épisode de série
+      this.showToast(`Lecture épisode ${item.episodeNumber} : ${item.title}`);
     } else {
       this.showToast(`Lecture : ${item.title}`);
     }
@@ -191,7 +143,51 @@ export class ExclusivePage {
     this.showToast(`Lecture : ${item.title}`);
   }
 
+  onSeriesTap(series: Series): void {
+    this.showToast(`Ouverture de la série : ${series.title}`);
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  private convertSeriesToContent(series: Series): ExclusiveContent {
+    return {
+      id: series.id,
+      userId: '', // Sera rempli par le backend
+      challengeId: '',
+      commentIds: [],
+      fileUrl: '',
+      mimeType: 'video/series',
+      fileSize: 0,
+      cadrage: 'default',
+      isPublic: true,
+      allowDownloads: true,
+      allowComments: true,
+      source: 'gallery' as any,
+      status: 'published' as any,
+      created_at: series.created_at,
+      
+      // Propriétés ExclusiveContent
+      title: series.title,
+      author: series.author,
+      thumbnail: series.thumbnail,
+      locked: false, // Les séries sont généralement déverrouillées
+      price: series.price,
+      isLive: false,
+      type: series.type,
+      
+      // Propriétés série
+      seriesId: series.id,
+      seriesTitle: series.title,
+      isSeries: true,
+      totalEpisodes: series.totalEpisodes,
+      viewCount: series.viewCount,
+      likeCount: series.likeCount,
+      
+      // Métadonnées calculées
+      description: series.description,
+      duration: series.duration ? Number(series.duration) : undefined,
+    };
+  }
 
   private async showToast(message: string): Promise<void> {
     const toast = await this.toastCtrl.create({

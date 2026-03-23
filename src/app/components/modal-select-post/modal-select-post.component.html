@@ -55,7 +55,7 @@
             <!-- Media thumbnail -->
             <div class="post-thumbnail">
               <img 
-                [src]="(post.thumbnailUrl || post.fileUrl | mediaUrl)" 
+                [src]="(post.thumbnailUrl || post.fileUrl | mediaUrl | async)" 
                 [alt]="post.description || 'Post image'"
                 (error)="onImageError($event)"
                 loading="lazy">
@@ -83,7 +83,7 @@
                   <ion-icon name="eye" size="small"></ion-icon>
                   {{post.viewCount | shortNumber}}
                 </span>
-                <span class="stat-item" *ngIf="post.likeCount > 0">
+                <span class="stat-item" *ngIf="post.shareCount">
                   <ion-icon name="heart" size="small"></ion-icon>
                   {{post.likeCount | shortNumber}}
                 </span>
@@ -91,7 +91,7 @@
 
               <!-- Date -->
               <div class="post-date">
-                {{post.createdAt | date:'shortDate'}}
+                {{post.created_at | date:'shortDate'}}
               </div>
             </div>
           </div>

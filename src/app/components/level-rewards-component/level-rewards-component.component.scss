@@ -1,0 +1,483 @@
+// ═══════════════════════════════════════════════════════════
+//  LEVEL REWARDS MODAL
+//  Light-first · accents or · timeline verticale
+//  Dark mode géré via prefers-color-scheme + tokens Ionic
+// ═══════════════════════════════════════════════════════════
+
+:host {
+  // ── Tokens or ──────────────────────────────────────────
+  --gold:        #f5a623;
+  --gold-deep:   #d97706;
+  --gold-glow:   rgba(245, 166, 35, 0.30);
+  --gold-light:  #fef3c7;
+
+  // ── Surfaces (light) ───────────────────────────────────
+  --bg:          #eeeef2;
+  --card-bg:     #ffffff;
+  --card-shadow: 0 2px 14px rgba(0, 0, 0, 0.06);
+
+  // ── Text (light) ───────────────────────────────────────
+  --text-h:      #111118;
+  --text-body:   #555566;
+  --text-muted:  #9090aa;
+  --text-locked: #c0c0d0;
+
+  // ── Timeline ───────────────────────────────────────────
+  --line-w:      3px;
+  --line-inactive: rgba(200, 200, 215, 0.55);
+
+  // ── Misc ───────────────────────────────────────────────
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --collect-bg:  #3a3ae8;
+
+  ion-content {
+    --background: var(--bg);
+    --color: var(--text-h);
+    --padding-bottom: 48px;
+  }
+
+  // Dark mode overrides
+  @media (prefers-color-scheme: dark) {
+    --bg:          #0e0e16;
+    --card-bg:     #1a1a26;
+    --card-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+    --text-h:      #f0f0f8;
+    --text-body:   #9090b0;
+    --text-muted:  #5a5a7a;
+    --text-locked: #3a3a5a;
+    --line-inactive: rgba(255, 255, 255, 0.08);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOP BAR
+// ═══════════════════════════════════════════════════════════
+
+.rewards-topbar {
+  background: var(--card-bg);
+  padding: 20px 20px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topbar-left { flex: 1; min-width: 0; }
+
+.rewards-title {
+  font-size: 27px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.03em;
+  margin: 0 0 7px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.rewards-xp-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.xp-star {
+  font-size: 15px;
+  color: var(--gold);
+}
+
+.xp-star-dim {
+  color: var(--gold-deep);
+  opacity: 0.7;
+}
+
+.xp-current {
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.xp-sep {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.xp-next {
+  font-weight: 800;
+  color: var(--gold-deep);
+}
+
+.xp-label {
+  color: var(--text-body);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-h);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 120ms;
+
+  ion-icon { font-size: 26px; display: block; }
+  &:active { background: rgba(128, 128, 128, 0.12); }
+}
+
+.topbar-divider {
+  height: 1px;
+  background: rgba(128, 128, 128, 0.12);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TIMELINE
+// ═══════════════════════════════════════════════════════════
+
+.timeline-wrap {
+  position: relative;
+  padding: 20px 16px 56px 0;
+  // min-height pour que bottom:0 sur le track fonctionne même avec peu d'items
+  min-height: 200px;
+}
+
+// ── Ligne verticale ──────────────────────────────────────
+.timeline-track {
+  position: absolute;
+  left: 56px;
+  top: 20px;    // aligne avec le début de la liste (padding-top du wrap)
+  bottom: 56px; // aligne avec la fin de la liste (padding-bottom du wrap)
+  width: var(--line-w);
+  background: var(--line-inactive);
+  border-radius: 999px;
+  overflow: hidden; // ici overflow:hidden est nécessaire pour clipper le fill
+}
+
+// Fill ancré en bas du track, monte selon filledLinePercent
+.timeline-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, var(--gold-deep), var(--gold));
+  border-radius: 999px;
+  transition: height 0.9s cubic-bezier(.4, 0, .2, 1);
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+// ── Liste ────────────────────────────────────────────────
+.timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-left: 16px; // espace pour ligne + marqueur
+}
+
+// ── Item ─────────────────────────────────────────────────
+.timeline-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  animation: item-in 0.38s cubic-bezier(.4, 0, .2, 1) both;
+
+  @for $i from 1 through 7 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 55}ms; }
+  }
+}
+
+@keyframes item-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Marqueur ─────────────────────────────────────────────
+.t-marker {
+  width: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.marker-level {
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-h);
+
+  .is-locked & { color: var(--text-locked); }
+}
+
+.marker-gift {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: -5px; // légère saillie sur la ligne
+  box-shadow:
+    0 0 0 4px rgba(245, 166, 35, 0.16),
+    0 4px 14px var(--gold-glow);
+  animation: gift-pulse 2.4s ease-in-out infinite;
+
+  ion-icon { font-size: 20px; color: #fff; }
+}
+
+@keyframes gift-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(245,166,35,.16), 0 4px 14px rgba(245,166,35,.30); }
+  50%       { box-shadow: 0 0 0 8px rgba(245,166,35,.08), 0 4px 22px rgba(245,166,35,.45); }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REWARD CARD
+// ═══════════════════════════════════════════════════════════
+
+.reward-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+  padding: 14px 14px 14px 16px;
+  transition: box-shadow 0.3s, background 0.3s;
+
+  // ── Unlocked (level < current) : contour or fixe
+  .is-unlocked & {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 10px rgba(245, 166, 35, 0.25),
+      var(--card-shadow);
+  }
+
+  // ── Current (niveau en cours) : contour or pulsé + fond teinté
+  // Discoverer a unlocked:true ET current:true → classe is-current appliquée
+  // is-current prend le dessus sur is-unlocked grâce à l'animation
+  .is-current & {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 14px rgba(245, 166, 35, 0.35),
+      var(--card-shadow);
+    background: rgba(245, 166, 35, 0.05);
+    animation: card-glow-pulse 2.6s ease-in-out infinite;
+
+    @media (prefers-color-scheme: dark) {
+      background: rgba(245, 166, 35, 0.08);
+    }
+  }
+
+  // ── Locked : fond atténué, aucun contour
+  .is-locked & {
+    background: rgba(255, 255, 255, 0.40);
+    box-shadow: none;
+    opacity: 0.72;
+
+    @media (prefers-color-scheme: dark) {
+      background: rgba(26, 26, 38, 0.40);
+    }
+  }
+}
+
+@keyframes card-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 10px rgba(245, 166, 35, 0.28),
+      var(--card-shadow);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--gold),
+      0 0 22px rgba(245, 166, 35, 0.52),
+      var(--card-shadow);
+  }
+}
+
+// ── Badge hexagonal ──────────────────────────────────────
+.hex-wrap {
+  position: relative;
+  width: 52px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.hex-wrap--empty { opacity: 0.4; }
+
+.hex-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  display: block;
+
+  &--locked {
+    filter: grayscale(1) brightness(0.8);
+  }
+}
+
+.hex-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hex-placeholder-svg {
+  width: 100%;
+  height: 100%;
+}
+
+// ── Infos ─────────────────────────────────────────────────
+.reward-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.reward-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-h);
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &--locked { color: var(--text-locked); font-weight: 600; }
+}
+
+.reward-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+.reward-gift-label {
+  font-size: 11px;
+  color: var(--text-body);
+  margin: 4px 0 0;
+  line-height: 1.4;
+  white-space: normal;
+
+  // Truncate sur 2 lignes
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; 
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// 🎯 Barre de progression XP du niveau actuel
+.xp-progress {
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xp-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(200, 200, 215, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.xp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold));
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(.4, 0, .2, 1);
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.3);
+}
+
+.xp-progress-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 32px;
+  text-align: right;
+}
+
+// ── Actions ───────────────────────────────────────────────
+.reward-action { flex-shrink: 0; }
+
+// Bouton Collecter — pill bleu/violet + toggle dot
+.collect-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--collect-bg);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 7px 14px 7px 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(58, 58, 232, 0.32);
+  transition: transform 0.15s, box-shadow 0.15s;
+
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 6px rgba(58, 58, 232, 0.20);
+  }
+}
+
+.collect-toggle-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  display: block;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.collect-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+// Collecté
+.collected-icon ion-icon {
+  font-size: 28px;
+  color: #22c55e;
+}
+
+// Cadenas
+.lock-icon ion-icon {
+  font-size: 22px;
+  color: var(--text-locked);
+}

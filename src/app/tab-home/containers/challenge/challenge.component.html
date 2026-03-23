@@ -1,0 +1,167 @@
+<ion-content [fullscreen]="true" class="challenge-content">
+
+  <!-- Section: For You -->
+  <div class="section-header">
+    <h2 class="section-title">challenges</h2>
+    <p class="section-subtitle">Win prizes, level up, and earn points by playing challenges and prove that you know hit music!</p>
+  </div>
+
+  <!-- Loading state for For You -->
+  <div *ngIf="forYouLoading" class="loading-section" role="status" aria-live="polite">
+    <div class="skeleton-header">
+      <ion-skeleton-text animated style="width: 60px; height: 20px;" aria-label="Loading section title"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 20px; height: 16px;" aria-label="Loading info icon"></ion-skeleton-text>
+    </div>
+    <div class="skeleton-list">
+      <div class="skeleton-card" *ngFor="let i of [1,2,3]; trackBy: trackBySkeletonIndex" role="presentation">
+        <ion-skeleton-text animated style="width: 90px; height: 100px;" aria-label="Loading challenge image"></ion-skeleton-text>
+        <div class="skeleton-content">
+          <ion-skeleton-text animated style="width: 80%; height: 16px;" aria-label="Loading challenge title"></ion-skeleton-text>
+          <ion-skeleton-text animated style="width: 60%; height: 12px;" aria-label="Loading challenge description"></ion-skeleton-text>
+          <ion-skeleton-text animated style="width: 40%; height: 12px;" aria-label="Loading challenge reward"></ion-skeleton-text>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state for For You -->
+  <div *ngIf="forYouEmpty && !forYouLoading" class="empty-state" role="status">
+    <div class="empty-content">
+      <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
+      <h3>No challenges yet</h3>
+      <p>Be the first to create a challenge!</p>
+    </div>
+  </div>
+
+  <!-- Content for For You -->
+  <div *ngIf="!forYouLoading && !forYouEmpty">
+    <div class="subsection-label">
+      <span>for you</span>
+      <ion-icon name="information-circle-outline" role="img" aria-label="Information about challenges for you"></ion-icon>
+    </div>
+
+    <div class="challenge-list ">
+      <div class="challenge-card" *ngFor="let challenge of forYouChallenges; trackBy: trackByChallengeId" role="article" tabindex="0" (keyup.enter)="onPlay(challenge)">
+       <div class="card-cover" [style.background-image]="'url(' + (challenge.cover_image_url | mediaUrl | async) + ')'" role="img" [attr.aria-label]="'Challenge cover image for ' + challenge.name">
+          <span class="progress-badge" aria-label="{{ challenge.participants_count }} participants out of {{ challenge.entries_count }} challenges">{{ challenge.participants_count }}/{{ challenge.entries_count }}</span>
+          <span class="progress-label">challengers</span>
+        </div>
+        <div class="card-body">
+          <div class="card-top">
+            <h3 class="card-title">{{ challenge.name }}</h3>
+            <p class="card-dates">{{ challenge.duration_days }} jrs | {{ challenge.description }}</p>
+            <p class="card-reward">
+              <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
+              <span aria-label="Prize: {{ challenge.prize }}">{{ challenge.prize }}</span>
+            </p>
+          </div>
+          <div class="card-bottom">
+            <span class="card-expiry">
+              <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+          <time *ngIf="challenge.end_date" [attr.datetime]="challenge.end_date | date:'shortDate'" aria-label="Challenge ends on {{ challenge.end_date | date:'shortDate' }}">ends {{ challenge.end_date | date:'shortDate' }}</time>
+            </span>
+            <button class="play-btn" (click)="onPlay(challenge)" aria-label="Play challenge: {{ challenge.name }}">{{challenge.call_to_action}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state for Explore -->
+  <div *ngIf="exploreLoading" class="loading-section" role="status" aria-live="polite">
+    <div class="skeleton-header">
+      <ion-skeleton-text animated style="width: 50px; height: 20px;" aria-label="Loading explore section title"></ion-skeleton-text>
+    </div>
+    <div class="skeleton-list">
+      <div class="skeleton-card" *ngFor="let i of [1,2]; trackBy: trackBySkeletonIndex" role="presentation">
+        <ion-skeleton-text animated style="width: 90px; height: 100px;" aria-label="Loading challenge image"></ion-skeleton-text>
+        <div class="skeleton-content">
+          <ion-skeleton-text animated style="width: 80%; height: 16px;" aria-label="Loading challenge title"></ion-skeleton-text>
+          <ion-skeleton-text animated style="width: 60%; height: 12px;" aria-label="Loading challenge description"></ion-skeleton-text>
+          <ion-skeleton-text animated style="width: 40%; height: 12px;" aria-label="Loading challenge reward"></ion-skeleton-text>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state for Explore -->
+  <div *ngIf="exploreEmpty && !exploreLoading" class="empty-state" role="status">
+    <div class="empty-content">
+      <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      <h3>No challenges to explore</h3>
+      <p>Check back later for new challenges!</p>
+    </div>
+  </div>
+
+  <!-- Content for Explore -->
+  <div *ngIf="!exploreLoading && !exploreEmpty">
+    <div class="subsection-label explore-label">
+      <span>explore</span>
+    </div>
+
+    <div class="challenge-list margin">
+      <div class="challenge-card" *ngFor="let challenge of forYouChallenges; trackBy: trackByChallengeId" role="article" tabindex="0" (keyup.enter)="onPlay(challenge)">
+        <div class="card-cover" [style.background-image]="'url(' + (challenge.cover_image_url | mediaUrl | async) + ')'" role="img" [attr.aria-label]="'Challenge cover image for ' + challenge.name">
+          <span class="progress-badge" aria-label="{{ challenge.participants_count }} participants out of {{ challenge.entries_count }} challenges">{{ challenge.participants_count }}/{{ challenge.entries_count }}</span>
+          <span class="progress-label">challengers</span>
+        </div>
+        <div class="card-body">
+          <div class="card-top">
+            <h3 class="card-title">{{ challenge.name }}</h3>
+            <p class="card-dates">{{ challenge.duration_days }} jrs | {{ challenge.description }}</p>
+            <p class="card-reward">
+              <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
+              <span aria-label="Prize: {{ challenge.prize }}">{{ challenge.prize }}</span>
+            </p>
+          </div>
+          <div class="card-bottom">
+            <span class="card-expiry">
+              <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+          <time *ngIf="challenge.end_date" [attr.datetime]="challenge.end_date | date:'shortDate'" aria-label="Challenge ends on {{ challenge.end_date | date:'shortDate' }}">ends {{ challenge.end_date | date:'shortDate' }}</time>
+          </span>  
+          <button class="play-btn" (click)="onPlay(challenge)" aria-label="Play challenge: {{ challenge.name }}">{{challenge.call_to_action}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="start" slot="fixed">
+    <ion-fab-button (click)="createChallenge()" aria-label="Create new challenge">
+      <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <ion-modal id="first-modal" #modal [enterAnimation]="enterAnimation" [leaveAnimation]="leaveAnimation">
+    <ng-template>
+      <div class="modal-wrapper">
+        <div class="modal-content">
+          <!-- GIF animé centré -->
+          <div class="gif-container">
+            <img src="assets/icon/excited.gif" alt="Challenge animation" class="challenge-gif" />
+          </div>
+          
+          <!-- Titre accrocheur -->
+          <h2 class="modal-title">Prêt à gagner ?</h2>
+          
+          <!-- Message informatif -->
+          <p class="modal-message">
+            Ce challenge n'a pas encore de contenu, soit le premier à ajouter ton vibe
+          </p>
+          
+          <!-- Boutons d'action -->
+          <div class="modal-actions">
+            <ion-button class="btn-primary" (click)="modal.dismiss(true)" fill="solid" shape="round">
+              Je me lance
+            </ion-button>
+            <ion-button class="btn-secondary" (click)="modal.dismiss()" fill="clear" shape="round">
+              Pas encore
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>

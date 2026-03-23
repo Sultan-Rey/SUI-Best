@@ -1,8 +1,10 @@
 <div class="side-actions">
-          <button class="action-button" *ngFor="let action of  cachedActions" (click)="action.action()">
-            <div class="action-icon" [class.liked]="action.icon === 'heart'">
-              <ion-icon [name]="action.icon" *ngIf="!action.gifIcon"></ion-icon>
-              <img [src]="getButtonImage(Post, action)" *ngIf="action.gifIcon">
+          <button class="action-button" *ngFor="let action of cachedActions" (click)="action.action()">
+            <div class="action-icon" [class.vote-action]="action.icon === 'vote'" [class.liked]="action.icon === 'heart'">
+              <ion-icon [name]="action.icon" *ngIf="!action.votestatus && !action.gifIcon"></ion-icon>
+              <img [src]="action.votestatus?.voteIcon || getButtonImage(Post, action)" *ngIf="action.votestatus || action.gifIcon">
             </div>
             <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
+            <ion-badge [color]="action.votestatus?.voteColor || 'primary'" class="vote-badge" *ngIf="action.votestatus">{{ action.votestatus.voteLabel }}</ion-badge>
           </button>
+</div>

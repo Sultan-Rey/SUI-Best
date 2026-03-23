@@ -6,7 +6,7 @@
     </button>
     
     <div class="artist-mini">
-      <img [src]="(artistAvatar | mediaUrl)" class="artist-avatar-mini" alt="Artist">
+      <img [src]="(artistAvatar | mediaUrl | async)" class="artist-avatar-mini" alt="Artist">
       <div class="artist-info-mini">
         <h3 class="artist-name-mini">{{ artistName }}</h3>
         <p class="challenge-badge-mini">🎯 {{ challengeName }}</p>

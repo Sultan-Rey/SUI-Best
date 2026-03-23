@@ -1,226 +1,265 @@
-<ion-header [translucent]="true" color="dark">
-  <ion-toolbar >
-    <ion-buttons slot="start" >
-      <ion-button *ngIf="!isOwnProfile" (click)="goBack()" class="back-circle">
-        <ion-icon name="chevron-back"></ion-icon>
-      </ion-button>
-      <ion-button>
-        <ion-icon *ngIf="isOwnProfile" name="person-circle-outline"></ion-icon>
-      </ion-button>
-       
-    </ion-buttons>
-    <ion-title>{{ userProfile.displayName }}</ion-title>
-    <ion-buttons slot="end">
-      
-      <ion-button (click)="presentMoreOptions()">
-        <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
 
-<ion-content [fullscreen]="true" color="dark">
-  <div class="profile-container"    *ngIf="userProfile.id; else loading">
-    <!-- Profile Header -->
-    <div class="profile-header">
-      <div class="avatar-container">
-        <div class="avatar-wrapper">
-          <img [src]="(userProfile.avatar | mediaUrl)" (error)="onImageAvatarError($event)" [alt]="userProfile.displayName" class="avatar">
-          <div class="avatar-border"></div>
-        </div>
-        <ion-button
-          color="light"
-          shape="round"
-          class="add-story-btn"
-          size="small">
-          <ion-icon name="shield-half" size="small" slot="icon-only"></ion-icon>
-        </ion-button>
+<app-header-component ></app-header-component>
+
+
+
+<ion-content [fullscreen]="true" class="profile-content">
+  <!-- Desktop Header (hidden on mobile) -->
+  <div class="desktop-header">
+    <div class="desktop-header-container">
+      <div class="cover-container">
+        <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=400&fit=crop" 
+             alt="Cover" 
+             class="cover-image">
+        <div class="cover-overlay"></div>
       </div>
 
-      <div class="profile-info">
-        <div class="name-row">
-          <h1 class="display-name">{{ userProfile.displayName }}</h1>
-          <ion-icon 
-            *ngIf="userProfile.isVerified" 
-            name="checkmark-circle" 
-            class="verified-badge">
-          </ion-icon>
+      <div class="profile-info-desktop">
+        <div class="avatar-container">
+          <div class="avatar-wrapper">
+            <img [src]="userProfile.avatar | mediaUrl | async" 
+                 alt="Profile" 
+                 class="avatar-desktop">
+            <div class="online-indicator">
+              <ion-icon name="checkmark"></ion-icon>
+            </div>
+          </div>
         </div>
-        <p class="username">{{ userProfile.username }}</p>
+
+        <div class="profile-details-desktop">
+          <div class="name-section">
+            <h1>{{userProfile.displayName}}</h1>
+            <span class="pro-badge-desktop">{{userProfile.type}}|{{userProfile.userInfo.memberShip?.plan}}</span>
+          </div>
+          <p class="handle">@{{userProfile.username}} • Producteur Musical & Organisateur d'Événements</p>
+          <p class="bio-desktop">
+           {{userProfile.userInfo.bio || "Aucun bio pour le profile"}}
+          </p>
+        </div>
+
+        <div class="action-buttons-desktop">
+          <ion-button class="follow-btn-desktop" (click)="toggleFollow()">Suivre</ion-button>
+          <ion-button fill="outline" class="setting-btn-desktop" (click)="presentMoreOptions()">Parametres</ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Profile Header -->
+  <div class="mobile-profile-header">
+    <!-- Cover -->
+    <div class="cover-mobile">
+      <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=300&fit=crop" 
+           alt="Cover" 
+           class="cover-image-mobile">
+      <div class="cover-gradient"></div>
+    </div>
+
+    <!-- Profile Info Mobile -->
+    <div class="profile-info-mobile">
+      <div class="profile-row">
+        <div class="avatar-section">
+          <div class="story-ring">
+            <img [src]="userProfile.avatar | mediaUrl | async" 
+                 alt="Profile" 
+                 class="avatar-mobile">
+          </div>
+        </div>
+        
+        <div class="action-buttons-mobile">
+          <ion-button class="follow-btn-mobile" (click)="toggleFollow()" >Suivre</ion-button>
+          <ion-button class="message-btn-mobile" (click)="presentMoreOptions()">
+            <ion-icon name="settings-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </div>    
+
+      <div class="user-info-mobile">
+        <div class="name-badge-row">
+          <h1 class="user-name">{{userProfile.displayName}}</h1>
+          <span class="pro-badge-mobile">{{userProfile.userInfo.memberShip?.plan}}</span>
+        </div>
+        
+        <p class="user-title">{{userProfile.type}} Producteur Musical & Organisateur</p>
+        
+        <p class="user-bio">
+         {{userProfile.userInfo.bio || 'Aucune biographie'}}
+        </p>
+        
+        <div class="user-links">
+          <span class="link-item" *ngIf="userProfile.userInfo.address">
+            <ion-icon name="location-outline"></ion-icon>
+            {{userProfile.userInfo.address}}
+          </span>
+          <span class="link-item">
+            <ion-icon name="link-outline"></ion-icon>
+            <span *ngIf="isLess">{{userProfile.userInfo.email}}</span>
+            <span *ngIf="!isLess">{{userProfile.userInfo.phone}}</span>
+            <span *ngIf="!isLess">{{userProfile.userInfo.website}}</span>
+            <ion-button size="small" (click)="isLess = !isLess">{{isLess ? "voir plus":"voir moins"}}</ion-button>
+            
+          </span>
+        </div>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-row">
+      <!-- Mobile Stats -->
+      <div class="stats-container">
         <div class="stat-item">
-          <div class="stat-value">{{ userProfile.stats.posts | shortNumber }}</div>
+          <div class="stat-value">{{userProfile.stats.posts || 0 | shortNumber}}</div>
           <div class="stat-label">Posts</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ userProfile.stats.fans | shortNumber }}</div>
+        
+        <div class="stat-item with-borders">
+          <div class="stat-value">{{userProfile.myFollows.length || 0 | shortNumber}}</div>
+          <div class="stat-label">Suivis</div>
+        </div>
+        
+        <div class="stat-item with-right-border">
+          <div class="stat-value">{{userProfile.myFans?.length || 0 | shortNumber}}</div>
           <div class="stat-label">Fans</div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ userProfile.stats.votes | shortNumber }}</div>
-          <div class="stat-label">Votes</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">{{ userProfile.stats.stars | shortNumber }}</div>
-          <div class="stat-label">Stars</div>
-        </div>
-      </div>
-
-      <!-- Bio Section -->
-      <div class="bio-section">
-        <p class="bio-text">{{ userProfile.userInfo.bio }}</p>
         
-        <div class="info-items">
-          <div class="info-item" *ngIf="userProfile.userInfo.school">
-            <ion-icon name="school-outline" class="info-icon"></ion-icon>
-            <span>{{ userProfile.userInfo.school }}</span>
-          </div>
-          <div class="info-item" *ngIf="userProfile.userInfo.phone">
-            <ion-icon name="link-outline" class="info-icon"></ion-icon>
-            <span>{{ userProfile.userInfo.phone }}</span>
-          </div>
-          <div class="info-item" *ngIf="userProfile.userInfo.memberShip?.date">
-            <ion-icon name="calendar-outline" class="info-icon"></ion-icon>
-            <span>Membre depuis {{ userProfile.userInfo.memberShip?.date }}</span>
-          </div>
-          <div class="info-item" *ngIf="userProfile.userInfo.memberShip?.plan">
-            <ion-icon name="rocket-outline" class="info-icon"></ion-icon>
-            <span>Abonnement {{ userProfile.userInfo.memberShip?.plan }}</span>
-          </div>
+        <div class="stat-item">
+          <div class="stat-value">{{userProfile.stats.stars || 0}}</div>
+          <div class="stat-label">Note</div>
         </div>
       </div>
-
-      <!-- Action Buttons -->
-      <div class="action-buttons">
-        <ion-button 
-          *ngIf="currentUserId !== userProfile.id"
-          [color]="userProfile.isFollowing ? 'medium' : 'warning'"
-          [disabled]="isBlocked"
-          expand="block"
-          (click)="toggleFollow()"
-          class="follow-btn"
-          [disabled] = "isLoading">
-           <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
-          <span *ngIf="!userProfile.isFollowing">S'abonner</span>
-          <span *ngIf="userProfile.isFollowing">Abonné</span>
-          <span>
-            <ion-icon name="warning" *ngIf="isBlocked"></ion-icon>
-          </span>
-        </ion-button>
-        
-        <ion-button 
-          color="dark"
-          expand="block"
-          (click)="openDM()"
-          class="message-btn">
-          Message
-        </ion-button>
-
-        <ion-button 
-          (click)="presentShareOptions(userProfile)"
-          fill="outline"
-          color="light"
-          class="externalbtn"
-          size="small">
-          <ion-icon name="open-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-      </div>
-    </div>
-
-    <!-- ======================================= -->
-    <!-- SECTION CHALLENGES (Nouveauté) -->
-    <!-- ======================================= -->
-       <app-challenge-section 
-      #challengeSection
-      [UserProfile]="userProfile" 
-      [CurrentUserId]="currentUserId"
-      (activeChallengesCountChange)="onActiveChallengesCountChange($event)">
-    </app-challenge-section>
-
-    <!-- Message si créateur sans challenges actifs -->
-    <div class="no-challenges-section" *ngIf="userProfile.type === 'creator' && activeChallengesCount <=0 && isOwnProfile">
-      <div class="empty-challenges">
-        <ion-icon name="trophy-outline" class="empty-icon"></ion-icon>
-        <h3>Aucun challenge actif</h3>
-        <p>Créez votre premier challenge pour engager votre communauté !</p>
-        <ion-button color="warning" (click)="createChallenge()">
-          <ion-icon name="add" slot="start"></ion-icon>
-          Créer un challenge
-        </ion-button>
-      </div>
-    </div>
-
-    <!-- Tab Navigation -->
-    <div class="tab-navigation">
-      <div 
-        class="tab-item"
-        [class.active]="selectedTab === 'posts'"
-        (click)="selectTab('posts')">
-        Posts
-      </div>
-      <div 
-        class="tab-item"
-        [class.active]="selectedTab === 'success'"
-        (click)="selectTab('success')">
-        Succès
-      </div>
-      <div 
-        class="tab-item"
-        [class.active]="selectedTab === 'info'"
-        (click)="selectTab('info')">
-        Info
-      </div>
-    </div>
-
-    <!-- Posts Grid -->
-    <div class="content" *ngIf="selectedTab === 'posts'">
-      <app-post-grid [CurrentUserProfile]="userProfile" [LoggedUserId]="currentUserId"></app-post-grid>
-  </div>
-
-    <!-- Success Tab -->
-    <div class="content" *ngIf="selectedTab === 'success'">
-      <app-success-content [userId]="userProfile.id" [isOwnProfile]="isOwnProfile"></app-success-content>
-    </div>
-
-    <!-- Info Tab -->
-    <div class="info-content" *ngIf="selectedTab === 'info'">
-      
     </div>
   </div>
 
-  <!-- FAB Button pour créer un challenge (visible seulement pour le propriétaire créateur) -->
-  <ion-fab 
-    vertical="bottom" 
-    horizontal="end" 
-    slot="fixed"
-    *ngIf="userProfile.type === 'creator' && isOwnProfile">
-    <ion-fab-button color="warning" (click)="createChallenge()">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 
-  <ng-template #loading>
-    <div class="loading-container">
-      <div class="loading-content">
-        <ion-spinner name="crescent" class="loading-spinner"></ion-spinner>
-        <h3 class="loading-text">Chargement du profil...</h3>
-        <div class="loading-skeleton">
-          <div class="skeleton-avatar"></div>
-          <div class="skeleton-info">
-            <div class="skeleton-line skeleton-name"></div>
-            <div class="skeleton-line skeleton-username"></div>
+
+  <!-- ═══════════════════════════════════════════════
+       REWARD PROGRESS PILL  (always visible)
+  ════════════════════════════════════════════════ -->
+   <div class="xp-pill-wrapper" (click)="openLevelReward()">
+    <div class="xp-pill">
+ 
+      <!-- Fill dynamique = progression vers le niveau suivant -->
+      <div class="xp-pill-fill"
+           [style.width.%]="getXpFillPercent()">
+        <div class="xp-pill-fill-shimmer"></div>
+      </div>
+ 
+      <!-- Lvl actuel -->
+      <div class="xp-level-badge xp-level-left">
+        <span class="xp-lvl-sup">lvl</span>
+        <span class="xp-lvl-num">{{userProfile.level || 1}}</span>
+      </div>
+ 
+      <!-- Centre : icône + texte -->
+      <div class="xp-pill-center">
+        <ion-icon name="gift-outline" class="xp-gift-icon"></ion-icon>
+        <span class="xp-pill-label">NEW REWARDS AVAILABLE</span>
+      </div>
+ 
+      <!-- Lvl suivant -->
+      <div class="xp-level-badge xp-level-right">
+        <span class="xp-lvl-sup">lvl</span>
+        <span class="xp-lvl-num">{{(userProfile.level || 1) + 1}}</span>
+      </div>
+ 
+      <!-- Flèche -->
+      <div class="xp-arrow">
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </div>
+ 
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       AWARDS CARD
+  ════════════════════════════════════════════════ -->
+  <div class="awards-section">
+    <div class="awards-card">
+
+      <!-- ── Header ── -->
+      <div class="awards-card-header">
+        <div class="awards-header-left">
+          <span class="awards-header-title">awards</span>
+          <span class="awards-total-count">{{pastAwards.length + 1}} total</span>
+        </div>
+        <button class="awards-see-all-btn" (click)="OpenAwards()">Voir tous</button>
+      </div>
+
+      <!-- ── Hexagon badges row ── -->
+      <div class="awards-hex-row">
+        <!-- Badge featured (grand, en avant) -->
+        <div class="award-hex-item award-hex-featured">
+          <div class="award-hex-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=300&h=300&fit=crop"
+              alt="Rising Star"
+              class="award-hex-img" />
+            <svg class="award-hex-svg" viewBox="0 0 100 115" preserveAspectRatio="none">
+              <polygon points="50,2 98,27 98,88 50,113 2,88 2,27" fill="none" stroke="url(#hexGold)" stroke-width="2.5"/>
+              <defs>
+                <linearGradient id="hexGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fcd34d"/>
+                  <stop offset="100%" stop-color="#d97706"/>
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
         </div>
-        <div class="skeleton-stats">
-          <div class="skeleton-stat" *ngFor="let i of [1,2,3,4]">
-            <div class="skeleton-number"></div>
-            <div class="skeleton-label"></div>
+
+        <!-- 3 autres badges (petits) -->
+        <div class="awards-hex-others">
+          <div class="award-hex-item award-hex-small" *ngFor="let award of pastAwards">
+            <div class="award-hex-wrap">
+              <img [src]="award.image" [alt]="award.name" class="award-hex-img" />
+              <svg class="award-hex-svg" viewBox="0 0 100 115" preserveAspectRatio="none">
+                <polygon points="50,2 98,27 98,88 50,113 2,88 2,27" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+              </svg>
+            </div>
+          </div>
+          <!-- Slots vides si moins de 3 awards passés -->
+          <div class="award-hex-item award-hex-small award-hex-empty"
+               *ngFor="let _ of [].constructor(3 - pastAwards.length < 0 ? 0 : 3 - pastAwards.length)">
+            <div class="award-hex-wrap award-hex-placeholder">
+              <svg class="award-hex-svg" viewBox="0 0 100 115" preserveAspectRatio="none">
+                <polygon points="50,2 98,27 98,88 50,113 2,88 2,27" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="2"/>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
+
+      <!-- ── Dark info banner ── -->
+      <div class="award-info-banner">
+        <h3 class="award-banner-name">Rising Star</h3>
+        <p class="award-banner-reason">Reached Level {{userProfile.level || 1}}</p>
+        <p class="award-banner-meta">Achieved by 167,003 Labels</p>
+      </div>
+
     </div>
-  </ng-template>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       MES POSTS TAB
+  ════════════════════════════════════════════════ -->
+  <div  class="posts-content">
+   
+
+    <div class="posts-grid" *ngIf="userContents && userContents.length > 0; else noPosts">
+      <div class="post-thumb" *ngFor="let post of userContents" (click)="openContent(post)">
+        <img [src]="post.fileUrl | mediaUrl | async" [alt]="post.description" class="post-thumb-img" (error)="onImageContentError($event)" />
+        <div class="post-thumb-overlay">
+          <ion-icon name="eye-outline"></ion-icon>
+          <span>{{post.viewCount}}</span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noPosts>
+      <div class="posts-empty">
+        <div class="posts-empty-icon">
+          <ion-icon name="images-outline"></ion-icon>
+        </div>
+        <h3>Aucun post pour l'instant</h3>
+        <p>Vos publications apparaîtront ici</p>
+      </div>
+    </ng-template>
+  </div>
+
 </ion-content>

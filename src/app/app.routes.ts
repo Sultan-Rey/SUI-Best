@@ -15,14 +15,6 @@ export const routes: Routes = [
     loadComponent: () => import('./login/login.page').then(m => m.LoginPage)
   },
   {
-    path: 'tabs',
-    loadChildren: () => import('./tabs/tabs.routes').then((m) => m.routes),
-  },
-  {
-    path: 'subscription',
-    loadComponent: () => import('./subscription/subscription.page').then(m => m.SubscriptionPage)
-  },
-  {
     path: 'register',
     loadComponent: () => import('./register/register.page').then( m => m.RegisterPage)
   },
@@ -35,6 +27,18 @@ export const routes: Routes = [
     loadComponent: () => import('./search/search.page').then( m => m.SearchPage)
   },
   {
+    path: 'subscription',
+    loadComponent: () => import('./subscription/subscription.page').then( m => m.SubscriptionPage)
+  },
+   {
+    path: 'ranking',
+    loadComponent: () => import('./tab-ranking/ranking.page').then( m => m.RankingPage)
+  },
+  {
+    path: 'exclusive',
+    loadComponent: () => import('./tab-exclusive/exclusive.page').then( m => m.ExclusivePage)
+  },
+  {
     path: 'blacklist',
     loadComponent: () => import('./blacklist/blacklist.page').then( m => m.BlacklistPage)
   },
@@ -42,18 +46,11 @@ export const routes: Routes = [
     path: 'profile/:id',
     loadComponent: () => import( './tab-profile/profile.page').then(m => m.ProfilePage)
   },
-   {
-    path: 'notification',
-    loadComponent: () => import('./notification/notification.page').then( m => m.NotificationPage)
-  },
-  {
-    path: 'profile',
-    loadComponent: () => import('./profile/profile.page').then( m => m.ProfilePage)
-  },
   {
     path: '**',
     redirectTo: 'login'
-  },
+  }
+  
   
  
   

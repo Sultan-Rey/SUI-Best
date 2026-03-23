@@ -1,7 +1,5 @@
-import { Auth } from '../../services/AUTH/auth';
-import { FireAuth } from '../../services/AUTH/fireAuth/fire-auth';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
-import { Component, Inject, OnInit, NgZone } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController, ActionSheetController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
@@ -11,20 +9,32 @@ import { ModalQRscannerComponent } from '../components/modal-qrscanner/modal-qrs
 import { User, UserInfo } from 'src/models/User';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { FirebaseService } from 'src/services/API/firebase/firebase-service';
 import { Plan } from 'src/models/Plan';
-import * as bcrypt from 'bcryptjs';
 import { addIcons } from 'ionicons';  
 import { v4 as uuidv4 } from 'uuid';
 
 // Interface sur mesure pour le template de register
-interface RegisterModel extends User {
+interface RegisterModel {
+  // Propriétés de base de User
+  id: string;
+  email: string;
+  password_hash: string;
+  QR_proof: string;
+  password: string;
+  confirmPassword: string;
+  user_type: string;
+  user_status: string;
+  status: string;
+  readonly: boolean;
+  myPlan: Plan;
+  registration_date: string;
   // Propriétés de UserInfo
   first_name: string;
   last_name: string;
   gender: string;
   birthDate: Date;
   age: number;
-  email: string;
   phone: string;
   address: string;
   website: string;
@@ -95,7 +105,7 @@ export class RegisterPage implements OnInit {
   showPassword: boolean = false;
   showConfirmPassword: boolean = false;
   registrationData: RegisterModel = {
-  id: uuidv4(), // Généré côté client avec UUID v4
+  id: uuidv4().toString(), // Généré côté client avec UUID v4
   password_hash: '', // Will be set before sending to server
   QR_proof: '',
   password: '',
@@ -168,11 +178,10 @@ export class RegisterPage implements OnInit {
 
   constructor(
     private router: Router,
-    private platform: Platform,
     private modalController: ModalController,
     private alertController: AlertController,
     private actionSheetController: ActionSheetController,
-    private fireAuth: FireAuth
+  
   ) {
     addIcons({
     'arrow-back': arrowBack,
@@ -445,69 +454,6 @@ async openDateActionSheet() {
          !this.registrationData.QR_proof;
 }
 
-  // Social Login
-  async loginWithGoogle() {
-    this.isLoading = true;
-
-    try {
-      // Utiliser Firebase Auth pour Google Sign-In
-      const result = await this.fireAuth.signInWithGoogle();
-      
-      if (result) {
-        // Extraire les informations de l'utilisateur Google
-        const googleUser = result.user;
-        const displayName = googleUser.displayName || '';
-        const names = displayName.split(' ');
-        
-        // Pré-remplir les données depuis Google
-        this.registrationData.email = googleUser.email || '';
-        this.registrationData.first_name = names[0] || '';
-        this.registrationData.last_name = names.slice(1).join(' ') || '';
-        
-        // Si l'utilisateur a une photo de profil, on pourrait la sauvegarder
-        if (googleUser.photoURL) {
-          // Optionnel: télécharger la photo de profil
-          console.log('Photo URL:', googleUser.photoURL);
-        }
-        
-        await this.showAlert('Succès', 'Compte Google connecté avec succès! Vos informations ont été pré-remplies.');
-      }
-    } catch (error: any) {
-      console.error('Google login error:', error);
-      
-      let errorMessage = 'Erreur lors de la connexion avec Google';
-      
-      if (error.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Google Sign-In n\'est pas activé. Veuillez contacter l\'administrateur.';
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage = 'La fenêtre de connexion a été fermée';
-      } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = 'La fenêtre de connexion a été bloquée. Veuillez autoriser les popups.';
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        errorMessage = 'Connexion annulée';
-      } else if (error.code === 'auth/unauthorized-domain') {
-        errorMessage = 'Ce domaine n\'est pas autorisé pour Google Sign-In.';
-      }
-      
-      await this.showAlert('Erreur', errorMessage);
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  async loginWithFacebook() {
-    this.isLoading = true;
-
-    // Intégrez votre logique Facebook Login
-    setTimeout(async () => {
-      this.isLoading = false;
-      this.registrationData.email = 'user@facebook.com';
-      this.registrationData.first_name = 'Jane';
-      this.registrationData.last_name = 'Smith';
-      this.showAlert('Succès', 'Informations Facebook récupérées!');
-    }, 2000);
-  }
-
 
 
 async PrepareRegister() {
@@ -521,25 +467,24 @@ async PrepareRegister() {
 
   try {
     // 3️⃣ Hacher le mot de passe
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(this.registrationData.password as string, salt);
+    //const salt = await bcrypt.genSalt(10);
+    //const hashedPassword = await bcrypt.hash(this.registrationData.password as string, salt);
     
     // 4️⃣ Créer l'objet utilisateur
-    const userData = {
-      ...this.registrationData,
-      password_hash: hashedPassword,
-      password: undefined // Ne pas envoyer le mot de passe en clair
-    };
+    //const userData = {
+     // ...this.registrationData,
+      //password_hash: hashedPassword,
+      //password: undefined // Ne pas envoyer le mot de passe en clair
+   // };
 
     // 5️⃣ Nettoyer les données
-    delete (userData as any).id;
-    delete userData.password;
+   // delete (userData as any).password;
     
     this.currentStep = 1;
 
     // 6️⃣ Rediriger vers la page d'abonnement avec les données
     await this.router.navigate(['/subscription'], {
-      state: { registrationData: userData }
+      state: { registrationData: this.registrationData }
     }).then(()=>{
       // Nettoyer le formulaire après redirection
       this.resetForm();

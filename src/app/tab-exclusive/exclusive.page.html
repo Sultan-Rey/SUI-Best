@@ -1,9 +1,10 @@
+<app-header-component></app-header-component>
 <ion-content [fullscreen]="true" class="exclusive-content">
 
   <!-- HEADER -->
   <div class="ex-header">
     <h1 class="ex-title">Exclusifs</h1>
-    <p class="ex-subtitle">Contenus premium de vos artistes</p>
+    <p class="ex-subtitle">Contenus premium de vos artistes et createur</p>
   </div>
 
   <!-- SEARCH -->
@@ -52,7 +53,7 @@
     <div class="featured-scroll">
       <div
         class="featured-card"
-        *ngFor="let item of featuredItems"
+        *ngFor="let item of (featuredItems$ | async)"
         (click)="onContentTap(item)"
       >
         <!-- Thumbnail -->
@@ -68,6 +69,11 @@
             <ion-icon name="time-outline"></ion-icon>
             {{ item.duration }}
           </div>
+          <!-- Badge Série -->
+          <div class="series-badge" *ngIf="item.isSeries">
+            <ion-icon name="play"></ion-icon>
+            {{ item.totalEpisodes }} épisodes
+          </div>
         </div>
 
         <!-- Info -->
@@ -82,7 +88,7 @@
             </div>
             <div class="views-row">
               <ion-icon name="eye-outline"></ion-icon>
-              {{ item.views }}
+              {{ item.viewCount || 0 }}
             </div>
           </div>
           <button
@@ -97,7 +103,8 @@
             *ngIf="!item.locked"
             (click)="onWatch(item, $event)"
           >
-            Regarder
+            <span *ngIf="!item.isSeries">Regarder</span>
+            <span *ngIf="item.isSeries">Voir la série</span>
           </button>
         </div>
       </div>
@@ -113,7 +120,7 @@
   <div class="all-content-list">
     <div
       class="content-card"
-      *ngFor="let item of allContents"
+      *ngFor="let item of (allContents$ | async)"
       (click)="onContentTap(item)"
     >
       <!-- LIVE card -->
@@ -128,6 +135,11 @@
             <ion-icon name="play"></ion-icon>
           </div>
           <div class="thumb-type-badge">LIVE</div>
+          <!-- Badge Série -->
+          <div class="series-badge" *ngIf="item.isSeries">
+            <ion-icon name="play"></ion-icon>
+            Série
+          </div>
         </div>
         <div class="content-info">
           <p class="card-title">{{ item.title }}</p>
@@ -140,7 +152,7 @@
             </div>
             <div class="views-row">
               <ion-icon name="eye-outline"></ion-icon>
-              {{ item.views }}
+              {{ item.viewCount || 0 }}
             </div>
           </div>
         </div>
@@ -159,6 +171,10 @@
             <ion-icon name="time-outline"></ion-icon>
             {{ item.duration }}
           </div>
+          <!-- Badge Épisode -->
+          <div class="episode-badge" *ngIf="item.episodeNumber">
+            Ép. {{ item.episodeNumber }}
+          </div>
         </div>
         <div class="content-info">
           <p class="card-title">{{ item.title }}</p>
@@ -171,7 +187,7 @@
             </div>
             <div class="views-row">
               <ion-icon name="eye-outline"></ion-icon>
-              {{ item.views }}
+              {{ item.viewCount || 0 }}
             </div>
           </div>
         </div>
@@ -188,6 +204,15 @@
             <ion-icon name="time-outline"></ion-icon>
             {{ item.duration }}
           </div>
+          <!-- Badge Épisode -->
+          <div class="episode-badge" *ngIf="item.episodeNumber">
+            Ép. {{ item.episodeNumber }}
+          </div>
+          <!-- Badge Série -->
+          <div class="series-badge" *ngIf="item.isSeries">
+            <ion-icon name="play"></ion-icon>
+            Série
+          </div>
         </div>
         <div class="content-info">
           <p class="card-title">{{ item.title }}</p>
@@ -200,7 +225,7 @@
             </div>
             <div class="views-row">
               <ion-icon name="eye-outline"></ion-icon>
-              {{ item.views }}
+              {{ item.viewCount || 0 }}
             </div>
           </div>
         </div>

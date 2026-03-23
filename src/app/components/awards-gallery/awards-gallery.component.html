@@ -1,0 +1,143 @@
+<ion-content [fullscreen]="true" class="awards-content">
+
+  <!-- ══ HEADER ═══════════════════════════════════════════ -->
+  <div class="awards-header">
+    <button class="back-btn" (click)="goBack()">
+      <ion-icon name="chevron-back-outline"></ion-icon>
+    </button>
+    <h1 class="awards-title">awards</h1>
+  </div>
+
+  <!-- ══ SECTION : Level Milestones ═══════════════════════ -->
+  <div class="awards-section">
+    <h2 class="section-label">level milestones</h2>
+
+    <div class="badges-grid">
+      <div
+        class="badge-cell"
+        *ngFor="let badge of levelBadges; trackBy: trackById"
+        [class.badge-cell--unlocked]="badge.unlocked"
+        [class.badge-cell--locked]="!badge.unlocked"
+        (click)="badge.unlocked && openBadge(badge)"
+        [attr.aria-label]="badge.name">
+
+        <!-- Hexagone svg clip + image -->
+        <div class="badge-hex" [style.--badge-color]="badge.color" [style.--badge-glow]="badge.glow">
+          <div class="badge-hex-inner">
+            <img
+              *ngIf="badge.image && badge.unlocked"
+              [src]="badge.image"
+              [alt]="badge.name"
+              class="badge-img" />
+            <!-- Icône SVG inline pour les locked ou sans image -->
+            <div class="badge-icon-wrap" *ngIf="!badge.image || !badge.unlocked">
+              <svg viewBox="0 0 48 48" class="badge-icon-svg" [class.badge-icon-svg--locked]="!badge.unlocked">
+                <use [attr.href]="'#icon-' + badge.icon"></use>
+              </svg>
+            </div>
+          </div>
+          <!-- Shine overlay pour les unlocked -->
+          <div class="badge-shine" *ngIf="badge.unlocked"></div>
+        </div>
+
+        <!-- Numéro de niveau sous le badge -->
+        <span class="badge-level-label" [class.badge-level-label--locked]="!badge.unlocked">
+          lvl {{badge.level}}
+        </span>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION : Challenge Awards ═══════════════════════ -->
+  <div class="awards-section" *ngIf="challengeAwards.length > 0">
+    <h2 class="section-label">challenge awards</h2>
+
+    <div class="badges-grid">
+      <div
+        class="badge-cell"
+        *ngFor="let badge of challengeAwards; trackBy: trackById"
+        [class.badge-cell--unlocked]="badge.unlocked"
+        [class.badge-cell--locked]="!badge.unlocked"
+        (click)="badge.unlocked && openBadge(badge)">
+
+        <div class="badge-circle" [style.--badge-color]="badge.color" [style.--badge-glow]="badge.glow">
+          <div class="badge-circle-inner">
+            <img
+              *ngIf="badge.image && badge.unlocked"
+              [src]="badge.image"
+              [alt]="badge.name"
+              class="badge-img" />
+            <div class="badge-icon-wrap" *ngIf="!badge.image || !badge.unlocked">
+              <svg viewBox="0 0 48 48" class="badge-icon-svg" [class.badge-icon-svg--locked]="!badge.unlocked">
+                <use [attr.href]="'#icon-' + badge.icon"></use>
+              </svg>
+            </div>
+          </div>
+          <div class="badge-shine" *ngIf="badge.unlocked"></div>
+        </div>
+
+        <span class="badge-level-label" [class.badge-level-label--locked]="!badge.unlocked">
+          {{badge.name | slice:0:8}}
+        </span>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SVG Sprite (icônes inline) ═══════════════════════ -->
+  <svg style="display:none" aria-hidden="true">
+    <defs>
+      <!-- Étoile -->
+      <symbol id="icon-star" viewBox="0 0 48 48">
+        <path d="M24 6l4.5 9.1 10 1.5-7.3 7.1 1.7 10-8.9-4.7-8.9 4.7 1.7-10L9.5 16.6l10-1.5z"
+              fill="currentColor" opacity="0.9"/>
+      </symbol>
+      <!-- Trophée -->
+      <symbol id="icon-trophy" viewBox="0 0 48 48">
+        <path d="M16 6h16v14a8 8 0 01-16 0V6z" fill="currentColor" opacity="0.9"/>
+        <path d="M8 8h8v10a4 4 0 01-8 0V8zM32 8h8v10a4 4 0 01-8 0V8z" fill="currentColor" opacity="0.6"/>
+        <rect x="20" y="28" width="8" height="8" rx="1" fill="currentColor" opacity="0.8"/>
+        <rect x="14" y="36" width="20" height="4" rx="2" fill="currentColor" opacity="0.8"/>
+      </symbol>
+      <!-- Flamme -->
+      <symbol id="icon-flame" viewBox="0 0 48 48">
+        <path d="M24 6c0 0 10 8 10 18a10 10 0 01-20 0c0-4 2-7 4-9 0 4 3 6 6 6 0-6-4-10-4-15z"
+              fill="currentColor" opacity="0.9"/>
+      </symbol>
+      <!-- Note de musique -->
+      <symbol id="icon-music" viewBox="0 0 48 48">
+        <path d="M20 34V14l16-4v4L24 17v17a6 6 0 11-4-5.6zM30 30a4 4 0 100-8 4 4 0 000 8z"
+              fill="currentColor" opacity="0.9"/>
+      </symbol>
+      <!-- Micro -->
+      <symbol id="icon-mic" viewBox="0 0 48 48">
+        <rect x="18" y="6" width="12" height="20" rx="6" fill="currentColor" opacity="0.9"/>
+        <path d="M12 24a12 12 0 0024 0" stroke="currentColor" stroke-width="3" fill="none" opacity="0.8"/>
+        <line x1="24" y1="36" x2="24" y2="42" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <line x1="16" y1="42" x2="32" y2="42" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      </symbol>
+      <!-- Cadenas -->
+      <symbol id="icon-lock" viewBox="0 0 48 48">
+        <rect x="12" y="22" width="24" height="18" rx="4" fill="currentColor" opacity="0.3"/>
+        <path d="M16 22v-6a8 8 0 0116 0v6" stroke="currentColor" stroke-width="3" fill="none" opacity="0.3"/>
+        <circle cx="24" cy="31" r="3" fill="currentColor" opacity="0.3"/>
+      </symbol>
+      <!-- Vidéo -->
+      <symbol id="icon-video" viewBox="0 0 48 48">
+        <rect x="6" y="12" width="26" height="24" rx="4" fill="currentColor" opacity="0.9"/>
+        <path d="M32 19l10-6v22l-10-6V19z" fill="currentColor" opacity="0.7"/>
+      </symbol>
+      <!-- Danse -->
+      <symbol id="icon-dance" viewBox="0 0 48 48">
+        <circle cx="24" cy="10" r="4" fill="currentColor" opacity="0.9"/>
+        <path d="M18 18l-4 10h6l2 12h4l2-12h6l-4-10H18z" fill="currentColor" opacity="0.85"/>
+      </symbol>
+      <!-- Couronne -->
+      <symbol id="icon-crown" viewBox="0 0 48 48">
+        <path d="M8 36l4-20 12 10 12-18 4 28H8z" fill="currentColor" opacity="0.9"/>
+      </symbol>
+    </defs>
+  </svg>
+
+</ion-content>-

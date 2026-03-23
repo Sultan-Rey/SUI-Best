@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Pack, PaymentMethod } from '../../interfaces/income.interfaces';
 
 @Injectable({
@@ -10,7 +10,7 @@ import { Pack, PaymentMethod } from '../../interfaces/income.interfaces';
 export class IncomeService {
   private readonly PACKS_RESOURCE = 'packs';
   
-  constructor(private api: ApiJSON) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   // ============================================
   // PACKS API METHODS
@@ -51,7 +51,7 @@ export class IncomeService {
   /**
    * Met à jour un pack (utilisé pour les propriétés holder et qtySold)
    */
-  updatePack(packId: number, updates: Partial<Pack>): Observable<Pack> {
+  updatePack(packId: string, updates: Partial<Pack>): Observable<Pack> {
     return this.api.patch<Pack>(this.PACKS_RESOURCE, packId, updates);
   }
 

@@ -44,7 +44,7 @@ import {
   ticketOutline, peopleOutline } from 'ionicons/icons';
 import { ModalController } from '@ionic/angular';
 import { ToastController } from '@ionic/angular';
-import { Challenge } from '../../../models/Challenge.js';
+import { Challenge, ParticipantType } from '../../../models/Challenge.js';
 import { CreationService } from '../../../services/CREATION_SERVICE/creation-service.js';
 import { 
   IonIcon, 
@@ -118,9 +118,16 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
     'Participer',
     'Voter',
     'Soutenir',
-    'Voter l\'artiste',
-    'J\'approuve',
-    'Soutenir ce talent'
+    'Jouer',
+    'Voir plus'
+  ];
+
+  // Options pour les types de participants
+  participantTypes = [
+    { value: ParticipantType.ALL, label: 'Toute la communauté', icon: 'people-outline' },
+    { value: ParticipantType.FANS_ONLY, label: 'Fans seulement', icon: 'person' },
+    { value: ParticipantType.ARTISTS_ONLY, label: 'Artistes seulement', icon: 'rocket' },
+    { value: ParticipantType.CREATORS_ONLY, label: 'Créateurs seulement', icon: 'flash' }
   ];
 
   private subscriptions: Subscription = new Subscription();
@@ -196,7 +203,10 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
       is_active: [true],
 
       // Acceptance
-      is_acceptance_automatique: [true]
+      is_acceptance_automatique: [true],
+      
+      // Type de participants
+      allowed_participants: [ParticipantType.ALL, Validators.required]
     });
   }
 
@@ -272,7 +282,8 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
         ? new Date(this.challenge.start_date).toISOString() 
         : this.today,
       is_active: this.challenge.is_active !== false,
-      is_acceptance_automatique: this.challenge.is_acceptance_automatic
+      is_acceptance_automatique: this.challenge.is_acceptance_automatic,
+      allowed_participants: this.challenge.allowed_participants || ParticipantType.ALL
     });
 
     // Mettre à jour l'aperçu de l'image si elle existe
@@ -459,6 +470,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
     is_active: formValue.is_active,
     coupon_required: formValue.coupon_required,
     is_acceptance_automatic: formValue.is_acceptance_automatique,
+    allowed_participants: formValue.allowed_participants,
     entries_count:  formValue.entries_count == null ? 'illimite' : formValue.entries_count,
       };
 

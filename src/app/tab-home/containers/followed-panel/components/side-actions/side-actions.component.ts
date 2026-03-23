@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
-import { IonIcon } from "@ionic/angular/standalone";
+import { IonIcon, IonButton, IonThumbnail, IonBadge, IonAvatar } from "@ionic/angular/standalone";
 import { ToastController, ModalController, LoadingController } from '@ionic/angular';
 import { Content } from 'src/models/Content';
 import { Challenge } from 'src/models/Challenge';
@@ -17,7 +17,7 @@ import { CreationService } from 'src/services/CREATION_SERVICE/creation-service'
   templateUrl: './side-actions.component.html',
   styleUrls: ['./side-actions.component.scss'],
   providers: [ModalController],
-  imports: [IonIcon, NgIf, NgFor]
+  imports: [IonIcon, IonBadge, NgIf, NgFor]
 })
 export class SideActionsComponent  implements OnInit, OnChanges {
   @Input() Post!: Content;
@@ -34,6 +34,13 @@ export class SideActionsComponent  implements OnInit, OnChanges {
   // ✅ Stocker le résultat calculé
 cachedActions: any[] = [];
 
+// ✅ Icône du vote séparée
+get voteIcon(): string {
+  return this.Post.isVotedByUser 
+    ? '../assets/icon/checked.gif' 
+    : '../assets/icon/democracy.png';
+}
+
 ngOnInit() {
   this.buildActions(); // Calcul initial
 }
@@ -49,27 +56,63 @@ ngOnChanges(changes: SimpleChanges) {
 }
 
 // ✅ Renommée et privée — appelée uniquement quand nécessaire
-private buildActions() {
-  const voteIcon = this.Post.isVotedByUser 
-    ? '../assets/icon/checked.gif' 
-    : '../assets/icon/like.gif';
+private async buildActions() {
   const giftColor = this.Post.isGiftedByUser ? 'danger' : '';
-
   const buttons = [];
 
-  if (this.HasActiveChallenge) {
+  try {
+    if (this.HasActiveChallenge) {
+      const voteStatus = { voteLabel: "Votez", voteIcon: "../assets/icon/democracy.png", voteColor: 'danger' };
+      
+      // Vérification si l'utilisateur peut voter
+      if (this.CurrentUserProfile?.id && this.Post?.id && this.Post?.challengeId) {
+        const canVote = await this.voteService.canUserVoteForChallenge(
+          this.CurrentUserProfile.id, 
+          this.Post.id, 
+          this.Post.challengeId
+        ).toPromise();
+
+        if (canVote) {
+          // Logique de vote corrigée
+          if (canVote.canVote && this.Post.isVotedByUser) {
+            voteStatus.voteLabel = "voter encore";
+            voteStatus.voteIcon = "../assets/icon/democracy.png";
+            voteStatus.voteColor = "warning";
+          } else if (!canVote.canVote && this.Post.isVotedByUser) {
+            voteStatus.voteLabel = "Déjà voté";
+            voteStatus.voteIcon = "../assets/icon/checked.gif";
+            voteStatus.voteColor = "success";
+          } else if (canVote.canVote && !this.Post.isVotedByUser) {
+            voteStatus.voteLabel = "Votez";
+            voteStatus.voteIcon = "../assets/icon/democracy.png";
+            voteStatus.voteColor = "danger";
+          }
+        }
+      }
+
+      buttons.push(
+        { icon: 'vote', count: this.Post.voteCount || 0, votestatus: voteStatus, action: () => this.voteForArtist(this.Post) }
+      );
+      buttons.push(
+        { icon: 'gift', count: this.Post.giftCount || 0, color: giftColor, action: () => this.giftPost(this.Post) }
+      );
+    }
+
     buttons.push(
-      { icon: 'thumbs-up', count: this.Post.voteCount, gifIcon: voteIcon, action: () => this.voteForArtist(this.Post) },
-      { icon: 'gift', count: this.Post.giftCount, color: giftColor, action: () => this.giftPost(this.Post) }
+      { icon: 'chatbubble', count: this.Post.commentCount || 0, action: () => this.openComments(this.Post) },
+      { icon: 'share', count: this.Post.shareCount || 0, action: () => this.sharePost(this.Post) }
     );
+
+    this.cachedActions = buttons;
+  } catch (error) {
+    console.error('Erreur dans buildActions:', error);
+    // En cas d'erreur, on ajoute quand même les actions de base
+    buttons.push(
+      { icon: 'chatbubble', count: this.Post.commentCount || 0, action: () => this.openComments(this.Post) },
+      { icon: 'share', count: this.Post.shareCount || 0, action: () => this.sharePost(this.Post) }
+    );
+    this.cachedActions = buttons;
   }
-
-  buttons.push(
-    { icon: 'chatbubble', count: this.Post.commentCount, action: () => this.openComments(this.Post) },
-    { icon: 'share', count: this.Post.shareCount, action: () => this.sharePost(this.Post) }
-  );
-
-  this.cachedActions = buttons;
 }
 
   // Méthode publique pour incrémenter le compteur de commentaires
@@ -189,7 +232,7 @@ const modal = await this.modalController.create({
         await modal.present();
     
         modal.onDidDismiss().then((data)=>{
-            if(data && data.data.isPost){
+            if(data && data.data.isPost && this.Post.commentCount!== undefined){
               this.Post.commentCount++;
                this.buildActions();
             }
@@ -268,11 +311,8 @@ const modal = await this.modalController.create({
       }
 
        getButtonImage(post: Content, action: any): string {
-    if (action.icon === 'thumbs-up') {
-      const buttonKey = `${post.id}-thumbs-up`;
-      return this.buttonAction[buttonKey] || action.gifIcon;
-    }
-    return action.gifIcon;
+    // Le vote n'est plus dans les actions, donc cette méthode ne gère plus le cas thumbs-up
+    return action.voteIcon;
   }
       //#endregion
     

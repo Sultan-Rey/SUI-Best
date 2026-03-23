@@ -1,0 +1,321 @@
+// ═══════════════════════════════════════════════════════════
+//  AWARDS GALLERY
+//  Light-first · badges hexagonaux + cercles · progression chromatique
+//  Dark mode via prefers-color-scheme
+// ═══════════════════════════════════════════════════════════
+
+:host {
+  --bg:          #eeeef3;
+  --card-bg:     #f5f5fa;
+  --cell-bg:     #ffffff;
+  --cell-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  --text-h:      #111118;
+  --text-sub:    #777790;
+  --text-locked: #c0c0d0;
+  --radius-cell: 16px;
+  --radius-pill: 999px;
+  --cell-size:   72px;
+  --grid-cols:   4;
+  --grid-gap:    12px;
+
+  ion-content {
+    --background: var(--bg);
+    --color: var(--text-h);
+    --padding-bottom: 48px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    --bg:          #0d0d14;
+    --card-bg:     #16161f;
+    --cell-bg:     #1e1e2a;
+    --cell-shadow: 0 2px 10px rgba(0, 0, 0, 0.40);
+    --text-h:      #f0f0f8;
+    --text-sub:    #6060808;
+    --text-locked: #2a2a40;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HEADER
+// ═══════════════════════════════════════════════════════════
+
+.awards-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 12px;
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--cell-bg);
+  box-shadow: var(--cell-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+
+  ion-icon { font-size: 20px; color: var(--text-h); }
+  &:active { transform: scale(0.92); }
+}
+
+.awards-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.03em;
+  margin: 0;
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTIONS
+// ═══════════════════════════════════════════════════════════
+
+.awards-section {
+  padding: 8px 16px 20px;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  margin: 0 0 14px;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GRILLE
+// ═══════════════════════════════════════════════════════════
+
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols), 1fr);
+  gap: var(--grid-gap);
+
+  @media (min-width: 480px) { --grid-cols: 5; }
+  @media (min-width: 768px) { --grid-cols: 7; --grid-gap: 16px; }
+}
+
+// ── Cellule ───────────────────────────────────────────────
+.badge-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  animation: badge-in 0.4s cubic-bezier(.4, 0, .2, 1) both;
+
+  @for $i from 1 through 20 {
+    &:nth-child(#{$i}) { animation-delay: #{($i - 1) * 40}ms; }
+  }
+
+  &--unlocked { cursor: pointer; }
+}
+
+@keyframes badge-in {
+  from { opacity: 0; transform: scale(0.82) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BADGE HEXAGONAL (level milestones)
+// ═══════════════════════════════════════════════════════════
+
+.badge-hex {
+  position: relative;
+  width: var(--cell-size);
+  height: calc(var(--cell-size) * 1.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(.4, 0, .2, 1);
+
+  .badge-cell--unlocked:active & { transform: scale(0.93); }
+  .badge-cell--unlocked:hover  & { transform: scale(1.06); }
+}
+
+.badge-hex-inner {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+
+  // Couleur de fond : state unlocked → couleur vive, locked → gris très doux
+  .badge-cell--unlocked & {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--badge-color) 70%, white 30%) 0%,
+      var(--badge-color) 60%,
+      color-mix(in srgb, var(--badge-color) 80%, black 20%) 100%
+    );
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--badge-color) 40%, transparent);
+  }
+
+  .badge-cell--locked & {
+    background: linear-gradient(145deg, #e8e8f0 0%, #d8d8e8 100%);
+
+    @media (prefers-color-scheme: dark) {
+      background: linear-gradient(145deg, #22223a 0%, #1a1a2e 100%);
+    }
+  }
+}
+
+// Shine overlay (reflet diagonale)
+.badge-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.10) 40%,
+    transparent 60%
+  );
+  pointer-events: none;
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+}
+
+// Halo glow pour les badges unlocked
+.badge-cell--unlocked .badge-hex::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  background: var(--badge-glow);
+  filter: blur(8px);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.badge-cell--unlocked:hover .badge-hex::after {
+  opacity: 1;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BADGE CIRCULAIRE (challenge awards)
+// ═══════════════════════════════════════════════════════════
+
+.badge-circle {
+  position: relative;
+  width: var(--cell-size);
+  height: var(--cell-size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s cubic-bezier(.4, 0, .2, 1);
+
+  .badge-cell--unlocked:active & { transform: scale(0.93); }
+  .badge-cell--unlocked:hover  & { transform: scale(1.06); }
+}
+
+.badge-circle-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+
+  .badge-cell--unlocked & {
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--badge-color) 60%, white 40%) 0%,
+      var(--badge-color) 55%,
+      color-mix(in srgb, var(--badge-color) 80%, black 20%) 100%
+    );
+  }
+
+  .badge-cell--locked & {
+    background: linear-gradient(145deg, #e8e8f0 0%, #d8d8e8 100%);
+
+    @media (prefers-color-scheme: dark) {
+      background: linear-gradient(145deg, #22223a 0%, #1a1a2e 100%);
+    }
+  }
+}
+
+// Halo glow cercle
+.badge-cell--unlocked .badge-circle::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: var(--badge-glow);
+  filter: blur(10px);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.badge-cell--unlocked:hover .badge-circle::after {
+  opacity: 1;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ICÔNE ET IMAGE COMMUNES
+// ═══════════════════════════════════════════════════════════
+
+.badge-img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+  display: block;
+}
+
+.badge-icon-wrap {
+  width: 55%;
+  height: 55%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-icon-svg {
+  width: 100%;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.92);
+
+  &--locked {
+    color: rgba(160, 160, 185, 0.45);
+
+    @media (prefers-color-scheme: dark) {
+      color: rgba(80, 80, 110, 0.45);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LABEL SOUS LE BADGE
+// ═══════════════════════════════════════════════════════════
+
+.badge-level-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-align: center;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+
+  &--locked {
+    color: var(--text-locked);
+    opacity: 0.7;
+  }
+}

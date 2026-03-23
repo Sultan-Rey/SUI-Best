@@ -1,12 +1,13 @@
+import { LevelReward } from "./LevelReward";
 import { Plan } from "./Plan";
 
 export interface User {
-  id: number | string;
+  id: string;
 
   /* Auth */
   email:string;
   password_hash: string;
-  QR_proof: string;
+  QR_proof?: string;
   password?: string;
   confirmPassword?: string;
   
@@ -35,14 +36,20 @@ export interface User {
 export interface UserProfile {
   id: string;
   avatar: string;
+  coverImg?: string;
   username: string;
   displayName ?: string;
   userInfo: UserInfo,
   type:  'fan'| 'artist'| 'admin' | 'creator';
   isVerified: boolean;
-  isFollowing: boolean;
+  isFollowing?: boolean;
   myFollows: string[];
+  myFans?:string[];
   myBlackList: string[];
+  /* Progress */
+  level: number;
+  xpPercent: number;
+  level_rewards: LevelReward[],
   stats: {
     posts: number;
     fans: number;
@@ -56,7 +63,7 @@ export interface UserInfo{
   first_name: string;
   last_name: string;
   gender: string;
-  birthDate:Date;  
+  birthDate?:Date;  
   age?: number; 
 
   /* Contact */

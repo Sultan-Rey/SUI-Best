@@ -23,7 +23,6 @@ import { Router } from '@angular/router';
 import { ModalController } from '@ionic/angular';
 import { ModalConversationComponent } from '../components/modal-conversation/modal-conversation.component';
 import { MessageService } from 'src/services/MESSAGE_SERVICE/message-service';
-import { SocketService } from '../../services/SOCKET/socket-service';
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
@@ -59,7 +58,7 @@ export class SearchPage implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('searchBar', { static: false }) searchBar!: IonSearchbar;
 
   constructor(private profileService: ProfileService, private messageService: MessageService,
-    private socketService: SocketService, private router: Router, private modalController: ModalController) {
+     private router: Router, private modalController: ModalController) {
     addIcons({checkmarkCircle,chevronForward,chevronForwardOutline,personOutline,searchOutline});
   }
 
@@ -150,12 +149,7 @@ export class SearchPage implements OnInit, OnDestroy, AfterViewInit {
       await this.modalController.dismiss();
       
       // Rechercher s'il existe une conversation entre les deux utilisateurs
-      const conversationId = await this.messageService.findExistingConversationId([this.currentUserId, profile.id], this.currentUserId).toPromise();
-      
-      // Si la conversation existe, vérifier/créer le socket et réinitialiser les pings
-      if (conversationId) {
-        await this.initializeOrUpdateSocket(conversationId, [this.currentUserId, profile.id]);
-      }
+      const conversationId = await this.messageService.findExistingConversationId(this.currentUserId, profile.id).toPromise();
 
       // Ouvrir ModalConversationComponent pour une nouvelle conversation
       const modal = await this.modalController.create({
@@ -178,40 +172,7 @@ export class SearchPage implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  /**
-   * Initialise ou met à jour le socket pour une conversation existante
-   */
-  private async initializeOrUpdateSocket(conversationId: string, participantIds: string[]) {
-    try {
-      // Vérifier si le socket existe
-      const existingSocket = await this.socketService.socketFind(conversationId).toPromise();
-      
-      if (existingSocket) {
-        // Socket existe : réinitialiser les pings à 0 pour tous les participants
-        console.log('[SearchPage] Socket exists, resetting pings to 0');
-        
-        // Mettre à jour le socket avec tous les pings à 0
-        const updatedSocket = {
-          ...existingSocket,
-          socket: existingSocket.socket.map(participant => ({
-            ...participant,
-            ping: 0
-          })),
-          last_update: new Date().toISOString()
-        };
-        
-        await this.socketService.socketPing(conversationId, participantIds[0], 0).toPromise();
-        await this.socketService.socketPing(conversationId, participantIds[1], 0).toPromise();
-        
-      } else {
-        // Socket n'existe pas : en créer un nouveau
-        console.log('[SearchPage] Socket does not exist, creating new one');
-        await this.socketService.socketCreate(conversationId, participantIds).toPromise();
-      }
-    } catch (error) {
-      console.error('[SearchPage] Error initializing socket:', error);
-    }
-  }
+  
 
   goToAllProfiles() {
     // Navigation vers tous les profils

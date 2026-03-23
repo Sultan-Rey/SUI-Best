@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, map, tap, switchMap } from 'rxjs/operators';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Plan } from 'src/models/Plan';
 
 @Injectable({
@@ -9,11 +10,11 @@ import { Plan } from 'src/models/Plan';
 export class SubscriptionService {
   private readonly resource = 'plans'; // Même ressource que dans votre API
 
-  constructor(private api: ApiJSON) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   // Récupérer tous les plans depuis l'API
-  getAvailablePlans(): Observable<Plan[]> {
-    return this.api.getAll<Plan>(this.resource);
+  getAvailablePlans(): Observable<Plan[]> { 
+    return this.api.get<Plan[]>(this.resource);
   }
 
   // Mettre à jour le plan de l'utilisateur
@@ -25,7 +26,7 @@ export class SubscriptionService {
   }
 
   // Récupérer un plan spécifique
-  getPlanById(planId: string): Observable<Plan> {
-    return this.api.getById<Plan>(this.resource, planId);
+  getPlanById(planId: string): Observable<Plan | null> {
+    return this.api.getById<Plan | null>(this.resource, planId);
   }
 }

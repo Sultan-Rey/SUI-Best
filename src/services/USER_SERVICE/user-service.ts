@@ -1,7 +1,7 @@
 // src/app/services/user.service.ts
 import { Injectable } from '@angular/core';
 import { map, Observable, of, switchMap } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { User } from '../../models/User';
 
 @Injectable({
@@ -11,13 +11,13 @@ export class UserService {
 
   private readonly resource = 'users';
 
-  constructor(private api: ApiJSON) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   /* =====================
      CREATE
      ===================== */
 
-  createUser(user: Omit<User, 'id'>): Observable<User> {
+  createUser(user:User): Observable<User> {
     return this.api.create<User>(this.resource, user);
   }
 
@@ -25,23 +25,23 @@ export class UserService {
      READ
      ===================== */
 
-  getUsers(): Observable<User[]> {
-    return this.api.getAll<User>(this.resource);
+  getUser(): Observable<User> {
+    return this.api.get<User>(this.resource);
   }
 
-  getUserById(id: string | number): Observable<User> {
-    return this.api.getById<User>(this.resource, id);
+  getUserById(id: string | number): Observable<User | null> {
+    return this.api.getById<User | null>(this.resource, id as string);
   }
 
-  getUserByEmail(email: string): Observable<User> {
+  getUserByEmail(email: string): Observable<User[]> {
   return this.api
-    .getAll<User>(this.resource, { email })
+    .filter<User>(this.resource,  { filters: {email: email}, options:{ limit:1} })
     .pipe(
-      map(users => {
-        if (!users.length) {
+      map(user => {
+        if (!user) {
           throw new Error('USER_NOT_FOUND');
         }
-        return users[0];
+        return user.data;
       })
     );
 }
@@ -51,21 +51,21 @@ export class UserService {
      ===================== */
 
   updateUser(
-    id: number,
+    id: string,
     data: Partial<Omit<User, 'id'>>
   ): Observable<User> {
     return this.api.update<User>(this.resource, id, data);
   }
 
   updateStatus(
-    id: number,
+    id: string,
     status: User['status']
   ): Observable<User> {
     return this.api.patch<User>(this.resource, id, { status });
   }
 
   updateRole(
-    id: number,
+    id: string,
     role: User['user_type']
   ): Observable<User> {
     return this.api.patch<User>(this.resource, id, {
@@ -86,7 +86,7 @@ export class UserService {
      DELETE
      ===================== */
 
-  deleteUser(id: number): Observable<void> {
+  deleteUser(id: string): Observable<void> {
     return this.api.delete(this.resource, id);
   }
 

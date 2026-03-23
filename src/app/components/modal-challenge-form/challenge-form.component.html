@@ -178,6 +178,28 @@
         </div>
       </div>
 
+      <!-- Type de participants -->
+      <div class="section-title">
+        <ion-icon name="people-outline"></ion-icon>
+        <span>Participants autorisés</span>
+      </div>
+
+      <div class="participant-options">
+        <div 
+          *ngFor="let type of participantTypes" 
+          class="participant-card"
+          [class.selected]="challengeForm.get('allowed_participants')?.value === type.value"
+          (click)="challengeForm.patchValue({allowed_participants: type.value})">
+          <ion-icon [name]="type.icon"></ion-icon>
+          <div class="participant-info">
+            <h4>{{ type.label }}</h4>
+          </div>
+          <div class="participant-check">
+            <ion-icon name="checkmark-circle" *ngIf="challengeForm.get('allowed_participants')?.value === type.value"></ion-icon>
+          </div>
+        </div>
+      </div>
+
       <!-- Action principale -->
       <div class="input-group">
         <label class="input-label">Bouton d'action</label>

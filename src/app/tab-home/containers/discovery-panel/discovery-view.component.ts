@@ -1,18 +1,19 @@
 // discovery-view.component.ts
-import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { UserProfile } from 'src/models/User';
 import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
 import { ModalController, ToastController } from '@ionic/angular';
-import { map, filter, switchMap, forkJoin, of, take } from 'rxjs';
+import { map, filter, switchMap, forkJoin, of, take, finalize, catchError } from 'rxjs';
 import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
 import { assignDiscoveryLayout } from 'src/app/utils/discovery-layout.utils';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { FollowedViewComponent } from '../followed-panel/followed-view.component';
 import { Router } from '@angular/router';
 import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service';
+import { Segment } from 'src/models/Segment';
 export interface DiscoveryAuthor {
   name: string;
   avatar: string;
@@ -61,6 +62,18 @@ export class DiscoveryViewComponent implements OnInit {
   searchOpen = false;
   searchQuery = '';
   activeCategory = 'all';
+
+  // États de chargement
+  isLoading = true;
+  loadingContent = true;
+  loadingStories = true;
+
+  // Output pour naviguer vers followed
+  @Output() navigateToTab = new EventEmitter<{
+    args: any[];
+    targetSegment: Segment;
+    targetReturn: Segment;
+  }>();
 
   categories: Category[] = [
     { id: 'all',      label: 'Tout',        icon: '✦' },
@@ -118,7 +131,20 @@ export class DiscoveryViewComponent implements OnInit {
   }
 
   loadContent(){
+    this.loadingContent = true;
     this.creationService.getDiscoveryFeedContents(this.currentUserProfile).pipe(
+      finalize(() => {
+        this.loadingContent = false;
+        this.updateGlobalLoadingState();
+        this.cdr.markForCheck();
+      }),
+      catchError(error => {
+        console.error('Erreur lors du chargement du contenu discovery:', error);
+        this.loadingContent = false;
+        this.updateGlobalLoadingState();
+        this.cdr.markForCheck();
+        return of([]); // Retourner un tableau vide en cas d'erreur
+      }),
       switchMap((filteredContents) => {
         // Créer les requêtes de profil pour chaque contenu filtré
         const profileRequests = filteredContents.map(content => 
@@ -161,12 +187,13 @@ export class DiscoveryViewComponent implements OnInit {
           likes: content.voteCount?.toString() || '0',
           comments: commentCount.toString(),
           views: content.viewCount?.toString() || '0',
-          timeAgo: this.formatTimeAgo(content.createdAt),
+          timeAgo: this.formatTimeAgo(content.created_at),
           author: {
             name: profile?.username || content.username || `User ${content.userId.slice(-4)}`,
             avatar: profile?.avatar || 'https://picsum.photos/seed/' + content.userId + '/100/100.jpg'
           },
-          saved: false
+          saved: false,
+          loading: false // ← Initialiser l'état de chargement individuel
         }))
       )
     ).subscribe((discoveryItems) => {
@@ -176,7 +203,21 @@ export class DiscoveryViewComponent implements OnInit {
   }
 
   loadTopArtists(){
-    this.profile.getTopArtists().subscribe((artists) => {
+    this.loadingStories = true;
+    this.profile.getTopArtists().pipe(
+      finalize(() => {
+        this.loadingStories = false;
+        this.updateGlobalLoadingState();
+        this.cdr.markForCheck();
+      }),
+      catchError(error => {
+        console.error('Erreur lors du chargement des top artists:', error);
+        this.loadingStories = false;
+        this.updateGlobalLoadingState();
+        this.cdr.markForCheck();
+        return of([]); // Retourner un tableau vide en cas d'erreur
+      })
+    ).subscribe((artists) => {
       // Transform creators into story objects
       const creatorStories: Story[] = artists.map(creator => ({
         id: creator.id,
@@ -191,6 +232,17 @@ export class DiscoveryViewComponent implements OnInit {
     });
   }
 
+  // Mettre à jour l'état de chargement global
+  private updateGlobalLoadingState(): void {
+    this.isLoading = this.loadingContent || this.loadingStories;
+  }
+
+  onImageAvatarError(event: any) {
+      const imgElement = event.target as HTMLImageElement;
+      imgElement.onerror = null;
+      imgElement.src = 'assets/avatar-default.png';
+      imgElement.classList.add('is-default');
+    }
 
   formatTimeAgo(dateString?: string): string {
     if (!dateString) return 'il y a quelques instants';
@@ -222,34 +274,40 @@ export class DiscoveryViewComponent implements OnInit {
   async openItem(item: DiscoveryItem): Promise<void> {
     try {
       // Ajouter un état de chargement
-     // item.loading = true;
-      
+      item.loading = true;
+       
       const content = await this.creationService.getContentById(item.id).pipe(
         take(1)
       ).toPromise();
       
-      // Retirer l'état de chargement
-      //item.loading = false;
+      // Émettre l'événement vers le parent avec tous les contents complets réordonnés
+      // Récupérer tous les contents complets
+      const contentPromises = this.allItems.map(item => 
+        this.creationService.getContentById(item.id).pipe(take(1)).toPromise()
+      );
       
-      if (!content) {
-        console.error('Content not found for item:', item.id);
-        // Afficher un message d'erreur à l'utilisateur
-        this.showErrorToast('Contenu non trouvé');
-        return;
+      const allContents = await Promise.all(contentPromises);
+      
+      // Retirer l'état de chargement
+      item.loading = false;
+      
+      // Filtrer les contents null/undefined et réordonner avec le contenu choisi en premier
+      const validContents = allContents.filter(content => content !== null && content !== undefined);
+      const contentIndex = validContents.findIndex(item => item.id === content?.id);
+      
+      let reorderedContents = [...validContents];
+      if (contentIndex > 0) {
+        // Déplacer le contenu choisi au début
+        const [selectedItem] = reorderedContents.splice(contentIndex, 1);
+        reorderedContents = [selectedItem, ...reorderedContents];
       }
 
-      const modal = await this.modalController.create({
-        component: FollowedViewComponent,
-        componentProps: {
-          currentUserProfile: this.currentUserProfile,
-          posts: [content],
-          challengeName: '-'
-        },
-        cssClass: 'followed-view-modal',
-        handle: true
+      this.navigateToTab.emit({
+        args: reorderedContents, // Tableau de Content complets réordonnés
+        targetSegment: 'followed',
+        targetReturn: "discovery" as const
       });
-  
-      await modal.present();
+      
     } catch (error) {
       console.error('Error opening item:', error);
       // Retirer l'état de chargement en cas d'erreur
@@ -275,6 +333,11 @@ export class DiscoveryViewComponent implements OnInit {
       position: 'bottom'
     });
     await toast.present();
+  }
+
+  getCategoryLabel(categoryId: string): string {
+    const category = this.categories.find(c => c.id === categoryId);
+    return category?.label || categoryId;
   }
 
   saveItem(event: Event, item: DiscoveryItem): void {

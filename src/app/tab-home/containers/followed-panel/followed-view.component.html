@@ -1,15 +1,13 @@
 <ion-content class="tiktok-content">
   <!-- Close button for modal mode -->
-  <ion-button *ngIf="challengeName" fill="clear" size="icon-only" (click)="dismiss()" class="close-modal-btn">
-    <ion-icon name="chevron-back"></ion-icon>
-  </ion-button>
 
   <ion-refresher slot="fixed" (ionRefresh)="refreshFeed($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
   <div class="posts-container" #postsContainer>
-    <ng-container *ngIf="posts.length > 0; else noPostsTemplate">
+    <ng-container *ngIf="!isLoading; else loadingTemplate">
+      <ng-container *ngIf="posts.length > 0; else noPostsTemplate">
       <div 
         class="post" 
         *ngFor="let post of posts; trackBy: trackByPostId; let i = index"
@@ -17,19 +15,25 @@
       >
         
         <div class="video-container">
-          <img *ngIf="!isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl" (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail">
-          <video *ngIf="isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl" [class]="getCadrageClass(post)" class="video-thumbnail" autoplay muted loop></video>
+          <img *ngIf="!isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl | async" (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail">
+          <video *ngIf="isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl | async" [class]="getCadrageClass(post)" class="video-thumbnail" autoplay muted loop></video>
           <div class="video-overlay"></div>
         </div>
 
       <div class="main-content">
         <div class="artist-info">
           <div class="artist-header">
-            <img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
+            <!--img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)"-->
             <div class="artist-details">
+               <ion-item 
+  lines="none" 
+  *ngIf="hasActiveChallenge(post) && canParticipateInChallenge(post) && post.userId !== currentUserProfile.id"
+  class="challenge-item-cyclic">
+  <ion-label>{{ currentChallenge[post.challengeId]?.name }}</ion-label>
+  <ion-button slot="end" color="dark" (click)="presentParticipateOptions(currentChallenge[post.challengeId])">Participer <ion-icon name="arrow-forward"></ion-icon></ion-button>
+</ion-item>
               <div class="profile-header">
-                <ion-chip *ngIf="hasActiveChallenge(post)" color="warning" >{{ currentChallenge[post.challengeId]?.name }}</ion-chip>
-                <h4 class="profile-name">{{ post.username || 'Utilisateur' }}
+                <h4 class="profile-name" (click)="showAccount(post.userId)">{{ post.username || 'Utilisateur' }}
                    <ion-icon 
             *ngIf="post?.userId && userVerified[post.userId]" 
             name="checkmark-circle" 
@@ -53,7 +57,7 @@
                               </div>
               
               <p class="artist-location">
-                <span class="post-date">{{ post.createdAt | date:'dd MMM yyyy' }}</span>
+                <span class="post-date">{{ post.created_at | date:'dd MMM yyyy' }}</span>
                 <span class="separator">•</span>
                 <span class="post-views">{{ post.viewCount | shortNumber }} vues</span>
               </p>
@@ -69,21 +73,22 @@
                           [HasActiveChallenge]="hasActiveChallenge(post)"
                           [Post]="post"
                           [UserAvatars]="userAvatars"
-                          [CommentCount]="post.commentCount"></app-side-actions>
+                          ></app-side-actions>
       </div>
     </div>
     </ng-container>
-    <ng-template #loading>
+    </ng-container>
+    <ng-template #loadingTemplate>
       <div class="loading-container">
   <ion-spinner name="crescent" color="primary"></ion-spinner>
   <p class="loading-text">Chargement de votre feed...</p>
 </div>
     </ng-template>
-     <app-quick-comment *ngIf="challengeName === '-' && posts.length > 0"
+     <!-- <app-quick-comment *ngIf="challengeName === '-' && posts.length > 0"
                         [CurrentPost]="posts[currentIndex]"
                         [CurrentUserProfile]="currentUserProfile"
-                        (commentCount)="onCommentAdded($event)"></app-quick-comment>
-     </div>
+                        (commentCount)="onCommentAdded($event)"></app-quick-comment>-->
+     </div> 
 
   <ion-infinite-scroll threshold="100px" (ionInfinite)="loadFeed($event)" *ngIf="!challengeName">
     <ion-infinite-scroll-content
@@ -94,7 +99,8 @@
 
   <!-- Template pour quand il n'y a pas de posts ET aucun follow -->
   <ng-template #noPostsTemplate>
-    <div class="empty-state-container" *ngIf="currentUserProfile.myFollows.length == 0">
+    <!-- Empty state aucun follow -->
+    <div class="empty-state-container" *ngIf="currentUserProfile.myFollows && currentUserProfile.myFollows.length == 0">
       <div class="empty-state-content">
         <img src="assets/icon/skateboard.gif" alt="Skateboard" class="empty-state-gif">
         <h2 class="empty-state-title">🛹 Lancez votre vibe !</h2>
@@ -103,7 +109,6 @@
           <strong>Follow des créateurs</strong> pour déchaîner le flux et<br>
           découvrir des contenus qui vont vous faire flipper !
         </p>
-       
       </div>
     </div>
   </ng-template>

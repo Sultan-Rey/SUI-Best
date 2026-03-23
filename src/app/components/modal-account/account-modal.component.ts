@@ -52,7 +52,7 @@ export class AccountModalComponent  implements OnInit {
 
   ngOnInit() {
     // Initialize observables
-    this.balance$ = this.walletService.balance$;
+    this.balance$ = this.walletService.balance$; this.balance$ = this.walletService.balance$;
     this.couponTypes$ = this.walletService.couponTypes$;
     
     // Subscribe to balance changes with animation

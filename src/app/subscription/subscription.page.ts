@@ -1,7 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AlertController } from '@ionic/angular';
+import { AlertController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { UserProfile } from 'src/models/User';
 import { Plan } from '../../models/Plan';
@@ -31,7 +31,10 @@ import {
 import { SubscriptionService } from 'src/services/SUBSCRIPTION_SERVICE/subscription-service';
 import { User } from 'src/models/User';
 import { UserService } from 'src/services/USER_SERVICE/user-service';
-import { firstValueFrom, tap } from 'rxjs';
+import { firstValueFrom, map, tap } from 'rxjs';
+import { Auth } from 'src/services/AUTH/auth';
+import { environment } from 'src/environments/environment.prod';
+import { FirebaseService } from 'src/services/API/firebase/firebase-service';
 
 
 
@@ -49,7 +52,8 @@ import { firstValueFrom, tap } from 'rxjs';
     IonToolbar,
     IonButtons,
     IonButton,
-    IonIcon
+    IonIcon,
+    IonSpinner
   ]
 })
 export class SubscriptionPage implements OnInit {
@@ -61,13 +65,16 @@ export class SubscriptionPage implements OnInit {
   isLoading = false;
   error: string | null = null
   registrationData: any | null = null;
-  constructor(
-    private router: Router, 
-    private alertController: AlertController,
-    private subscriptionService: SubscriptionService,
-    private userService: UserService, 
-    private profileService: ProfileService
-  ) {
+  
+  // Utiliser inject() pour les services dans une page standalone
+  private router = inject(Router);
+  private alertController = inject(AlertController);
+  private loadingController = inject(LoadingController);
+  private subscriptionService = inject(SubscriptionService);
+  private auth = inject(Auth);
+  private firebaseService = inject(FirebaseService);
+
+  constructor() {
      addIcons({
     'arrow-back': arrowBack,
     'sparkles': sparkles,
@@ -89,88 +96,34 @@ export class SubscriptionPage implements OnInit {
       this.router.navigate(['/register']);
       return;
     }
+   
+  
   }
 
-  ngOnInit() {this.loadPlans();}
+  async ngOnInit() {
+    this.loadPlans();
+}
 
-  // Méthode pour extraire le modèle User depuis registrationData
-  private extractUserModel(): User {
-    if (!this.registrationData) {
-      throw new Error('Aucune donnée d\'inscription disponible');
-    }
+  private async loadPlans() {
+    const loading = await this.loadingController.create({
+      message: "chargement...",
+      spinner: 'dots',
+      animated:true,
+      duration: 8000
+    });
+    await loading.present();
 
-    return {
-      id: this.registrationData.id,
-      email: this.registrationData.email,
-      password_hash: this.registrationData.password_hash || '',
-      QR_proof: this.registrationData.QR_proof || '',
-      password: this.registrationData.password || '',
-      confirmPassword: this.registrationData.confirmPassword || '',
-      user_type: this.registrationData.user_type || 'fan',
-      user_status: this.registrationData.user_status || 'other',
-      status: 'active',
-      readonly: false,
-      myPlan: this.registrationData.myPlan || {} as Plan,
-      registration_date: this.registrationData.registration_date || new Date().toISOString()
-    };
-  }
-
-  // Méthode pour créer le modèle UserProfile depuis registrationData
-  private async createUserProfileModel(userId: string): Promise<UserProfile> {
-    if (!this.registrationData) {
-      throw new Error('Aucune donnée d\'inscription disponible');
-    }
-
-    return {
-      id: userId,
-      type: this.registrationData.user_type,
-      myFollows: [],
-      myBlackList: [],
-      username: await this.generateUniqueUsername(
-        this.registrationData.first_name || 'user',
-        this.registrationData.last_name || userId.substring(0, 8)
-      ),
-      displayName: `${this.registrationData.first_name || ''} ${this.registrationData.last_name || ''}`.trim() || 'Utilisateur',
-      avatar: 'storage/uploads/avatar-default.png',
-      isVerified: false,
-      isFollowing: false,
-      stats: {
-        posts: 0,
-        fans: 0,
-        votes: 0,
-        stars: 0
-      },
-      userInfo: {
-        first_name: this.registrationData.first_name || '',
-        last_name: this.registrationData.last_name || '',
-        gender: this.registrationData.gender || '',
-        birthDate: this.registrationData.birthDate || new Date(),
-        age: this.registrationData.age || 0,
-        email: this.registrationData.email || '',
-        phone: this.registrationData.phone || '',
-        address: this.registrationData.address || '',
-        website: this.registrationData.website || '',
-        memberShip: {date:this.registrationData.myPlan.startDate, plan: this.registrationData.myPlan.name},
-        bio: this.registrationData.bio || '',
-        school:  { id: this.registrationData.school.id, name: this.registrationData.school.name }
-      }
-    };
-  }
-
-  private loadPlans() {
-    this.isLoading = true;
     this.error = null;
     
     this.subscriptionService.getAvailablePlans().subscribe({
       next: (plans) => {
-    
         this.plans = plans;
-        this.isLoading = false;
+        loading.dismiss();
       },
-      error: (err) => {
-        console.error('Erreur lors du chargement des plans', err);
-        this.error = 'Impossible de charger les plans. Veuillez réessayer plus tard.';
-        this.isLoading = false;
+      error: (error) => {
+        console.error('💥 Erreur lors du chargement des plans:', error);
+        this.error = 'Impossible de charger les plans disponibles';
+        loading.dismiss();
       }
     });
   }
@@ -236,131 +189,92 @@ this.registrationData.myPlan = {
 };
     
 
-const userModel = this.extractUserModel();
+
  
     try {
-      // 3️⃣ Créer l'utilisateur
-      const userCreated = await firstValueFrom(
-        this.userService.createUser(userModel).pipe(
-          tap({
-            next: (response) => console.log('Utilisateur créé :', response),
-            error: (error) => {
-              console.error('Erreur création utilisateur :', error);
-              throw error;
-            }
-          })
-        )
-      );
+      this.isLoading = true;
 
-      if (!userCreated?.id) {
-        throw new Error('La création du compte a échoué. Aucun ID utilisateur reçu.');
-      }
-
-      // 4️⃣ Créer le profil utilisateur
-      const userProfile = await this.createUserProfileModel(userCreated.id.toString());
-
-      // 5️⃣ Enregistrer le profil
-      await firstValueFrom(
-        this.profileService.createProfile(userProfile).pipe(
-          tap({
-            next: (response) => console.log('Profil créé :', response),
-            error: (error) => {
-              console.error('Erreur création profil :', error);
-              throw error;
-            }
-          })
-        )
-      );
-
-      // 6️⃣ Afficher un message de succès
+      // Utilisation propre du service Auth avec gestion d'erreurs
+      const signupResponse = await firstValueFrom(this.auth.signup(this.registrationData));
+      
+      if (!signupResponse.success) {
+        throw new Error(signupResponse.error || signupResponse.message || 'Échec de l\'inscription');
+      }else{
+         // Afficher le message de succès
       const successAlert = await this.alertController.create({
         header: 'Succès',
-        message: 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.',
+        message: signupResponse.message || 'Votre compte a été créé avec succès ! Veuillez vérifier votre email pour activer votre compte.',
         buttons: [{
           text: 'Se connecter',
-          handler: () => {
-            this.router.navigate(['/login']);
+          handler: async () => {
+            // Rediriger vers la page de connexion
+            await this.router.navigate(['/login']);
           }
         }]
       });
       await successAlert.present();
-
-          this.registrationData.id = userCreated.id;
-          this.registrationData.password_hash = "";
-          this.registrationData.QR_proof = "";
-          this.registrationData.status = "pending";
-          this.registrationData.first_name = "";
-          this.registrationData.last_name = "";
-          this.registrationData.gender = "";
-          this.registrationData.birthDate = new Date();
-          this.registrationData.age = 0;
-          this.registrationData.email = "";
-          this.registrationData.password = "";
-          this.registrationData.user_type = "fan";
-          this.registrationData.user_status = "other";
-          this.registrationData.registration_date = "";
-      // 7️⃣ Rediriger vers la page de connexion
-      await this.router.navigate(['/login']);
-
-    } catch (error) {
-      console.error('Erreur lors de l\'inscription :', error);
-      const errorAlert = await this.alertController.create({
-        header: 'Erreur',
-        message: error instanceof Error ? error.message : 'Une erreur est survenue lors de l\'inscription',
-        buttons: ['OK']
+      }
+     
+      // Réinitialiser les données du formulaire
+      this.registrationData.password_hash = "";
+      this.registrationData.QR_proof = "";
+      this.registrationData.status = "pending";
+      this.registrationData.first_name = "";
+      this.registrationData.last_name = "";
+      this.registrationData.gender = "";
+      this.registrationData.birthDate = new Date();
+      this.registrationData.age = 0;
+      this.registrationData.email = "";
+      this.registrationData.password = "";
+      this.registrationData.user_type = "fan";
+      this.registrationData.user_status = "other";
+      this.registrationData.registration_date = "";
+      
+     
+      
+    } catch (error: any) {
+      console.error('Erreur d\'inscription:', error);
+      
+      // Traduction des messages d'erreur
+      const errorMessage = this.translateErrorMessage(error);
+      
+      const failureAlert = await this.alertController.create({
+        header: 'Échec de la création',
+        message: errorMessage,
+        buttons: ['Recommencer']
       });
-      await errorAlert.present();
+      await failureAlert.present();
+      
     } finally {
       this.isLoading = false;
     }
   }
+
 }
-
-
-
-
-private async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
-  // Nettoyer les caractères spéciaux et les accents
-  const cleanString = (str: string) => {
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '') // Garde uniquement les lettres et chiffres
-      .substring(0, 15); // Limite la longueur
-  };
-
-  const cleanFirstName = cleanString(firstName);
-  const cleanLastName = cleanString(lastName);
-  
-  // Première tentative : prénom.nom
-  let baseUsername = `${cleanFirstName}.${cleanLastName}`;
-  let username = baseUsername;
-  let counter = 1;
-
-  // Vérifier si le nom d'utilisateur existe déjà
-  const usernameExists = async (username: string): Promise<boolean> => {
-    try {
-      const profiles = await firstValueFrom(this.profileService.getProfiles());
-      return profiles.some(profile => profile.username === username);
-    } catch (error) {
-      console.error('Erreur lors de la vérification du nom d\'utilisateur', error);
-      return false; // En cas d'erreur, on considère que le nom est disponible
+  /**
+   * Traduit les messages d'erreur du service Auth en messages utilisateur
+   */
+  private translateErrorMessage(error: any): string {
+    const message = error?.error || error;
+    console.log(message);
+    // Messages d'erreur spécifiques du service Auth
+    if (message.error === 'MISSING_CREDENTIALS') {
+      return 'Veuillez remplir tous les champs obligatoires';
     }
-  };
-
-  // Tant que le nom d'utilisateur existe, on ajoute un numéro
-  while (await usernameExists(username)) {
-    username = `${baseUsername}${counter}`;
-    counter++;
+    if (message.error === 'INVALID_EMAIL') {
+      return 'Veuillez saisir un email valide';
+    }
+    if (message.error === 'PASSWORD_TOO_SHORT') {
+      return 'Le mot de passe doit contenir au moins 8 caractères';
+    }
+    if (message.error === 'EMAIL_ALREADY_EXISTS') {
+      return 'Cet email est déjà utilisé. Veuillez en choisir un autre.';
+    }
+    if (message.error === 'USERNAME_ALREADY_EXISTS') {
+      return 'Ce nom d\'utilisateur est déjà utilisé. Veuillez en choisir un autre.';
+    }
     
-    // Limite de sécurité pour éviter les boucles infinies
-    if (counter > 1000) {
-      throw new Error('Impossible de générer un nom d\'utilisateur unique');
-    }
+    // Message par défaut
+    return message || 'Une erreur est survenue lors de l\'inscription';
   }
-
-  return username;
-}
-
 }

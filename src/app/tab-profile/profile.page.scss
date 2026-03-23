@@ -1,997 +1,953 @@
+// Variables
+$bg-primary: #0a0a0f;
+$glass-bg: rgba(255, 255, 255, 0.03);
+$glass-border: rgba(255, 255, 255, 0.08);
+$gradient-start: #667eea;
+$gradient-end: #764ba2;
+$text-primary: #ffffff;
+$text-secondary: #9ca3af;
+$text-tertiary: #6b7280;
 
+:host {
+  ion-content {
+    --background: #{$bg-primary};
+    --color: #{$text-primary};
+  }
 
-ion-header {
-  --background: #000000 !important;
   ion-toolbar {
-  --background: #000000 !important;
-  --color: #ffffff;
-  --border-style: none;
-}
-}
-
-ion-content {
-  --background: #0a0a0a !important;
-}
-
-.profile-container {
-  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
-  min-height: 100%;
-}
-
-// Profile Header
-.profile-header {
-  padding: 20px;
-  background: #0a0a0a;
-}
-
-.avatar-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 16px;
-  position: relative;
-}
-
-.avatar-wrapper {
-  position: relative;
-  width: 120px;
-  height: 120px;
-}
-
-.avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  position: relative;
-  z-index: 2;
-}
-
-.avatar-border {
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ff0844 0%, #5a00ff 100%);
-  z-index: 1;
-}
-
-.add-story-btn {
-  position: absolute;
-  bottom: 0;
-  right: -8px;
-  --padding-start: 0;
-  --padding-end: 0;
-  width: 32px;
-  height: 32px;
-  z-index: 3;
-
-  ion-icon {
-    font-size: 32px;
-    color: #ffcc00;
-  }
-}
-
-// Profile Info
-.profile-info {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.name-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.display-name {
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.verified-badge {
-  font-size: 20px;
-  color: #1da1f2;
-}
-
-.username {
-  color: #8e8e93;
-  font-size: 14px;
-  margin: 0;
-}
-
-// Stats Row
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-value {
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  color: #8e8e93;
-  font-size: 12px;
-}
-
-// Bio Section
-.bio-section {
-  margin-bottom: 20px;
-}
-
-.bio-text {
-  color: #ffffff;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0 0 16px 0;
-  text-align: center;
-}
-
-.info-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #8e8e93;
-  font-size: 13px;
-}
-
-.info-icon {
-  font-size: 18px;
-  color: #ff9500;
-}
-
-// Action Buttons
-.action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.follow-btn,
-.message-btn {
-  --border-radius: 12px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  height: auto;
-  font-weight: 600;
-  text-transform: none;
-}
-
-.external-btn {
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --border-radius: 12px;
-  --background: #1c1c1e;
-  
-  ion-icon {
-    font-size: 20px;
-    color: #ffffff;
-  }
-}
-
-// ======================================
-// CHALLENGES SECTION (Nouveauté)
-// ======================================
-
-.challenges-section {
-  padding: 24px 20px;
-  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
-  border-bottom: 1px solid #2c2c2e;
-}
-
-.challenges-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.challenges-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  h2 {
-    color: #ffffff;
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-  }
-
-  .challenges-icon {
-    font-size: 24px;
-    color: #ffcc00;
-  }
-
-  .challenges-count {
-    font-size: 12px;
-    font-weight: 700;
-    padding: 4px 8px;
-  }
-}
-
-.view-all-btn {
-  --color: #ff9500;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-// Carrousel horizontal des challenges
-.challenges-carousel {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 10px;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #1c1c1e;
-    border-radius: 10px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #3a3a3c;
-    border-radius: 10px;
-
-    &:hover {
-      background: #48484a;
-    }
-  }
-}
-
-.challenge-card {
-  min-width: 280px;
-  max-width: 280px;
-  scroll-snap-align: start;
-  background: #1c1c1e;
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(255, 153, 0, 0.2);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.challenge-cover {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-  }
-
-  &:hover img {
-    transform: scale(1.05);
-  }
-}
-
-.challenge-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.7) 100%);
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 12px;
-}
-
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-
-  .badge-icon {
-    font-size: 14px;
-  }
-}
-
-.challenge-content {
-  padding: 16px;
-}
-
-.challenge-name {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  line-height: 1.3;
-  display: -webkit-box;
-  display: -moz-box;
-  display: box;
-  -webkit-line-clamp: 2;
-  -moz-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  -moz-box-orient: vertical;
-  box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.challenge-description {
-  color: #8e8e93;
-  font-size: 13px;
-  line-height: 1.4;
-  margin: 0 0 12px 0;
-  display: -webkit-box;
-  display: -moz-box;
-  display: box;
-  -webkit-line-clamp: 2;
-  -moz-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  -moz-box-orient: vertical;
-  box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.challenge-metrics {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #2c2c2e;
-}
-
-.metric-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #8e8e93;
-  font-size: 12px;
-
-  ion-icon {
-    font-size: 16px;
-    color: #ff9500;
-  }
-}
-
-.challenge-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.time-remaining {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-
-  .time-icon {
-    font-size: 16px;
-    color: #ffcc00;
-  }
-
-  .time-text {
-    color: #ffcc00;
-    font-size: 12px;
-    font-weight: 600;
-  }
-}
-
-.prize-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: linear-gradient(135deg, #ff0844 0%, #5a00ff 100%);
-  padding: 4px 10px;
-  border-radius: 12px;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-
-  ion-icon {
-    font-size: 14px;
-  }
-}
-
-// Section vide pour créateurs sans challenges
-.no-challenges-section {
-  padding: 40px 20px;
-  background: #0a0a0a;
-  border-bottom: 1px solid #2c2c2e;
-}
-
-.empty-challenges {
-  text-align: center;
-  padding: 40px 20px;
-  background: #1c1c1e;
-  border-radius: 16px;
-  border: 2px dashed #2c2c2e;
-
-  .empty-icon {
-    font-size: 64px;
-    color: #3a3a3c;
-    margin-bottom: 16px;
-  }
-
-  h3 {
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 8px 0;
-  }
-
-  p {
-    color: #8e8e93;
-    font-size: 14px;
-    margin: 0 0 20px 0;
-    line-height: 1.5;
+    --background: #{$bg-primary};
+    --color: #{$text-primary};
+    --border-color: #{$glass-border};
   }
 
   ion-button {
-    --border-radius: 12px;
-    --padding-top: 12px;
-    --padding-bottom: 12px;
+    --background: transparent;
+    --color: #{$text-primary};
+    --border-color: #{$glass-border};
+    --border-radius: 9999px;
+    --padding-start: 16px;
+    --padding-end: 16px;
     font-weight: 600;
-    text-transform: none;
-  }
-}
-
-// FAB Button
-ion-fab-button {
-  --box-shadow: 0 4px 16px rgba(255, 204, 0, 0.4);
-
-  &:hover {
-    --box-shadow: 0 6px 20px rgba(255, 204, 0, 0.6);
-  }
-}
-
-// Tab Navigation
-.tab-navigation {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background: #0a0a0a;
-  border-bottom: 1px solid #2c2c2e;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.tab-item {
-  padding: 16px;
-  text-align: center;
-  color: #8e8e93;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.3s ease;
-
-  &.active {
-    color: #ffffff;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: #ff9500;
-    }
-  }
-
-  &:hover {
-    color: #ffffff;
-  }
-}
-
-
-
-.loading-content {
-  text-align: center;
-  max-width: 320px;
-  width: 100%;
-  padding: 20px;
-}
-
-.loading-spinner {
-  width: 60px;
-  height: 60px;
-  margin-bottom: 24px;
-  --color: #ff9500;
-}
-
-.loading-text {
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 32px 0;
-  opacity: 0.9;
-}
-
-.loading-skeleton {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
-  justify-content: center;
-}
-
-.skeleton-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3a3a3c 0%, #2c2c2e 100%);
-    z-index: -1;
-  }
-}
-
-.skeleton-info {
-  flex: 1;
-  text-align: left;
-}
-
-.skeleton-line {
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  
-  &.skeleton-name {
-    height: 20px;
-    width: 120px;
-    animation-delay: 0.1s;
-  }
-  
-  &.skeleton-username {
-    height: 16px;
-    width: 80px;
-    animation-delay: 0.2s;
-  }
-}
-
-.skeleton-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.skeleton-stat {
-  text-align: center;
-}
-
-.skeleton-number {
-  height: 18px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  animation-delay: 0.3s;
-}
-
-.skeleton-label {
-  height: 12px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
-  animation-delay: 0.4s;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-// ========================================
-// SKELETONS SEGMENTÉS
-// ========================================
-
-// Header Skeleton
-.skeleton-header {
-  padding: 20px;
-  text-align: center;
-  background: #0a0a0a;
-}
-
-.skeleton-avatar-large {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  margin: 0 auto 16px;
-  position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3a3a3c 0%, #2c2c2e 100%);
-    z-index: -1;
-  }
-}
-
-.skeleton-name-large {
-  height: 24px;
-  width: 160px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
-  margin: 0 auto 8px;
-  animation-delay: 0.1s;
-}
-
-.skeleton-username-large {
-  height: 16px;
-  width: 100px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 6px;
-  margin: 0 auto;
-  animation-delay: 0.2s;
-}
-
-// Bio Skeleton
-.skeleton-bio-line {
-  height: 14px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  animation-delay: 0.3s;
-  
-  &.skeleton-short {
-    width: 60%;
-    margin: 0 auto;
-  }
-}
-
-.skeleton-info-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.skeleton-info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.skeleton-icon {
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
-  animation-delay: 0.4s;
-}
-
-.skeleton-text {
-  height: 12px;
-  flex: 1;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
-  animation-delay: 0.5s;
-}
-
-// Challenges Skeleton
-.challenges-skeleton {
-  padding: 24px 20px;
-  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
-  border-bottom: 1px solid #2c2c2e;
-}
-
-.skeleton-challenges-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.skeleton-title {
-  height: 20px;
-  width: 120px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
-  animation-delay: 0.6s;
-}
-
-.skeleton-button {
-  height: 32px;
-  width: 80px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 16px;
-  animation-delay: 0.7s;
-}
-
-.skeleton-challenges-carousel {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-}
-
-.skeleton-challenge-card {
-  min-width: 280px;
-  max-width: 280px;
-  background: #1c1c1e;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.skeleton-challenge-cover {
-  width: 100%;
-  height: 160px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  animation-delay: 0.8s;
-}
-
-.skeleton-challenge-content {
-  padding: 16px;
-}
-
-.skeleton-challenge-title {
-  height: 16px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  animation-delay: 0.9s;
-}
-
-.skeleton-challenge-desc {
-  height: 12px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  animation-delay: 1.0s;
-}
-
-.skeleton-challenge-metrics {
-  height: 12px;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
-  width: 70%;
-  animation-delay: 1.1s;
-}
-
-// Posts Skeleton
-.posts-skeleton {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  padding: 2px;
-}
-
-.skeleton-post {
-  aspect-ratio: 1;
-  overflow: hidden;
-}
-
-.skeleton-post-image {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  animation-delay: 1.2s;
-  
-  @for $i from 1 through 9 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{1.2 + $i * 0.1}s;
-    }
-  }
-}
-
-
-
-// Success Content
-.content {
-  padding: 8px 0px 100px 0px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-}
-
-.empty-icon {
-  font-size: 80px;
-  color: #3a3a3c;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  color: #8e8e93;
-  font-size: 16px;
-  margin: 0;
-}
-
-// Info Content
-.info-content {
-  padding: 20px;
-}
-
-.info-card {
-  background: #1c1c1e;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-
-  h3 {
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 16px 0;
-  }
-
-  p {
-    color: #8e8e93;
-    font-size: 14px;
-    line-height: 1.6;
     margin: 0;
   }
 }
 
-.info-row {
+// Header styling
+.header-title {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #2c2c2e;
-
-  &:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  &:first-child {
-    padding-top: 0;
+  gap: 8px;
+  
+  span {
+    font-weight: 600;
   }
 }
 
-.info-label {
-  color: #8e8e93;
-  font-size: 14px;
+.verified-icon {
+  color: #3b82f6;
+  font-size: 18px;
 }
 
-.info-value {
-  color: #ffffff;
-  font-size: 14px;
+// Desktop Header
+.desktop-header {
+  display: none;
+  
+  @media (min-width: 768px) {
+    display: block;
+    
+    .desktop-header-container {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 0 24px 24px;
+    }
+    
+    .cover-container {
+      position: relative;
+      height: 256px;
+      border-radius: 24px;
+      overflow: hidden;
+      margin-bottom: 80px;
+      
+      .cover-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.6;
+      }
+      
+      .cover-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, $bg-primary, transparent);
+      }
+    }
+    
+    .profile-info-desktop {
+      position: relative;
+      padding: 0 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    
+    .avatar-container {
+      position: absolute;
+      top: -64px;
+      left: 0;
+      
+      .avatar-wrapper {
+        position: relative;
+        
+        .avatar-desktop {
+          width: 128px;
+          height: 128px;
+          border-radius: 16px;
+          object-fit: cover;
+          border: 4px solid $bg-primary;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        
+        .online-indicator {
+          position: absolute;
+          bottom: -8px;
+          right: -8px;
+          width: 32px;
+          height: 32px;
+          background: #10b981;
+          border-radius: 50%;
+          border: 4px solid $bg-primary;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          
+          ion-icon {
+            color: white;
+            font-size: 16px;
+          }
+        }
+      }
+    }
+    
+    .profile-details-desktop {
+      margin-left: 160px;
+      
+      .name-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+        
+        h1 {
+          font-size: 30px;
+          font-weight: 700;
+          color: $text-primary;
+          margin: 0;
+        }
+      }
+      
+      .pro-badge-desktop {
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        background: rgba($gradient-start, 0.2);
+        color: #a5b4fc;
+        border-radius: 9999px;
+        border: 1px solid rgba($gradient-start, 0.3);
+      }
+      
+      .handle {
+        color: $text-secondary;
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+      
+      .bio-desktop {
+        color: #d1d5db;
+        max-width: 512px;
+        margin-bottom: 16px;
+        line-height: 1.6;
+      }
+    }
+    
+    .action-buttons-desktop {
+      display: flex;
+      gap: 12px;
+      
+      .follow-btn-desktop {
+        --background: white;
+        --color: black;
+        --padding-start: 24px;
+        --padding-end: 24px;
+        --padding-top: 10px;
+        --padding-bottom: 10px;
+        height: 44px;
+      }
+      
+      .setting-btn-desktop {
+        --background: #{$glass-bg};
+        --border-color: #{$glass-border};
+        --color: white;
+        --padding-start: 24px;
+        --padding-end: 24px;
+        --padding-top: 10px;
+        --padding-bottom: 10px;
+        height: 44px;
+        backdrop-filter: blur(20px);
+      }
+    }
+  }
+}
+
+// Mobile Profile Header
+.mobile-profile-header {
+  @media (min-width: 768px) {
+    display: none;
+  }
+  
+  .cover-mobile {
+    position: relative;
+    height: 128px;
+    
+    .cover-image-mobile {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .cover-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, $bg-primary, transparent);
+    }
+  }
+  
+  .profile-info-mobile {
+    padding: 0 16px;
+    margin-top: -48px;
+    position: relative;
+    
+    .profile-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+    
+    .avatar-section {
+      .story-ring {
+        background: linear-gradient(135deg, #ff0844 0%, #5a00ff 100%);
+        padding: 3px;
+        border-radius: 50%;
+        display: inline-block;
+        
+        .avatar-mobile {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          border: 2px solid $bg-primary;
+          object-fit: cover;
+          display: block;
+        }
+      }
+    }
+    
+    .action-buttons-mobile {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      
+      .follow-btn-mobile {
+        --background: white;
+        --color: black;
+        --padding-start: 16px;
+        --padding-end: 16px;
+        --padding-top: 8px;
+        --padding-bottom: 8px;
+        font-size: 14px;
+        height: 36px;
+      }
+      
+      .message-btn-mobile {
+        --background: #{$glass-bg};
+        --border-width: 1px;
+        --border-color: #{$glass-border};
+        --padding-start: 8px;
+        --padding-end: 8px;
+        height: 36px;
+        width: 36px;
+        
+        ion-icon {
+          font-size: 18px;
+        }
+      }
+    }
+    
+    .user-info-mobile {
+      margin-bottom: 16px;
+      
+      .name-badge-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        
+        .user-name {
+          font-size: 20px;
+          font-weight: 700;
+          color: $text-primary;
+          margin: 0;
+        }
+      }
+      
+      .pro-badge-mobile {
+        padding: 4px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba($gradient-start, 0.2);
+        color: #a5b4fc;
+        border-radius: 9999px;
+        border: 1px solid rgba($gradient-start, 0.3);
+      }
+      
+      .user-title {
+        color: $text-secondary;
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+      
+      .user-bio {
+        color: #d1d5db;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+      
+      .user-links {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        
+        .link-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: $text-secondary;
+          font-size: 12px;
+          
+          ion-icon {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+    
+    .stats-container {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 16px;
+      
+      .stat-item {
+        flex: 1;
+        text-align: center;
+        
+        &.with-borders {
+          border-left: 1px solid rgba(255, 255, 255, 0.1);
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        &.with-right-border {
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: $text-primary;
+          line-height: 1.2;
+        }
+        
+        .stat-label {
+          font-size: 12px;
+          color: $text-secondary;
+        }
+      }
+    }
+  }
+}
+
+// addition 
+// ═══════════════════════════════════════════════════════════
+//  PROFILE PAGE — Premium additions  v2
+//  Fidèle à la maquette : pill lvl1→lvl2, awards hexagones
+// ═══════════════════════════════════════════════════════════
+
+// ── Design tokens ────────────────────────────────────────
+:root, :host {
+  --gold-100: #fffbeb;
+  --gold-200: #fef3c7;
+  --gold-300: #fcd34d;
+  --gold-400: #f59e0b;
+  --gold-500: #d97706;
+  --gold-600: #b45309;
+  --gold-glow: rgba(245, 158, 11, 0.40);
+
+  --surface-0:  #0a0a0f;
+  --surface-1:  #111118;
+  --surface-2:  #1a1a26;
+  --surface-3:  #252535;
+  --surface-border: rgba(255, 255, 255, 0.07);
+  --surface-dark-banner: #2a2a2a;
+
+  --text-primary:   #f0f0f8;
+  --text-secondary: #9090b0;
+  --text-muted:     #5a5a7a;
+
+  --radius-pill: 999px;
+  --radius-card: 18px;
+  --radius-thumb: 12px;
+
+  --transition-fast:   150ms cubic-bezier(.4,0,.2,1);
+  --transition-smooth: 300ms cubic-bezier(.4,0,.2,1);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SEGMENTS & TABS
+// ═══════════════════════════════════════════════════════════
+
+.custom-segment {
+  --background: transparent;
+  padding: 0 16px;
+  margin-bottom: 4px;
+
+  ion-segment-button {
+    --color: #9090b0;
+    --color-checked: #f59e0b;
+    --indicator-color: #f59e0b;
+    --indicator-height: 2px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+.live-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.75); }
+}
+
+// Desktop tabs (hidden on mobile)
+.desktop-tabs {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: block;
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+}
+
+.desktop-tab {
+  background: transparent;
+  border: none;
+  color: #9090b0;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 4px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+
+  &.active,
+  &:hover {
+    color: var(--gold-400);
+    border-bottom-color: var(--gold-400);
+  }
+}
+
+// Content container
+.content-container {
+  padding: 0 16px;
+
+  @media (min-width: 768px) {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  1. REWARD PROGRESS PILL  — progress fill visible
+// ═══════════════════════════════════════════════════════════
+ 
+.xp-pill-wrapper {
+  padding: 16px 16px 8px;
+ 
+  @media (min-width: 768px) {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 20px 24px 8px;
+  }
+}
+ 
+.xp-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+ 
+  // ── Fond inactif : doré très désaturé/sombre — partie "non remplie"
+  background: #7a5a10;
+ 
+  // Légère bordure pour séparer du fond de page
+  box-shadow:
+    0 0 0 1.5px rgba(245, 158, 11, 0.30),
+    0 4px 18px rgba(0, 0, 0, 0.45);
+ 
+  transition: transform var(--transition-fast);
+  &:active { transform: scale(0.985); }
+}
+ 
+// ── Fill : zone active, superposée en absolute à gauche
+.xp-pill-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: var(--radius-pill);
+  // Doré vif — contraste fort avec le fond sombre
+  background: linear-gradient(90deg, #e8960a 0%, #f5c518 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+  // Transition fluide quand la valeur change
+  transition: width 0.9s cubic-bezier(.4,0,.2,1);
+  // Ne jamais déborder complètement à droite (garder le fond visible)
+  max-width: 92%;
+  min-width: 8%;
+  z-index: 0;
+}
+ 
+// Shimmer sur le fill uniquement
+.xp-pill-fill-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,0.22) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: pill-shimmer 3.2s ease-in-out infinite;
+}
+ 
+@keyframes pill-shimmer {
+  0%   { transform: translateX(-120%); }
+  60%  { transform: translateX(120%); }
+  100% { transform: translateX(120%); }
+}
+ 
+// Tous les éléments internes au-dessus du fill
+.xp-level-badge,
+.xp-pill-center,
+.xp-arrow {
+  position: relative;
+  z-index: 1;
+}
+ 
+// Level badges — left & right
+.xp-level-badge {
+  display: flex;
+  align-items: baseline;
+  flex-shrink: 0;
+  padding: 0 14px;
+}
+ 
+.xp-lvl-sup {
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(0,0,0,0.55);
+  letter-spacing: 0.02em;
+  align-self: flex-end;
+  margin-bottom: 2px;
+  line-height: 1;
+}
+ 
+.xp-lvl-num {
+  font-size: 26px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.72);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+ 
+// Sur la partie non remplie (level right) le texte devient plus clair
+// car le fond est sombre
+.xp-level-right .xp-lvl-sup,
+.xp-level-right .xp-lvl-num {
+  color: rgba(255,255,255,0.55);
+}
+ 
+// Centre
+.xp-pill-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  // mix-blend-mode pour rester lisible sur fill ET sur fond sombre
+  mix-blend-mode: normal;
+}
+ 
+.xp-gift-icon {
+  font-size: 18px;
+  color: rgba(0,0,0,0.65);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+ 
+.xp-pill-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.70);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.15);
+}
+ 
+// Arrow on the right
+.xp-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.15);
+  margin-right: 10px;
+  flex-shrink: 0;
+ 
+  ion-icon {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  2. AWARDS CARD  — style maquette hexagones
+// ═══════════════════════════════════════════════════════════
+
+.awards-section {
+  padding: 8px 16px 24px;
+
+  @media (min-width: 768px) {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 8px 24px 32px;
+  }
+}
+
+.awards-card {
+  background: var(--surface-1);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.35);
+}
+
+// ── Card Header ──────────────────────────────────────────
+.awards-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 18px 0;
+}
+
+.awards-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.awards-header-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.awards-total-count {
+  font-size: 12px;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
-.auto-height {
-  --height: auto;
-  --max-height: 90vh;
-  --border-radius: 20px 20px 0 0;
-  --background: #ffffff;
-  --backdrop-opacity: 0.8;
-  
-  // Personnaliser la poignée
-  &::part(handle) {
-    background: #007bff;
-    height: 4px;
-    border-radius: 2px;
+.awards-see-all-btn {
+  background: var(--text-primary);
+  color: var(--surface-0);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.97);
   }
 }
-// Responsive
-@media (min-width: 768px) {
-  .content-grid {
+
+// ── Hexagon row ──────────────────────────────────────────
+.awards-hex-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  padding: 16px 18px 0;
+}
+
+// Generic hex item
+.award-hex-item {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.award-hex-wrap {
+  position: relative;
+  display: block;
+}
+
+.award-hex-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  // clip to hex shape via clip-path
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  display: block;
+}
+
+.award-hex-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+// Featured (large)
+.award-hex-featured {
+  width: 110px;
+  height: 126px;
+  margin-right: -12px; // slight overlap
+  z-index: 2;
+
+  .award-hex-wrap {
+    width: 110px;
+    height: 126px;
+  }
+
+  .award-hex-img {
+    width: 110px;
+    height: 126px;
+    // Metallic silver-grey tint matching the mockup
+    filter: saturate(0.3) brightness(1.1) contrast(1.05);
+  }
+}
+
+// Others (small) row
+.awards-hex-others {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-left: 20px;
+}
+
+.award-hex-small {
+  width: 58px;
+  height: 67px;
+
+  .award-hex-wrap {
+    width: 58px;
+    height: 67px;
+  }
+
+  .award-hex-img {
+    width: 58px;
+    height: 67px;
+    filter: saturate(0.25) brightness(0.9);
+  }
+}
+
+.award-hex-placeholder {
+  width: 58px;
+  height: 67px;
+  background: transparent;
+}
+
+// ── Info Banner ──────────────────────────────────────────
+.award-info-banner {
+  margin-top: 12px;
+  background: #3a3a3a;
+  padding: 16px 18px 18px;
+}
+
+.award-banner-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.award-banner-reason {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin: 0 0 4px;
+}
+
+.award-banner-meta {
+  font-size: 12px;
+  font-style: italic;
+  color: #a0a0a0;
+  margin: 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  3. MES POSTS TAB
+// ═══════════════════════════════════════════════════════════
+
+.posts-content {
+  padding: 0 0 32px;
+}
+
+.posts-filter-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.post-filter-chip {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+
+  &.active {
+    background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 14px var(--gold-glow);
+  }
+  &:not(.active):active { background: var(--surface-3); }
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+
+  @media (min-width: 480px) { gap: 6px; }
+  @media (min-width: 768px) {
     grid-template-columns: repeat(4, 1fr);
-  }
-
-  .profile-header {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .challenges-section {
-    max-width: 100%;
-  }
-
-  .challenge-card {
-    min-width: 320px;
-    max-width: 320px;
+    gap: 8px;
+    border-radius: var(--radius-card);
+    overflow: hidden;
   }
 }
 
-@media (min-width: 1024px) {
-  .posts-grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
+.post-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--surface-2);
+  border-radius: var(--radius-thumb);
+  @media (max-width: 480px) { border-radius: 4px; }
 
-  .challenge-card {
-    min-width: 360px;
-    max-width: 360px;
-  }
+  &:hover .post-thumb-img   { transform: scale(1.06); }
+  &:hover .post-thumb-overlay { opacity: 1; }
+}
+
+.post-thumb-img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform 0.4s cubic-bezier(.4,0,.2,1);
+}
+
+.post-thumb-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  ion-icon { font-size: 16px; color: #fff; }
+  span     { font-size: 13px; font-weight: 700; color: #fff; }
+}
+
+.posts-empty {
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  padding: 48px 24px; gap: 12px;
+}
+
+.posts-empty-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--surface-border);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 8px;
+  ion-icon { font-size: 32px; color: var(--text-muted); }
+}
+
+.posts-empty h3 {
+  font-size: 17px; font-weight: 700;
+  color: var(--text-primary); margin: 0;
+}
+
+.posts-empty p {
+  font-size: 14px; color: var(--text-secondary); margin: 0;
+}
+
+.posts-empty-btn {
+  --background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
+  --border-radius: var(--radius-pill);
+  --color: #fff;
+  --box-shadow: 0 4px 16px var(--gold-glow);
+  margin-top: 8px; font-weight: 700;
 }

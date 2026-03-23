@@ -1,40 +1,42 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, of, forkJoin } from 'rxjs';
-import { map, tap, catchError, switchMap, delay } from 'rxjs/operators';
-
-import {
-  Conversation,
-  Message,
-  MessageStatus,
-  ConversationStatus,
-  CreateConversationRequest,
-  CreateMessageRequest,
-  ConversationUtils
-} from '../../models/Conversation';
+import { Observable, BehaviorSubject, of, forkJoin, throwError } from 'rxjs';
+import { map, tap, catchError, switchMap } from 'rxjs/operators';
+import { map as rxMap } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { ProfileService } from '../PROFILE_SERVICE/profile-service';
+import {
+  Conversation, Message, MessageStatus,
+  ConversationStatus, ConversationUtils
+} from '../../models/Conversation';
+
+// ─── Interfaces SSE ───────────────────────────────────────────────────────────
+
+export interface StreamEvent {
+  event: 'connected' | 'message' | 'presence' | 'timeout' | 'error';
+  data: any;
+  timestamp: number;
+}
+
+export interface PresenceData {
+  user_id: string;
+  username: string;
+  avatar: string;
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
 export class MessageService {
 
-  private readonly CONVERSATIONS_RESOURCE = 'conversations';
-  // Les messages sont maintenant intégrés dans les conversations, plus de ressource séparée
+  private readonly RESOURCE = 'conversations';
 
-  // ─── Stores internes ────────────────────────────────────────
-  /** Cache des conversations */
-  private conversationsSubject = new BehaviorSubject<Conversation[]>([]);
-  /** Cache des messages de la conversation ouverte */
-  private messagesSubject = new BehaviorSubject<Message[]>([]);
-  /** Cache des noms des participants par ID */
-  private participantNamesSubject = new BehaviorSubject<Map<string, string>>(new Map());
-  /** Cache des statuts de frappe */
-  private typingStatusSubject = new BehaviorSubject<Map<string, boolean>>(new Map());
+  // ─── Stores ───────────────────────────────────────────────────────────────
+  private conversationsSubject  = new BehaviorSubject<Conversation[]>([]);
+  private participantNamesCache = new Map<string, string>();
+  private activeStreams          = new Map<string, EventSource>();
 
-  // ─── Observables publics ────────────────────────────────────
+  // ─── Observables publics ──────────────────────────────────────────────────
   public conversations$ = this.conversationsSubject.asObservable();
-  public messages$ = this.messagesSubject.asObservable();
-  public participantNames$ = this.participantNamesSubject.asObservable();
-  public typingStatus$ = this.typingStatusSubject.asObservable();
 
   constructor(
     private api: ApiJSON,
@@ -46,132 +48,119 @@ export class MessageService {
   // ==============================================================
 
   /**
-   * Charge les conversations de l'utilisateur courant
+   * Charge les conversations de l'utilisateur depuis le backend.
+   * Enrichit chaque conversation avec le profil du participant.
    */
   getConversations(currentUserId: string): Observable<Conversation[]> {
-    return this.api.get<Conversation[]>(this.CONVERSATIONS_RESOURCE).pipe(
-      map(conversations => {
-        // Filtrer pour ne retourner que les conversations où l'utilisateur est participant
-        return conversations.filter(conv => 
-          conv.participantIds.includes(currentUserId)
-        );
-      }),
-      switchMap(userConversations => {
-        // Si aucune conversation, retourner un tableau vide directement
-        if (userConversations.length === 0) {
-          return of([]);
-        }
-        
-        // Pour chaque conversation, récupérer les infos du participant via ProfileService
-        const participantRequests = userConversations.map(conv => {
-          const receiverId = ConversationUtils.getReceiverId(conv.participantIds, currentUserId);
-          return this.profileService.getProfileById(receiverId).pipe(
-            map(profile => {
-              // Créer un objet Conversation enrichi avec les infos du participant
-              const enrichedConv: Conversation = {
-                ...conv,
-                participant: {
-                  id: receiverId,
-                  username: profile?.username || 'Unknown',
-                  avatar: profile?.avatar || 'assets/avatar-default.png',
-                  isOnline: Math.random() > 0.5,
-                  isTyping: false,
-                  isVerified: profile?.isVerified || false,
-                  userType: profile.type || 'fan',
-                  stats: profile?.stats.fans,
-                  plan: profile?.userInfo.memberShip?.plan || 'free'
-                },
-                unreadCount: conv.messages?.filter(msg => msg.status === 'sent' && msg.receiverId == currentUserId).length || 0,
-                lastMessage: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].content : '',
-                lastMessageTime: conv.messages?.length > 0 ? conv.messages[conv.messages.length - 1].createdAt : new Date(),
-                lastMessageType: conv.messages?.length > 0 ? this.getMessageType(conv.messages[conv.messages.length - 1].content) : 'text'
-              };
-              return enrichedConv;
-            })
-          );
-        });
-        
-        // Combiner toutes les requêtes de profil
-        return forkJoin(participantRequests);
-      }),
-      tap(enrichedConversations => {
-        this.conversationsSubject.next(enrichedConversations);
-        this.loadParticipantNames(enrichedConversations, currentUserId);
-      }),
-      catchError(error => {
-        console.error('[MessageService] getConversations:', error);
+    return this.api.get<Conversation[]>(this.RESOURCE).pipe(
+      map(conversations =>
+        conversations.filter(c =>
+          c.participantIds.includes(currentUserId) &&
+          !c.deletedFor?.includes(currentUserId)
+        )
+      ),
+      switchMap(conversations => this.enrichWithProfiles(conversations, currentUserId)),
+      tap(enriched => this.conversationsSubject.next(enriched)),
+      catchError(err => {
+        console.error('[MessageService] getConversations:', err);
         return of([]);
       })
     );
   }
 
-
-
   /**
-   * Marque une conversation comme ouverte/fermée
+   * Crée une nouvelle conversation.
    */
-  updateConversationStatus(conversationId: string, status: ConversationStatus): Observable<void> {
-    return this.api.patch<void>(this.CONVERSATIONS_RESOURCE, conversationId, { status } as any).pipe(
-      map(() => undefined),
-      tap(() => {
-        const conversations = this.conversationsSubject.value.map(c =>
-          c.id === conversationId ? { ...c, status } : c
-        );
-        this.conversationsSubject.next(conversations);
+  createConversation(conversation: Partial<Conversation>): Observable<Conversation> {
+    const { id: _id, ...payload } = conversation as any;
 
-        // Si la conversation est ouverte, marquer tous les messages comme lus
-        if (status === 'open') {
-          this.markAllMessagesAsRead(conversationId);
-        }
+    return this.api.post<Conversation>(this.RESOURCE, payload).pipe(
+      tap(created => {
+        const current = this.conversationsSubject.value;
+        this.conversationsSubject.next([created, ...current]);
       }),
-      catchError(error => {
-        console.error('[MessageService] updateConversationStatus:', error);
-        return of(undefined as void);
+      catchError(err => {
+        console.error('[MessageService] createConversation:', err);
+        return throwError(() => err);
       })
     );
   }
 
   /**
-   * Supprime une conversation
+   * Met à jour une conversation (status, deletedFor, groupData…).
+   * N'utilise PAS cette méthode pour envoyer des messages — utiliser sendMessage().
+   */
+  updateConversation(conversation: Conversation): Observable<Conversation> {
+    return this.api.patch<Conversation>(this.RESOURCE, conversation.id as string, conversation).pipe(
+      tap(updated => this.updateConversationInStore(updated)),
+      catchError(err => {
+        console.error('[MessageService] updateConversation:', err);
+        return throwError(() => err);
+      })
+    );
+  }
+
+  /**
+   * Supprime une conversation.
    */
   deleteConversation(conversationId: string): Observable<void> {
-    return this.api.delete(this.CONVERSATIONS_RESOURCE, conversationId).pipe(
+    return this.api.delete(this.RESOURCE, conversationId).pipe(
       tap(() => {
-        const conversations = this.conversationsSubject.value.filter(c => c.id !== conversationId);
-        this.conversationsSubject.next(conversations);
-
-        // Purger les messages de cette conversation
-        const messages = this.messagesSubject.value.filter(m => m.conversationId !== conversationId);
-        this.messagesSubject.next(messages);
+        const filtered = this.conversationsSubject.value.filter(c => c.id !== conversationId);
+        this.conversationsSubject.next(filtered);
       }),
-      catchError(error => {
-        console.error('[MessageService] deleteConversation:', error);
-        return of(undefined as void);
+      catchError(err => {
+        console.error('[MessageService] deleteConversation:', err);
+        return throwError(() => err);
       })
     );
   }
 
   /**
-   * Vérifie si une conversation existe avec exactement le couple d'IDs participants.
-   * Si trouvée, retourne son ID. Sinon, retourne null.
+   * Vérifie si une conversation existe entre le currentUser et l'otherUser.
+   * Retourne l'ID si trouvé, null sinon.
    */
-  findExistingConversationId(participantIds: [string, string], currentUserId: string): Observable<string | null> {
+  findExistingConversationId(currentUserId: string, otherUserId: string): Observable<string | null> {
     return this.getConversations(currentUserId).pipe(
       map(conversations => {
-        // Rechercher une conversation avec exactement les deux participants
-        const existingConversation = conversations.find(conv => {
-          // Vérifier que la conversation a exactement 2 participants
-          if (conv.participantIds.length !== 2) return false;
+        // Cherche une conversation où otherUserId est soit participant, soit supprimé
+        const found = conversations.find(c => {
+          // Vérifie si otherUserId est dans participantIds
+          const isInParticipants = c.participantIds.includes(otherUserId);
+          // Vérifie si otherUserId est dans deletedFor
+          const isInDeletedFor = c.deletedFor?.includes(otherUserId);
           
-          // Vérifier que les participants correspondent exactement (ordre non important)
-          const convParticipants = [...conv.participantIds].sort();
-          const requestedParticipants = [...participantIds].sort();
-          
-          return convParticipants[0] === requestedParticipants[0] && 
-                 convParticipants[1] === requestedParticipants[1];
+          // Retourne true si otherUserId est dans l'un des deux tableaux
+          return isInParticipants || isInDeletedFor;
         });
+        
+        return found?.id ?? null;
+      })
+    );
+  }
 
-        return existingConversation?.id || null;
+  /**
+   * Réhabilite un utilisateur dans une conversation.
+   * Ajoute l'utilisateur dans participantIds et le supprime de deletedFor.
+   */
+  rehabilitateUserInConversation(conversationId: string, participants: string[]): Observable<Conversation> {
+    return this.api.patch<Conversation>(
+      `${this.RESOURCE}`,conversationId,
+      {
+        participantIds: participants
+      }
+    ).pipe(
+      tap(updatedConversation => {
+        // Met à jour le store local
+        this.conversationsSubject.next(
+          this.conversationsSubject.value.map(c => 
+            c.id === conversationId ? updatedConversation : c
+          )
+        );
+      }),
+      catchError(err => {
+        console.error('[MessageService] rehabilitateUserInConversation:', err);
+        return throwError(() => err);
       })
     );
   }
@@ -181,281 +170,351 @@ export class MessageService {
   // ==============================================================
 
   /**
-   * Crée une nouvelle conversation avec ses messages
+   * Envoie un message via POST /conversations/{id}/messages
+   * Utilise la route dédiée du ConversationsController côté backend.
    */
-  createConversation(conversation: Conversation): Observable<Conversation> {
-    // Ajouter immédiatement au cache local
-    const currentConversations = this.conversationsSubject.getValue();
-    this.conversationsSubject.next([...currentConversations, conversation]);
-
-    // Appel API réel pour créer la conversation
-    return this.api.create<Conversation>(this.CONVERSATIONS_RESOURCE, conversation).pipe(
-      tap(createdConversation => {
-        // Mettre à jour le cache avec la conversation créée par le backend
-        const conversations = this.conversationsSubject.getValue();
-        const index = conversations.findIndex(c => c.id === conversation.id);
-        if (index !== -1) {
-          const updatedConvs = [...conversations];
-          updatedConvs[index] = createdConversation;
-          this.conversationsSubject.next(updatedConvs);
-        }
-      }),
-      catchError(error => {
-        console.error('[MessageService] createConversation error:', error);
-        // En cas d'erreur, retirer la conversation temporaire du cache
-        const conversations = this.conversationsSubject.getValue();
-        const filteredConvs = conversations.filter(c => c.id !== conversation.id);
-        this.conversationsSubject.next(filteredConvs);
-        return of(conversation); // Retourner la conversation locale en fallback
+  sendMessage(conversationId: string, message: Partial<Message>): Observable<Message> {
+    return this.api.post<Message>(
+      `${this.RESOURCE}/${conversationId}/messages`,
+      message
+    ).pipe(
+      tap(sent => this.appendMessageToStore(conversationId, sent)),
+      catchError(err => {
+        console.error('[MessageService] sendMessage:', err);
+        return throwError(() => err);
       })
     );
   }
 
   /**
-   * Met à jour une conversation existante avec un nouveau message
+   * Charge les messages paginés d'une conversation.
    */
-  sendMessage(conversation: Conversation): Observable<Conversation> {
-    // Appel API réel pour mettre à jour la conversation
-    return this.api.update<Conversation>(this.CONVERSATIONS_RESOURCE, conversation.id as string, conversation).pipe(
-      tap(updatedConversation => {
-        // Mettre à jour le cache avec la conversation retournée par le backend
-        const conversations = this.conversationsSubject.getValue();
-        const convIndex = conversations.findIndex(c => c.id === conversation.id);
-        if (convIndex !== -1) {
-          const updatedConvs = [...conversations];
-          updatedConvs[convIndex] = updatedConversation;
-          
-          // Mettre à jour le statut du dernier message à 'sent'
-          if (updatedConvs[convIndex].messages.length > 0) {
-            updatedConvs[convIndex].messages[updatedConvs[convIndex].messages.length - 1].status = 'pending';
-          }
-          
-          this.conversationsSubject.next(updatedConvs);
+  getMessages(conversationId: string, limit = 50, offset = 0): Observable<Message[]> {
+    return this.api.get<{ data: Message[]; pagination: any }>(
+      `${this.RESOURCE}/${conversationId}/messages`,
+      { limit, offset }
+    ).pipe(
+      map(res => res.data),
+      catchError(err => {
+        console.error('[MessageService] getMessages:', err);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Marque un message comme lu via PATCH /conversations/{id}/messages/{mid}/read
+   */
+ markMessageAsRead(conversationId: string, messageId: string): Observable<void> {
+  return this.api.request<void>(
+    'PATCH',
+    `${this.RESOURCE}/${conversationId}/messages/${messageId}/read`
+  ).pipe(
+    tap(() => this.markMessageReadInStore(conversationId, messageId)),
+    catchError(err => {
+      console.error('[MessageService] markMessageAsRead:', err);
+      return of(undefined as void);
+    })
+  );
+}
+
+  /**
+   * Retourne le nombre de messages non lus pour un utilisateur dans une conversation.
+   */
+  getUnreadCount(conversationId: string, userId: string): Observable<number> {
+    return this.api.get<{ unread_count: number }>(
+      `${this.RESOURCE}/${conversationId}/unread`,
+      { user_id: userId }
+    ).pipe(
+      map(res => res.unread_count),
+      catchError(() => of(0))
+    );
+  }
+
+  getTotalUnread(userId: string): Observable<{ user_id: string; unread_total: number }> {
+  return this.api.get<{ user_id: string; unread_total: number }>(
+    'conversations/unread-total',
+    { user_id: userId }
+  );
+}
+
+  // ==============================================================
+  //  UPLOAD FICHIERS CHAT
+  // ==============================================================
+
+  /**
+   * Uploade un fichier dans le sous-dossier chat de la conversation.
+   * Retourne l'URL relative pour l'inclure dans le contenu du message.
+   */
+  uploadFile(file: File, conversationId: string): Observable<{ url: string; path: string }> {
+    return this.api.upload<any>(file, `chat/${conversationId}`).pipe(
+      map((event: any) => {
+        // L'event HttpResponse final contient le body
+        if (event?.body) {
+          return { url: event.body.url, path: event.body.path };
         }
+        return event;
       }),
-      catchError(error => {
-        console.error('[MessageService] sendMessage error:', error);
-        // En cas d'erreur, restaurer le statut pending du dernier message
-        const conversations = this.conversationsSubject.getValue();
-        const convIndex = conversations.findIndex(c => c.id === conversation.id);
-        if (convIndex !== -1) {
-          const messages = conversations[convIndex].messages;
-          if (messages.length > 0) {
-            messages[messages.length - 1].status = 'pending';
-          }
-          this.conversationsSubject.next([...conversations]);
-        }
-        return of(conversation); // Retourner la conversation locale en fallback
+      catchError(err => {
+        console.error('[MessageService] uploadFile:', err);
+        return throwError(() => err);
       })
     );
   }
 
   // ==============================================================
-  //  STATUTS DE FRAPPE
+  //  SSE — TEMPS RÉEL
   // ==============================================================
 
   /**
-   * Envoie le statut de frappe d'un utilisateur
+   * Ouvre une connexion SSE vers SSE/stream.php.
+   * Pousse les nouveaux messages et la présence en temps réel.
+   * Le token est passé en query string (EventSource ne supporte pas les headers).
+   *
+   * @param conversationId  ID de la conversation à écouter
+   * @param since           Timestamp ISO du dernier message reçu (reprise après coupure)
    */
-  sendTypingStatus(conversationId: string, receiverId: string, isTyping: boolean): void {
-    // Mettre à jour le cache local
-    const currentStatus = this.typingStatusSubject.getValue();
-    const key = `${conversationId}_${receiverId}`;
-    const updatedStatus = new Map(currentStatus);
-    updatedStatus.set(key, isTyping);
-    this.typingStatusSubject.next(updatedStatus);
+  connectToRealTime(conversationId: string, since?: string): Observable<StreamEvent> {
+    return new Observable<StreamEvent>(observer => {
+      const token  = this.api.getToken();
+      const base   = (this.api as any).BASE_URL;
+      const params = new URLSearchParams({ conversation_id: conversationId, token });
+      if (since) params.set('since', since);
 
-    // TODO: Envoyer au backend via WebSocket ou SSE
-    // Pour l'instant, juste une mise à jour locale
-    console.log(`[MessageService] Typing status updated: ${conversationId}_${receiverId} = ${isTyping}`);
+      const url         = `${base.replace(/\/api$/, '')}/SSE/stream.php?${params}`;
+      const eventSource = new EventSource(url);
+
+      this.activeStreams.set(conversationId, eventSource);
+
+      eventSource.addEventListener('connected', (e: MessageEvent) => {
+        observer.next({ event: 'connected', data: JSON.parse(e.data), timestamp: Date.now() });
+      });
+
+      eventSource.addEventListener('message', (e: MessageEvent) => {
+        try {
+          const msg = JSON.parse(e.data) as Message;
+          this.appendMessageToStore(conversationId, msg);
+          observer.next({ event: 'message', data: msg, timestamp: Date.now() });
+        } catch { /* ignore parse errors */ }
+      });
+
+      eventSource.addEventListener('presence', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          observer.next({ event: 'presence', data, timestamp: Date.now() });
+        } catch { /* ignore */ }
+      });
+
+      eventSource.addEventListener('timeout', () => {
+        observer.next({ event: 'timeout', data: {}, timestamp: Date.now() });
+        // EventSource reconnecte automatiquement — pas besoin de compléter
+      });
+
+      eventSource.onerror = () => {
+        observer.next({ event: 'error', data: { message: 'SSE connection error' }, timestamp: Date.now() });
+      };
+
+      return () => {
+        eventSource.close();
+        this.activeStreams.delete(conversationId);
+      };
+    });
   }
 
   /**
-   * Vérifie si un utilisateur est en train de taper dans une conversation
+   * Déconnecte toutes les connexions SSE actives.
    */
-  isUserTyping(conversationId: string, userId: string): boolean {
-    const currentStatus = this.typingStatusSubject.getValue();
-    const key = `${conversationId}_${userId}`;
-    return currentStatus.get(key) || false;
+  disconnectAll(): void {
+    this.activeStreams.forEach(es => es.close());
+    this.activeStreams.clear();
   }
 
- 
+  // ==============================================================
+  //  PRÉSENCE
+  // ==============================================================
+
+  /**
+   * Ping de présence — à appeler toutes les 30s depuis le composant actif.
+   * POST SSE/presence.php
+   */
+  pingPresence(conversationId: string): Observable<PresenceData[]> {
+    const token = this.api.getToken();
+    const base  = (this.api as any).BASE_URL;
+    const url   = `${base.replace(/\/api$/, '')}/SSE/presence.php`;
+
+    // On utilise fetch directement car c'est un endpoint hors du routing index.php
+    return new Observable(observer => {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, conversation_id: conversationId })
+      })
+      .then(r => r.json())
+      .then(data => { observer.next(data.online ?? []); observer.complete(); })
+      .catch(err => { observer.error(err); });
+    });
+  }
+
+  /**
+   * Notifie que l'utilisateur quitte la conversation.
+   * DELETE SSE/presence.php
+   */
+  leavePresence(conversationId: string): void {
+    const token = this.api.getToken();
+    const base  = (this.api as any).BASE_URL;
+    const url   = `${base.replace(/\/api$/, '')}/SSE/presence.php`;
+
+    fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, conversation_id: conversationId })
+    }).catch(() => { /* fire and forget */ });
+  }
+
+  // ==============================================================
+  //  GROUPE
+  // ==============================================================
+
+  addParticipant(conversationId: string, participantId: string): Observable<Conversation> {
+    const conv = this.conversationsSubject.value.find(c => c.id === conversationId);
+    if (!conv) return throwError(() => new Error('Conversation not found'));
+    if (conv.participantIds.includes(participantId)) return of(conv);
+
+    const participantName = this.getParticipantName(participantId);
+    const systemMsg       = this.buildSystemMessage(conversationId, participantId, participantName, 'joined');
+    const updated         = {
+      ...conv,
+      participantIds: [...conv.participantIds, participantId],
+      messages: [...conv.messages, systemMsg],
+    };
+
+    return this.updateConversation(updated);
+  }
+
+  removeParticipant(conversationId: string, participantId: string): Observable<Conversation> {
+    const conv = this.conversationsSubject.value.find(c => c.id === conversationId);
+    if (!conv) return throwError(() => new Error('Conversation not found'));
+    if (!conv.participantIds.includes(participantId)) return of(conv);
+
+    const participantName = this.getParticipantName(participantId);
+    const systemMsg       = this.buildSystemMessage(conversationId, participantId, participantName, 'left');
+    const updated         = {
+      ...conv,
+      participantIds: conv.participantIds.filter(id => id !== participantId),
+      groupData: conv.groupData ? {
+        ...conv.groupData,
+        participants: conv.groupData.participants.filter((id: string) => id !== participantId),
+        admins:       conv.groupData.admins.filter((id: string) => id !== participantId),
+      } : undefined,
+      messages: [...conv.messages, systemMsg],
+    };
+
+    return this.updateConversation(updated);
+  }
 
   // ==============================================================
   //  UTILITAIRES
   // ==============================================================
 
-   /**
-   * Marque une conversation comme ouverte et tous ses messages comme lus
-   */
-  markConversationAsRead(conversationId: string) {
-    // Récupérer la conversation actuelle
-    const currentConversations = this.conversationsSubject.getValue();
-    const conversationIndex = currentConversations.findIndex(c => c.id === conversationId);
-    
-    if (conversationIndex === -1) {
-      console.error('[MessageService] Conversation not found:', conversationId);
-      return;
-    }
-    
-    const conversation = currentConversations[conversationIndex];
-    
-    // Préparer la conversation mise à jour avec les messages lus
-    const updatedConversation = {
-      ...conversation,
-      messages: conversation.messages.map(msg => ({
-        ...msg,
-        status: 'read' as MessageStatus
-      })),
-      status: 'open' as ConversationStatus,
-      unreadCount: 0
-    };
-    
-    // Mettre à jour la conversation complète dans le backend
-    this.api.update<Conversation>(this.CONVERSATIONS_RESOURCE, conversationId, updatedConversation).subscribe({
-      next: (backendConversation) => {
-        // Mettre à jour le cache local avec la réponse du backend
-        const updatedConversations = [...currentConversations];
-        updatedConversations[conversationIndex] = backendConversation;
-        this.conversationsSubject.next(updatedConversations);
-        
-        console.log('[MessageService] Conversation marked as read:', conversationId);
-      },
-      error: (error) => {
-        console.error('[MessageService] markConversationAsRead error:', error);
-      }
-    });
-  }
-
-  /**
-   * Marque les messages d'une conversation comme lus pour un expéditeur spécifique
-   * Seuls les messages dont le senderId est différent de celui fourni sont marqués comme lus
-   */
-  markMessageAsRead(conversationId: string, senderId: string) {
-    // Récupérer la conversation actuelle
-    const currentConversations = this.conversationsSubject.getValue();
-    const conversationIndex = currentConversations.findIndex(c => c.id === conversationId);
-    
-    if (conversationIndex === -1) {
-      console.error('[MessageService] Conversation not found:', conversationId);
-      return;
-    }
-    
-    const conversation = currentConversations[conversationIndex];
-    
-    // Filtrer et marquer uniquement les messages dont le senderId est différent
-    const updatedMessages = conversation.messages.map(msg => {
-      if (msg.senderId !== senderId) {
-        return {
-          ...msg,
-          status: 'read' as MessageStatus
-        };
-      }
-      return msg; // Garder le message inchangé si senderId correspond
-    });
-    
-    // Calculer le nouveau nombre de messages non lus
-    const unreadCount = updatedMessages.filter(msg => 
-      msg.status === 'sent' && msg.receiverId === senderId
-    ).length;
-    
-    // Préparer la conversation mise à jour
-    const updatedConversation = {
-      ...conversation,
-      messages: updatedMessages,
-      unreadCount: unreadCount
-    };
-    
-    // Mettre à jour la conversation complète dans le backend
-    this.api.update<Conversation>(this.CONVERSATIONS_RESOURCE, conversationId, updatedConversation).subscribe({
-      next: (backendConversation) => {
-        // Mettre à jour le cache local avec la réponse du backend
-        const updatedConversations = [...currentConversations];
-        updatedConversations[conversationIndex] = backendConversation;
-        this.conversationsSubject.next(updatedConversations);
-        
-        console.log(`[MessageService] Messages marked as read for conversation ${conversationId}, excluding sender ${senderId}`);
-      },
-      error: (error) => {
-        console.error('[MessageService] markMessageAsRead error:', error);
-      }
-    });
-  }
-
-  
-
-  /**
-   * Détecte le type de message à partir de son contenu
-   */
-  private getMessageType(content: string): 'text' | 'image' | 'video' | 'voice' | 'file' {
-    if (content.includes('[image]') || content.includes('🖼️')) return 'image';
-    if (content.includes('[video]') || content.includes('🎥')) return 'video';
-    if (content.includes('[voice]') || content.includes('🎤')) return 'voice';
-    if (content.includes('[file]') || content.includes('📎')) return 'file';
-    return 'text';
-  }
-
-  /**
-   * Charge les noms des participants depuis ProfileService
-   */
-  private loadParticipantNames(conversations: Conversation[], currentUserId: string): void {
-    const participantIds = new Set<string>();
-    
-    conversations.forEach(conv => {
-      conv.participantIds.forEach(id => {
-        if (id !== currentUserId) {
-          participantIds.add(id);
-        }
-      });
-    });
-
-    const participantNames = new Map<string, string>();
-    
-    Array.from(participantIds).forEach(id => {
-      this.profileService.getProfileById(id).subscribe(profile => {
-        participantNames.set(id, profile?.username || 'Utilisateur inconnu');
-        this.participantNamesSubject.next(new Map(participantNames));
-      });
-    });
-  }
-
-  /**
-   * Met à jour la conversation avec un nouveau message
-   */
-  private updateConversationWithNewMessage(message: Message): void {
-    const conversations = this.conversationsSubject.value.map(conv => {
-      if (conv.id !== message.conversationId) return conv;
-      
-      return {
-        ...conv,
-        messages: [...conv.messages, message]
-      };
-    });
-    this.conversationsSubject.next(conversations);
-  }
-
-  /**
-   * Marque tous les messages d'une conversation comme lus
-   */
-  private markAllMessagesAsRead(conversationId: string): void {
-    const messages = this.messagesSubject.value.map(m =>
-      m.conversationId === conversationId ? { ...m, status: 'read' as MessageStatus } : m
-    );
-    this.messagesSubject.next(messages);
-  }
-
-  /**
-   * Obtient le nom d'un participant à partir de son ID
-   */
   getParticipantName(participantId: string): string {
-    const participantNames = this.participantNamesSubject.value;
-    return participantNames.get(participantId) || 'Utilisateur inconnu';
+    return this.participantNamesCache.get(participantId) ?? 'Unknown';
   }
 
+  // ─── Privés ───────────────────────────────────────────────────
+
   /**
-   * Détermine l'ID du receiver à partir des participants
+   * Enrichit chaque conversation avec le profil du participant distant.
+   * Ne fait qu'un seul appel par participant unique.
    */
-  getReceiverId(conversation: Conversation, currentUserId: string): string {
-    return ConversationUtils.getReceiverId(conversation.participantIds, currentUserId);
+  private enrichWithProfiles(conversations: Conversation[], currentUserId: string): Observable<Conversation[]> {
+    if (conversations.length === 0) return of([]);
+
+    const requests = conversations.map(conv => {
+      const receiverId = ConversationUtils.getReceiverId(conv.participantIds, currentUserId);
+      return this.profileService.getProfileById(receiverId).pipe(
+        map(profile => {
+          if (profile?.username) this.participantNamesCache.set(receiverId, profile.username);
+          return {
+            ...conv,
+            participant: {
+              id:        receiverId,
+              username:  profile?.username  ?? 'Unknown',
+              avatar:    profile?.avatar    ?? 'assets/avatar-default.png',
+              isOnline:  false, // mis à jour par SSE/presence
+              isTyping:  false,
+              isVerified: profile?.isVerified ?? false,
+              userType:  profile?.type ?? 'fan',
+              stats:     profile?.stats?.fans,
+              plan:      profile?.userInfo?.memberShip?.plan ?? 'free',
+            },
+          } as Conversation;
+        }),
+        catchError(() => of(conv))
+      );
+    });
+
+    return forkJoin(requests);
+  }
+
+  private updateConversationInStore(updated: Conversation): void {
+    const list  = this.conversationsSubject.value;
+    const index = list.findIndex(c => c.id === updated.id);
+    if (index === -1) return;
+    const next = [...list];
+    next[index] = updated;
+    this.conversationsSubject.next(next);
+  }
+
+  private appendMessageToStore(conversationId: string, message: Message): void {
+    const list  = this.conversationsSubject.value;
+    const index = list.findIndex(c => c.id === conversationId);
+    if (index === -1) return;
+    const conv  = list[index];
+    // Eviter les doublons (message optimiste déjà présent)
+    if (conv.messages.some(m => m.id === message.id)) return;
+    const next  = [...list];
+    next[index] = {
+      ...conv,
+      messages:        [...conv.messages, message],
+      lastMessage:     message.content,
+      lastMessageTime: message.createdAt,
+      unreadCount:     (conv.unreadCount ?? 0) + 1,
+    };
+    this.conversationsSubject.next(next);
+  }
+
+  private markMessageReadInStore(conversationId: string, messageId: string): void {
+    const list  = this.conversationsSubject.value;
+    const index = list.findIndex(c => c.id === conversationId);
+    if (index === -1) return;
+    const conv  = list[index];
+    const next  = [...list];
+    next[index] = {
+      ...conv,
+      messages: conv.messages.map(m =>
+        m.id === messageId ? { ...m, status: 'read' as MessageStatus } : m
+      ),
+      unreadCount: Math.max(0, (conv.unreadCount ?? 1) - 1),
+    };
+    this.conversationsSubject.next(next);
+  }
+
+  private buildSystemMessage(
+    conversationId: string,
+    userId: string,
+    participantName: string,
+    action: 'joined' | 'left'
+  ): Message {
+    return {
+      id:             `system-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      conversationId,
+      senderId:       'system',
+      receiverId:     conversationId,
+      content:        action === 'joined' ? `${participantName} a rejoint le groupe` : `${participantName} a quitté le groupe`,
+      type:           'system',
+      systemData:     { participantName, action },
+      status:         'sent',
+      createdAt:      new Date(),
+    };
   }
 }

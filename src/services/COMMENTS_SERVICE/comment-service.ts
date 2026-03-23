@@ -1,7 +1,8 @@
 // src/services/COMMENT/comment.service.ts
 import { Injectable } from '@angular/core';
-import { Observable, switchMap, take, tap, Subject, map, forkJoin } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { Observable, of, Subject } from 'rxjs';
+import { map, catchError, switchMap, tap, take } from 'rxjs/operators';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Comment } from '../../models/Comment';
 import { Content } from 'src/models/Content';
 
@@ -11,7 +12,7 @@ import { Content } from 'src/models/Content';
 export class CommentService {
   private readonly resource = 'comments';
 
-  constructor(private api: ApiJSON) {}
+  constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   private commentAdded = new Subject<{contentId: string, increment: number}>();
   commentAdded$ = this.commentAdded.asObservable();
@@ -21,7 +22,7 @@ export class CommentService {
    */
   getComments(contentId: string, limit: number = 10, offset: number = 0, currentUserId?: string): Observable<Comment[]> {
     return this.api.filter<Comment>(this.resource, 
-      {"contentId": contentId}, true).pipe(
+      {filters: {contentId: contentId}}).pipe(
       map((comments: any) => {
         // Convertir l'objet avec clés numériques en tableau si nécessaire
         if (!Array.isArray(comments) && typeof comments === 'object') {
@@ -181,7 +182,7 @@ export class CommentService {
    * Compte le nombre de commentaires pour un contenu
    */
   getCommentCount(contentId: string): Observable<number> {
-    return this.api.filter<Comment>(this.resource, {"contentId": contentId},true).pipe(
+    return this.api.filter<Comment>(this.resource, {filters:{contentId: contentId}}).pipe(
       map((comments: any) => {
         // Convertir l'objet avec clés numériques en tableau si nécessaire
         if (!Array.isArray(comments) && typeof comments === 'object') {
@@ -218,7 +219,7 @@ export class CommentService {
   this.api.getById<Content>('contents', contentId).pipe(
     take(1),
     switchMap(content => {
-      const newCount = (content.commentCount || 0) + increment;
+      const newCount = (content?.commentCount || 0) + increment;
       return this.api.update<Content>('contents', contentId, {
         commentCount: newCount
       });
@@ -253,8 +254,8 @@ toggleLike(commentId: string, userId: string, isLiked: boolean): Observable<Comm
   return this.api.getById<Comment>(this.resource, commentId).pipe(
     switchMap(comment => {
       // Mettre à jour le tableau likedBy et le nombre de likes
-      let updatedLikedBy = comment.likedBy || [];
-      let updatedLikes = comment.likes;
+      let updatedLikedBy = comment?.likedBy || [];
+      let updatedLikes = comment?.likes || 0;
       
       if (isLiked) {
         // Unlike: retirer l'utilisateur du tableau

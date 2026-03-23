@@ -82,16 +82,18 @@ export class ModalEditProfileComponent implements OnInit {
     });
   }
 
-  async selectAvatar() {
-     try {
-          const photo = await this.cameraService.pickFromGallery();
-          this.selectedFile = await this.cameraService.convertPhotoToFile(photo);
-          this.avatarPreview = photo.webPath || null;
-          
-        } catch (error) {
-          console.error('Erreur avec la galerie:', error);
-        }
+async selectAvatar() {
+  try {
+    const media = await this.cameraService.pickSingle();
+    if (!media) return;
+
+    this.selectedFile  = media.file;
+    this.avatarPreview = media.previewUrl;
+
+  } catch (error) {
+    console.error('Erreur avec la galerie:', error);
   }
+}
 
   async onSubmit() {
     if (this.editForm.invalid || this.isSubmitting) {

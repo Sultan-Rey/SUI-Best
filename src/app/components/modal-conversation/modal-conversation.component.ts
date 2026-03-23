@@ -2,29 +2,23 @@ import {
   Component, Input, OnInit, OnDestroy,
   ViewChild, ChangeDetectorRef
 } from '@angular/core';
-import { CommonModule, DatePipe, NgIf } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController, IonContent, IonTextarea } from '@ionic/angular';
-import { Subscription, interval } from 'rxjs';
-import { MessageService } from '../../../services/MESSAGE_SERVICE/message-service';
-import { SocketService } from '../../../services/SOCKET/socket-service';
-import { DmTimePipe } from '../../utils/pipes/dmPipe/dmtime-pipe';
-import { MediaUrlPipe} from '../../utils/pipes/mediaUrlPipe/media-url-pipe'
-import { v4 as uuidv4 } from 'uuid';
 import {
-  Conversation,
-  Message,
-  MessageStatus,
-  ConversationStatus,
-  ConversationUtils
-} from '../../../models/Conversation';
+  IonicModule, ModalController, IonContent, IonTextarea,
+  ActionSheetController, AlertController
+} from '@ionic/angular';
+import { Subscription } from 'rxjs';
+import { MessageService, StreamEvent, PresenceData } from '../../../services/MESSAGE_SERVICE/message-service';
+import { DmTimePipe } from '../../utils/pipes/dmPipe/dmtime-pipe';
+import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
+import { Conversation, Message, MessageStatus, ConversationUtils } from '../../../models/Conversation';
 
 import { addIcons } from 'ionicons';
 import {
   chevronBack, send, mic, image, happy, attach,
   call, videocamOutline, ellipsisVertical,
-  checkmark, checkmarkDone, timeOutline, play, alertCircleOutline,
-  checkmarkCircle
+  checkmark, checkmarkDone, timeOutline, play, alertCircleOutline, checkmarkCircle
 } from 'ionicons/icons';
 
 @Component({
@@ -35,28 +29,34 @@ import {
   imports: [CommonModule, FormsModule, IonicModule, DmTimePipe, DatePipe, MediaUrlPipe]
 })
 export class ModalConversationComponent implements OnInit, OnDestroy {
+
   @Input() currentUserId!: string;
-  @Input() otherUser!: any;
+  @Input() otherUser!: { receiverId: string; username: string; avatar: string; isVerified: boolean };
   @Input() conversationId!: string;
-  
-  // ─── Données ────────────────────────────────────────────────
+
+  // ─── Données ──────────────────────────────────────────────────
   conversation?: Conversation;
   messages: Message[] = [];
   newMessage = '';
-  receiverName = '';
-  private conversationFromBackend = false;
-  otherUserIsTyping = false;
+  otherUserIsOnline = false;
+  hasDeleted = false;
+  onlineUsers: PresenceData[] = [];
 
-  // ─── UI ─────────────────────────────────────────────────────
+  // ─── UI ───────────────────────────────────────────────────────
   isLoading = false;
   showScrollToBottom = false;
   isRecording = false;
   recordingDuration = 0;
 
-  // ─── État interne ────────────────────────────────────────────
+  // ─── État interne ─────────────────────────────────────────────
   private isTyping = false;
-  private typingTimeout: ReturnType<typeof setTimeout> | null = null;
+  private typingTimer: ReturnType<typeof setTimeout> | null = null;
+  private presencePingInterval: ReturnType<typeof setInterval> | null = null;
   private recordingInterval: ReturnType<typeof setInterval> | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private lastMessageSince?: string;
+  private readonly MAX_VOICE_DURATION = 30;
   private subscriptions: Subscription[] = [];
 
   @ViewChild(IonContent) content!: IonContent;
@@ -65,8 +65,9 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
 
   constructor(
     private messageService: MessageService,
-    private socketService: SocketService,
     private modalController: ModalController,
+    private actionSheetController: ActionSheetController,
+    private alertController: AlertController,
     private cdr: ChangeDetectorRef
   ) {
     addIcons({
@@ -78,452 +79,501 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (!this.currentUserId || !this.conversationId) return;
-    this.subscribeToConversation();
-    this.setupTypingDetection();
+    this.loadConversation();
+    this.startSSE();
+    this.startPresencePing();
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(s => s.unsubscribe());
-    if (this.typingTimeout) clearTimeout(this.typingTimeout);
-    if (this.recordingInterval) clearInterval(this.recordingInterval);
-    if (this.isTyping) this.stopTyping();
+    this.messageService.leavePresence(this.conversationId);
+    if (this.presencePingInterval) clearInterval(this.presencePingInterval);
+    if (this.typingTimer)          clearTimeout(this.typingTimer);
+    if (this.isRecording)          this.stopVoiceRecording();
+    if (this.mediaRecorder?.state !== 'inactive') {
+      this.mediaRecorder?.stream.getTracks().forEach(t => t.stop());
+    }
   }
 
   // ==============================================================
   //  CHARGEMENT
   // ==============================================================
 
-  private subscribeToConversation() {
+  private loadConversation(): void {
     this.isLoading = true;
-    
-    // S'abonner d'abord à toutes les conversations pour les mises à jour en temps réel
+
     this.subscriptions.push(
-      this.messageService.conversations$.subscribe((conversations: Conversation[]) => {
-        // Chercher la conversation actuelle dans les mises à jour
-        const currentConversation = conversations.find(c => c.id === this.conversationId);
-        
-        if (currentConversation) {
-          // Vérifier si de nouveaux messages ont été reçus
-          const previousMessageCount = this.conversation?.messages?.length || 0;
-          const newMessageCount = currentConversation.messages?.length || 0;
-          const hasNewMessages = newMessageCount > previousMessageCount;
+      this.messageService.conversations$.subscribe(conversations => {
+        const conv = conversations.find(c => c.id === this.conversationId);
+        if (conv) {
+          // Vérifier si otherUser.receiverId est dans deletedFor
+          this.hasDeleted = conv.deletedFor?.includes(this.otherUser.receiverId) || false;
           
-          this.conversation = currentConversation;
-          this.messages = currentConversation.messages || [];
-          this.receiverName = this.messageService.getParticipantName(
-            ConversationUtils.getReceiverId(this.conversation.participantIds, this.currentUserId)
-          );
-          this.conversationFromBackend = true;
-          
-          this.isLoading = false;
+          this.conversation = conv;
+          this.messages     = [...(conv.messages ?? [])];
+          this.isLoading    = false;
           this.cdr.markForCheck();
           this.scrollToBottomDeferred();
-          
-          // Marquer les messages reçus comme lus
-          if (hasNewMessages) {
-            this.messageService.markMessageAsRead(this.conversationId, this.currentUserId);
-          }
-          
-          // Initialiser le socket pour cette conversation
-          this.initializeSocket();
-        } else {
-          // Si pas trouvée, vérifier si elle existe via l'API
-          this.messageService.findExistingConversationId(
-            [this.currentUserId, this.otherUser.receiverId], 
-            this.currentUserId
-          ).subscribe(existingConversationId => {
-            if (!existingConversationId) {
-              // Créer une conversation vide seulement si elle n'existe vraiment pas
-              this.conversation = {
-                id: this.conversationId,
-                participantIds: [this.currentUserId, this.otherUser.receiverId],
-                messages: [],
-                createdAt: new Date(),
-                status: 'open'
-              };
-              this.messages = [];
-              this.receiverName = this.messageService.getParticipantName(this.otherUser.receiverId);
-              this.conversationFromBackend = false;
-              this.isLoading = false;
-              this.cdr.markForCheck();
-              this.scrollToBottomDeferred();
-              
-              // Initialiser le socket même pour les nouvelles conversations
-              this.initializeSocket();
-            }
-          });
         }
       })
     );
 
-    // Surveiller le statut de frappe de l'autre participant toutes les 3 secondes
-    this.subscriptions.push(
-      interval(3000).subscribe(() => {
-        if (this.conversationId) {
-          this.checkOtherParticipantTyping();
-        }
-      })
-    );
-  }
-
-  // ==============================================================
-  //  SOCKET & TYPING
-  // ==============================================================
-
-  /**
-   * Initialise le socket pour la conversation
-   */
-  private initializeSocket() {
-    if (!this.conversationId || !this.conversation) return;
-    
-    this.socketService.initializeSocket(this.conversationId, this.conversation.participantIds).subscribe({
-      next: (socket) => {
-        console.log('[ModalConversation] Socket initialized:', socket);
-      },
-      error: (error) => {
-        console.error('[ModalConversation] Error initializing socket:', error);
-      }
-    });
-  }
-
-  /**
-   * Configure la détection de frappe
-   */
-  private setupTypingDetection() {
-    // Utiliser un timeout simple pour détecter quand l'utilisateur arrête de taper
-    let typingTimer: ReturnType<typeof setTimeout>;
-    
-    // Définir le gestionnaire d'entrée
-    this.onMessageInput = (event: any) => {
-      const value = event.target.value;
+    // Charger les messages paginés si la conversation n'est pas encore dans le store
+this.subscriptions.push(
+  this.messageService.getMessages(this.conversationId).subscribe(msgs => {
+    if (msgs.length > 0) {
+      // Filtrer les messages qui n'ont PAS été supprimés pour l'utilisateur courant
+      const filteredMessages = msgs.filter(msg => 
+        !msg.deletedFor || !msg.deletedFor.includes(this.currentUserId)
+      );
       
-      // Si l'utilisateur commence à taper
-      if (value.trim().length > 0 && !this.isTyping) {
-        this.isTyping = true;
-        this.notifyTyping(true);
+      this.messages = filteredMessages;
+      // Utiliser le dernier message NON supprimé pour lastMessageSince
+      if (filteredMessages.length > 0) {
+        this.lastMessageSince = filteredMessages[filteredMessages.length - 1].createdAt?.toString();
       }
-      
-      // Réinitialiser le timer
-      clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => {
-        if (this.isTyping) {
-          this.isTyping = false;
-          this.notifyTyping(false);
-        }
-      }, 1000); // Arrêter de taper après 1 seconde d'inactivité
-    };
-  }
-
-  /**
-   * Vérifie si l'autre participant est en train de taper
-   */
-  private checkOtherParticipantTyping() {
-    if (!this.conversationId) return;
-    
-    this.socketService.isOtherParticipantTyping(this.conversationId, this.currentUserId).subscribe({
-      next: (isTyping) => {
-        if (isTyping !== this.otherUserIsTyping) {
-          this.otherUserIsTyping = isTyping;
-          this.cdr.markForCheck();
-        }
-      },
-      error: (error) => {
-        console.error('[ModalConversation] Error checking typing status:', error);
-      }
-    });
-  }
-
-  /**
-   * Notifie que l'utilisateur commence/arrête de taper
-   */
-  private notifyTyping(isTyping: boolean) {
-    if (!this.conversationId) return;
-    
-    this.socketService.socketPing(this.conversationId, this.currentUserId, isTyping ? 1 : 0).subscribe({
-      next: (socket) => {
-        console.log('[ModalConversation] Typing status updated:', isTyping);
-      },
-      error: (error) => {
-        console.error('[ModalConversation] Error updating typing status:', error);
-      }
-    });
-  }
-
-  /**
-   * Gestionnaire d'entrée pour le champ de message
-   */
-  onMessageInput(event: any) {
-    // Implémenté dans setupTypingDetection
-  }
-
-  /**
-   * Arrête la frappe
-   */
-  stopTyping() {
-    if (this.isTyping) {
-      this.isTyping = false;
-      this.notifyTyping(false);
-      if (this.typingTimeout) { 
-        clearTimeout(this.typingTimeout); 
-        this.typingTimeout = null; 
-      }
+      this.isLoading = false;
+      this.cdr.markForCheck();
+      this.scrollToBottomDeferred();
     }
+  })
+);
+
+  }
+
+  // ==============================================================
+  //  SSE
+  // ==============================================================
+
+  private startSSE(): void {
+    this.subscriptions.push(
+      this.messageService.connectToRealTime(this.conversationId, this.lastMessageSince).subscribe({
+        next: (event: StreamEvent) => {
+          switch (event.event) {
+            case 'message':
+              this.handleIncomingMessage(event.data as Message);
+              break;
+            case 'presence':
+              this.handlePresenceUpdate(event.data.online ?? []);
+              break;
+          }
+        }
+      })
+    );
+  }
+
+  private handleIncomingMessage(msg: Message): void {
+    // Ignorer les messages qu'on vient d'envoyer (déjà en UI via optimistic)
+    if (msg.senderId === this.currentUserId) return;
+    if (this.messages.some(m => m.id === msg.id)) return;
+
+    this.messages = [...this.messages, msg];
+    this.lastMessageSince = msg.createdAt?.toString();
+    this.cdr.markForCheck();
+    this.scrollToBottomDeferred();
+
+    // Marquer comme lu
+    this.messageService.markMessageAsRead(this.conversationId, msg.id).subscribe();
+  }
+
+  private handlePresenceUpdate(online: PresenceData[]): void {
+    this.onlineUsers      = online;
+    this.otherUserIsOnline = online.some(u => u.user_id === this.otherUser.receiverId);
+    this.cdr.markForCheck();
+  }
+
+  // ==============================================================
+  //  PRÉSENCE PING
+  // ==============================================================
+
+  private startPresencePing(): void {
+    // Ping immédiat puis toutes les 30s
+    this.pingPresence();
+    this.presencePingInterval = setInterval(() => this.pingPresence(), 30_000);
+  }
+
+  private pingPresence(): void {
+    this.subscriptions.push(
+      this.messageService.pingPresence(this.conversationId).subscribe({
+        next: online => this.handlePresenceUpdate(online)
+      })
+    );
   }
 
   // ==============================================================
   //  ENVOI DE MESSAGES
   // ==============================================================
 
-  sendMessage() {
+  sendMessage(): void {
     const content = this.newMessage.trim();
-    if (!content || !this.currentUserId || !this.otherUser.receiverId || !this.conversation) return;
+    if (!content || !this.currentUserId || !this.otherUser.receiverId) return;
 
-    if (this.isTyping) this.stopTyping();
+    this.stopTyping();
 
-    // Créer le message temporaire pour l'UI
-    const tempMessage: Message = {
-      id: `temp-${Date.now()}`,
+    // Message optimiste (affiché immédiatement)
+    const optimistic: Message = {
+      id:             `temp-${Date.now()}`,
       conversationId: this.conversationId,
-      senderId: this.currentUserId,
-      receiverId: this.otherUser.receiverId,
+      senderId:       this.currentUserId,
+      receiverId:     this.otherUser.receiverId,
       content,
-      status: 'sent',
-      createdAt: new Date()
+      status:         'pending',
+      createdAt:      new Date(),
     };
 
-    // Ajouter directement à conversation.messages
-    this.conversation.messages.push(tempMessage);
+    this.messages = [...this.messages, optimistic];
     this.newMessage = '';
     this.scrollToBottomDeferred();
 
-    // Envoyer au backend
-    this.sendMessageToBackend(tempMessage);
+    if (!this.conversation) {
+      // Première conversation — créer puis envoyer
+      this.messageService.createConversation({
+        participantIds: [this.currentUserId, this.otherUser.receiverId],
+        messages:       [],
+        status:         'closed',
+      }).subscribe({
+        next: created => {
+          this.conversation   = created;
+          this.conversationId = created.id as string;
+          this.sendToBackend(optimistic);
+        },
+        error: () => this.setMessageStatus(optimistic.id, 'pending')
+      });
+    } else {
+      this.sendToBackend(optimistic);
+    }
   }
 
-  private sendMessageToBackend(message: Message) {
-    if (!this.conversation) return;
-
-    if (this.conversationFromBackend) {
-      // Conversation existe - envoyer le message
-      this.messageService.sendMessage(this.conversation).subscribe({
+  private sendToBackend(optimistic: Message): void {
+    // Si hasDeleted est true, réhabiliter d'abord l'utilisateur
+    if (this.hasDeleted) {
+      this.messageService.rehabilitateUserInConversation(this.conversationId, [this.otherUser.receiverId]).subscribe({
         next: () => {
-          console.log('[ModalConversation] Message sent successfully');
+          // Une fois réhabilité, envoyer le message
+          this.hasDeleted = false; // Mettre à jour l'état
+          this.doSendMessage(optimistic);
         },
-        error: (error: any) => {
-          console.error('[ModalConversation] sendMessage error:', error);
-          message.status = 'pending';
-          this.cdr.markForCheck();
+        error: () => {
+          // En cas d'erreur de réhabilitation, essayer quand même d'envoyer
+          //this.doSendMessage(optimistic);
         }
       });
     } else {
-      // Première fois - créer la conversation avec le premier message
-      this.messageService.createConversation(this.conversation).subscribe({
-        next: (createdConversation) => {
-          console.log('[ModalConversation] Conversation created successfully:', createdConversation);
-          this.conversationFromBackend = true;
-          this.conversation = createdConversation;
-          this.conversationId = createdConversation.id;
+      // Si pas de réhabilitation nécessaire, envoyer directement
+      this.doSendMessage(optimistic);
+    }
+  }
+
+  private doSendMessage(optimistic: Message): void {
+    const payload = {
+      senderId:   optimistic.senderId,
+      receiverId: optimistic.receiverId,
+      content:    optimistic.content,
+      type:       'user' as const,
+    };
+
+    this.messageService.sendMessage(this.conversationId, payload).subscribe({
+      next: sent => this.replaceOptimisticMessage(optimistic.id, sent),
+      error: ()  => this.setMessageStatus(optimistic.id, 'pending')
+    });
+  }
+
+  private replaceOptimisticMessage(tempId: string, real: Message): void {
+    this.messages = this.messages.map(m => m.id === tempId ? real : m);
+    this.cdr.markForCheck();
+  }
+
+  private setMessageStatus(messageId: string, status: MessageStatus): void {
+    this.messages = this.messages.map(m =>
+      m.id === messageId ? { ...m, status } : m
+    );
+    this.cdr.markForCheck();
+  }
+
+  // ==============================================================
+  //  FRAPPE (TYPING)
+  // ==============================================================
+
+  onMessageInput(event: any): void {
+    const value = (event.target.value ?? '').trim();
+
+    if (value.length > 0 && !this.isTyping) {
+      this.isTyping = true;
+    }
+
+    if (this.typingTimer) clearTimeout(this.typingTimer);
+    this.typingTimer = setTimeout(() => {
+      this.isTyping = false;
+    }, 1500);
+  }
+
+  private stopTyping(): void {
+    this.isTyping = false;
+    if (this.typingTimer) { clearTimeout(this.typingTimer); this.typingTimer = null; }
+  }
+
+  // ==============================================================
+  //  UPLOAD MEDIA
+  // ==============================================================
+
+  sendImage(): void {
+    const file = this.imageInput?.nativeElement?.files?.[0];
+    if (!file) return;
+
+    this.messageService.uploadFile(file, this.conversationId).subscribe({
+      next: result => {
+        this.newMessage = result.path;
+        this.sendMessage();
+      },
+      error: () => this.addErrorMessage('❌ Erreur lors de l\'envoi de l\'image')
+    });
+
+    this.imageInput.nativeElement.value = '';
+  }
+
+  async startVoiceRecording(): Promise<void> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.audioChunks   = [];
+
+      this.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) this.audioChunks.push(e.data); };
+      this.mediaRecorder.onstop          = () => this.handleVoiceComplete();
+
+      this.mediaRecorder.start();
+      this.isRecording       = true;
+      this.recordingDuration = 0;
+
+      this.recordingInterval = setInterval(() => {
+        this.recordingDuration++;
+        this.cdr.markForCheck();
+        if (this.recordingDuration >= this.MAX_VOICE_DURATION) this.stopVoiceRecording();
+      }, 1000);
+
+    } catch {
+      this.addErrorMessage('❌ Impossible d\'accéder au microphone');
+    }
+  }
+
+  stopVoiceRecording(): void {
+    if (this.recordingInterval) { clearInterval(this.recordingInterval); this.recordingInterval = null; }
+    if (this.mediaRecorder?.state !== 'inactive') {
+      this.mediaRecorder?.stop();
+      this.mediaRecorder?.stream.getTracks().forEach(t => t.stop());
+    }
+    this.isRecording       = false;
+    this.recordingDuration = 0;
+    this.cdr.markForCheck();
+  }
+
+  private handleVoiceComplete(): void {
+    const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+    const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+
+    this.messageService.uploadFile(file, this.conversationId).subscribe({
+      next: result => { this.newMessage = result.path; this.sendMessage(); },
+      error: ()     => this.addErrorMessage('❌ Erreur lors de l\'envoi du message vocal')
+    });
+  }
+
+  private addErrorMessage(content: string): void {
+    this.messages = [...this.messages, {
+      id:             `err-${Date.now()}`,
+      conversationId: this.conversationId,
+      senderId:       this.currentUserId,
+      receiverId:     this.otherUser.receiverId,
+      content,
+      status:         'pending',
+      createdAt:      new Date(),
+    }];
+    this.cdr.markForCheck();
+  }
+
+  // ==============================================================
+  //  OPTIONS
+  // ==============================================================
+
+  async joinGroup() {
+    if (!this.conversation?.groupData || !this.currentUserId) return;
+
+    try {
+      this.isLoading = true;
+      
+      // Ajouter le currentUserId aux participants du groupe
+      this.messageService.addParticipant(this.conversation.id, this.currentUserId).subscribe({
+        next: (updatedConversation) => {
+          console.log('Utilisateur ajouté au groupe avec succès');
           
-          // Créer le socket pour cette nouvelle conversation
-          this.socketService.socketCreate(createdConversation.id, createdConversation.participantIds).subscribe({
-            next: (socket) => {
-              console.log('[ModalConversation] Socket created for new conversation:', socket);
-            },
-            error: (error) => {
-              console.error('[ModalConversation] Error creating socket:', error);
-            }
-          });
-          
-          // Mettre à jour le statut du message à 'sent'
-          message.status = 'sent';
+          // Mettre à jour la conversation locale
+          this.conversation = updatedConversation;
           this.cdr.markForCheck();
+          
+          // Fermer le modal après succès
+          this.dismiss();
         },
-        error: (error: any) => {
-          console.error('[ModalConversation] createConversation error:', error);
-          message.status = 'pending';
+        error: (error) => {
+          console.error('[ModalConversation] Error joining group:', error);
+          // TODO: Afficher une erreur à l'utilisateur
+        },
+        complete: () => {
+          this.isLoading = false;
           this.cdr.markForCheck();
         }
       });
+      
+    } catch (error) {
+      console.error('[ModalConversation] Error joining group:', error);
+      this.isLoading = false;
+      this.cdr.markForCheck();
     }
+  }
+  
+  async presentMoreOptions(): Promise<void> {
+    if (!this.conversation) return;
+    const isGroup = !!this.conversation.groupData;
+    const isAdmin = this.conversation.groupData?.admins?.includes(this.currentUserId) ?? false;
+
+    const buttons: any[] = isGroup ? [
+      { text: 'Voir les membres',   icon: 'people-outline',   handler: () => this.viewGroupMembers() },
+      { text: 'Copier le lien',     icon: 'link-outline',     handler: () => this.copyGroupLink() },
+      ...(isAdmin ? [{ text: 'Effacer les messages', icon: 'trash-outline', handler: () => this.clearGroupMessages() }] : []),
+      { text: 'Quitter le groupe',  icon: 'exit-outline',     handler: () => this.leaveGroup() },
+    ] : [
+      { text: 'Effacer pour moi',         icon: 'eye-off-outline', handler: () => this.clearMessagesForMe() },
+      { text: 'Supprimer la conversation',icon: 'trash-outline',   handler: () => this.deleteConversation() },
+    ];
+
+    const sheet = await this.actionSheetController.create({
+      header: isGroup ? 'Options du groupe' : 'Options de la conversation',
+      buttons
+    });
+    await sheet.present();
+  }
+
+  async viewGroupMembers():  Promise<void> { /* TODO */ }
+  async copyGroupLink():     Promise<void> {
+    await navigator.clipboard.writeText(`${window.location.origin}/group/${this.conversationId}`);
+  }
+
+  async clearGroupMessages(): Promise<void> {
+    if (!this.conversation) return;
+    const alert = await this.buildConfirmAlert(
+      'Effacer les messages',
+      'Êtes-vous sûr de vouloir effacer tous les messages ? Cette action est irréversible.',
+      async () => {
+        if (!this.conversation) return;
+        await this.messageService.updateConversation({
+          ...this.conversation, messages: [], unreadCount: 0,
+          lastMessage: undefined, lastMessageTime: undefined
+        }).toPromise();
+        this.messages = [];
+        this.cdr.detectChanges();
+      }
+    );
+    await alert.present();
+  }
+
+  async leaveGroup(): Promise<void> {
+    const alert = await this.buildConfirmAlert(
+      'Quitter le groupe',
+      'Êtes-vous sûr de vouloir quitter ce groupe ?',
+      () => {
+        this.messageService.removeParticipant(this.conversationId, this.currentUserId)
+          .subscribe(() => this.dismiss());
+      }
+    );
+    await alert.present();
+  }
+
+  async clearMessagesForMe(): Promise<void> {
+    if (!this.conversation) return;
+    const alert = await this.buildConfirmAlert(
+      'Effacer mes messages',
+      'Êtes-vous sûr de vouloir effacer vos messages dans cette conversation ?',
+      async () => this.deleteFromMessages()
+    );
+    await alert.present();
+  }
+
+  async deleteFromMessages() {
+    if (!this.conversation) return;
+        const updated = {
+          ...this.conversation,
+          messages: this.conversation.messages.map(m =>
+            m.senderId === this.currentUserId
+              ? { ...m, deletedFor: [...(m.deletedFor ?? []), this.currentUserId] }
+              : m
+          )
+        };
+        await this.messageService.updateConversation(updated).toPromise();
+        this.messages = updated.messages;
+        this.cdr.detectChanges();
+  }
+  async deleteConversation(): Promise<void> {
+    const alert = await this.buildConfirmAlert(
+      'Supprimer la conversation',
+      'Êtes-vous sûr de vouloir supprimer cette conversation ?',
+      async () => {
+        if (!this.conversation) return;
+        if (this.conversation.participantIds.length <= 1) {
+          await this.messageService.deleteConversation(this.conversationId).toPromise();
+        } else {
+          await this.deleteFromMessages();
+          await this.messageService.updateConversation({
+            ...this.conversation,
+            participantIds: this.conversation.participantIds.filter(id => id !== this.currentUserId),
+            deletedFor: [...(this.conversation.deletedFor ?? []), this.currentUserId]
+          }).toPromise();
+        }
+        await this.modalController.dismiss({ deleted: true, conversationId: this.conversationId });
+      }
+    );
+    await alert.present();
   }
 
   // ==============================================================
   //  UTILS
   // ==============================================================
 
-  private scrollToBottomDeferred() {
-    setTimeout(() => this.scrollToBottom(), 100);
+  isMessageFromMe(message: Message): boolean { return message.senderId === this.currentUserId; }
+
+  getStatusIcon(status: string): string {
+    return { sent: 'checkmark', delivered: 'checkmark-done', read: 'checkmark-done', pending: 'time-outline', failed: 'alert-circle-outline' }[status] ?? 'time-outline';
   }
 
-  /**
-   * Fait défiler vers le bas
-   */
-  scrollToBottom() {
-    this.content?.scrollToBottom(300);
+  getStatusClass(status: string): string {
+    return `status-${status}` || 'status-pending';
   }
 
-  /**
-   * Vérifie si le message a été envoyé par l'utilisateur courant
-   */
-  isMessageFromMe(message: Message): boolean {
-    return message.senderId === this.currentUserId;
+  formatDuration(seconds: number): string {
+    return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
   }
 
-  /**
-   * TrackBy function pour optimiser le ngFor des messages
-   */
-  trackByMessageId(index: number, message: Message): string {
-    return message.id;
-  }
+  trackByMessageId(_: number, m: Message): string { return m.id; }
 
-  /**
-   * Gère les erreurs de chargement d'avatar
-   */
-  onAvatarError(event: Event) {
+  onAvatarError(event: Event): void {
     const img = event.target as HTMLImageElement;
     img.onerror = null;
     img.src = 'assets/avatar-default.png';
   }
 
-  /**
-   * Gère l'événement de scroll
-   */
-  onScroll(event: any) {
-    const scrollTop = event.detail.scrollTop;
-    this.showScrollToBottom = scrollTop > 100;
+  onScroll(event: any): void {
+    this.showScrollToBottom = event.detail.scrollTop > 100;
   }
 
-  /**
-   * Formate la durée d'enregistrement vocal
-   */
-  formatDuration(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
+  scrollToBottom(): void { this.content?.scrollToBottom(300); }
+  scrollToBottomClick(): void { this.scrollToBottom(); }
+  private scrollToBottomDeferred(): void { setTimeout(() => this.scrollToBottom(), 100); }
 
-  /**
-   * Démarre l'enregistrement vocal
-   */
-  startVoiceRecording() {
-    this.isRecording = true;
-    this.recordingDuration = 0;
-    
-    this.recordingInterval = setInterval(() => {
-      this.recordingDuration++;
-      this.cdr.markForCheck();
-    }, 1000);
-  }
+  dismiss(): void { this.modalController.dismiss(); }
 
-  /**
-   * Arrête l'enregistrement vocal
-   */
-  stopVoiceRecording() {
-    if (this.recordingInterval) {
-      clearInterval(this.recordingInterval);
-      this.recordingInterval = null;
-    }
-    
-    this.isRecording = false;
-    this.recordingDuration = 0;
-    this.cdr.markForCheck();
-  }
-
-  /**
-   * Ouvre les options de médias
-   */
-  openMediaOptions() {
-    // TODO: Implémenter les options de médias
-    console.log('Media options clicked');
-  }
-
-  /**
-   * Envoie une image
-   */
-  sendImage() {
-    if (this.imageInput && this.imageInput.nativeElement && this.imageInput.nativeElement.files.length > 0) {
-      const file = this.imageInput.nativeElement.files[0];
-      console.log('Image selected:', file.name, file.size);
-      
-      // TODO: Implémenter l'upload et l'envoi de l'image
-      // Pour l'instant, on simule l'envoi
-      const tempMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversationId: this.conversationId,
-        senderId: this.currentUserId,
-        receiverId: this.otherUser.receiverId,
-        content: `[Image: ${file.name}]`,
-        status: 'sent',
-        createdAt: new Date()
-      };
-
-      if (this.conversation) {
-        this.conversation.messages.push(tempMessage);
-        this.scrollToBottomDeferred();
-        this.sendMessageToBackend(tempMessage);
-      }
-      
-      // Réinitialiser l'input
-      this.imageInput.nativeElement.value = '';
-    }
-  }
-
-  /**
-   * Retourne l'icône du statut du message
-   */
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case 'sent':
-        return 'checkmark';
-      case 'delivered':
-        return 'checkmark-done';
-      case 'read':
-        return 'checkmark-done';
-      case 'pending':
-        return 'time-outline';
-      case 'failed':
-        return 'alert-circle-outline';
-      default:
-        return 'time-outline';
-    }
-  }
-
-  /**
-   * Retourne la classe CSS du statut du message
-   */
-  getStatusClass(status: string): string {
-    switch (status) {
-      case 'sent':
-        return 'status-sent';
-      case 'delivered':
-        return 'status-delivered';
-      case 'read':
-        return 'status-read';
-      case 'pending':
-        return 'status-pending';
-      case 'failed':
-        return 'status-failed';
-      default:
-        return 'status-pending';
-    }
-  }
-
-  /**
-   * Ouvre les options supplémentaires
-   */
-  openMoreOptions() {
-    // TODO: Implémenter les options supplémentaires
-    console.log('More options clicked');
-  }
-
-  /**
-   * Fait défiler vers le bas
-   */
-  scrollToBottomClick() {
-    this.scrollToBottom();
-  }
-
-  dismiss() {
-    this.modalController.dismiss();
+  private buildConfirmAlert(header: string, message: string, handler: () => any): Promise<HTMLIonAlertElement> {
+    return this.alertController.create({
+      header, message,
+      buttons: [
+        { text: 'Annuler', role: 'cancel' },
+        { text: 'Confirmer', role: 'destructive', handler }
+      ]
+    });
   }
 }

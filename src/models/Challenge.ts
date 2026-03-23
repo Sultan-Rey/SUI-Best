@@ -1,5 +1,12 @@
 import { Artist } from 'src/models/User';
 
+export enum ParticipantType {
+  ALL = 'all',
+  FANS_ONLY = 'fans_only',
+  ARTISTS_ONLY = 'artists_only',
+  CREATORS_ONLY = 'creators_only'
+}
+
 export interface Challenge {
   id: string;
   name: string;
@@ -9,6 +16,7 @@ export interface Challenge {
   vote_rule: 'one_vote_per_user' | 'unlimited_votes' | string; // Vous pouvez étendre avec d'autres règles si nécessaire
   call_to_action : 'Participer' | 'Voter' | 'Soutenir' | 'Voter l\'artiste' | 'J\'approuve' | 'Soutenir ce talent';
   coupon_required: boolean;
+  allowed_participants?: ParticipantType; // Optionnel : type de participants autorisés
   created_at?: Date; // Optionnel : date de création
   start_date?: Date; // Optionnel : date de début
   end_date?: Date; // Optionnel : date de fin

@@ -52,22 +52,66 @@ export interface Content {
   
   // Métadonnées système
   status: ContentStatus;      // État de publication
-  createdAt: string;          // Date de création (ISO string)
+  created_at: string;          // Date de création (ISO string)
   updatedAt?: string;         // Date de mise à jour (ISO string)
 
   // Statistiques
-  viewCount: number;          // Nombre de vues
-  likeCount: number;          // Nombre de likes
+  viewCount?: number;          // Nombre de vues
+  likeCount?: number;          // Nombre de likes
   voteCount?: number          // Nombre de votes
-  shareCount:number;         // Nombre de partage
+  shareCount?:number;         // Nombre de partage
   giftCount?:number;          // Nombre de cadeaux
-  commentCount: number;       // Nombre de commentaires
-  downloadCount: number;      // Nombre de téléchargements
+  commentCount?: number;       // Nombre de commentaires
+  downloadCount?: number;      // Nombre de téléchargements
+  score?:number;              // Score temporaire obtenus 
 }
 
+export interface Author {
+  name: string;
+  initials: string;
+  color: string; // CSS gradient string
+}
 
-interface PostWithUser extends Content {
-  username: string;
-  isLikedByUser: boolean;
-  avatarUrl?: string;
+export interface ExclusiveContent extends Content {
+  id: string;
+  title: string;
+  author: Author;
+  thumbnail?: string;
+  locked: boolean;
+  price?: number;
+  isLive?: boolean;
+  type: 'video' | 'behind' | 'masterclass' | 'series';
+  
+  // Propriétés pour les séries et suites continues
+  seriesId?: string;          // ID de la série parente
+  seriesTitle?: string;       // Titre de la série (pour éviter une requête supplémentaire)
+  episodeNumber?: number;     // Numéro de l'épisode dans la série
+  season?: number;            // Numéro de saison (optionnel)
+  totalEpisodes?: number;     // Nombre total d'épisodes dans la série
+  isSeries?: boolean;         // Indique si c'est une série ou un contenu standalone
+  nextEpisodeId?: string;     // ID de l'épisode suivant
+  previousEpisodeId?: string;  // ID de l'épisode précédent
+}
+
+export interface Series {
+  id: string;
+  title: string;
+  description: string;
+  author: Author;
+  thumbnail: string;
+  type: 'masterclass' | 'behind' | 'series';
+  totalEpisodes: number;
+  totalSeasons?: number;        // Optionnel, pour les séries multi-saisons
+  price?: number;               // Prix pour toute la série
+  isCompleted?: boolean;        // Indique si la série est terminée
+  created_at: string;
+  updated_at?: string;
+  
+  // Statistiques
+  viewCount?: number;
+  likeCount?: number;
+  
+  // Métadonnées pour l'affichage
+  duration?: number;            // Durée totale estimée en secondes
+  episodeIds: string[];         // IDs des épisodes dans l'ordre
 }

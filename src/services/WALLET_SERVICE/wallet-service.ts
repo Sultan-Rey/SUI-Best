@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { tap, catchError, switchMap, map } from 'rxjs/operators';
 import { Wallet, Transaction } from '../../models/Wallet';
 import { Coupon, CouponType } from '../../models/Coupon';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { IncomeService } from '../INCOME_SERVICE/income-service';
 import { Pack, CouponTypeInfo, CouponValidation } from '../../interfaces/income.interfaces';
 import { Auth } from '../AUTH/auth';
@@ -81,7 +81,7 @@ export class WalletService {
   );
 
   constructor(
-    private api: ApiJSON,
+    private api: ApiJSON, // ✅ Migration vers notre ApiJSON unifié
     private incomeService: IncomeService,
     private auth: Auth
   ) {
@@ -112,9 +112,8 @@ export class WalletService {
    */
   loadUserWallet(userId: string): void {
    // console.log('Chargement du wallet pour l\'utilisateur:', userId);
-    
     // Utiliser getAll avec filtre userId pour éviter les doublons
-    this.api.getAll<Wallet>(this.WALLET_RESOURCE).pipe(
+    this.api.get<Wallet>(this.WALLET_RESOURCE).pipe(
       map(response => {
         // L'API retourne un tableau, on cherche le premier wallet correspondant
         if (Array.isArray(response)) {

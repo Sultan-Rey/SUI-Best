@@ -9,6 +9,16 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    // Configuration pour InAppBrowser et deep links
+    Browser: {
+      enabled: true,
+    },
+    // Configuration des URL schemes pour les deep links
+    server: {
+      iosScheme: 'bestacademy',
+      androidScheme: 'bestacademy',
+      cleartext: true,
+    },
   },
 };
 

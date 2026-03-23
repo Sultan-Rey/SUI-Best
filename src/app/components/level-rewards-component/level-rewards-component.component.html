@@ -1,0 +1,145 @@
+<ion-content [fullscreen]="true" class="rewards-content">
+
+  <!-- ══ TOP BAR ══════════════════════════════════════════ -->
+  <div class="rewards-topbar">
+    <div class="topbar-inner">
+
+      <div class="topbar-left">
+        <h1 class="rewards-title">level rewards</h1>
+        <div class="rewards-xp-row">
+          <ion-icon name="star" class="xp-star"></ion-icon>
+          <span class="xp-current">{{userXp | number}}</span>
+          <span class="xp-sep">/</span>
+          <ion-icon name="star" class="xp-star xp-star-dim"></ion-icon>
+          <span class="xp-next">{{xpRequiredForNext | number}}</span>
+          <span class="xp-label">to reach the next level</span>
+        </div>
+      </div>
+
+      <button class="close-btn" (click)="dismiss()" aria-label="Fermer">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="topbar-divider"></div>
+
+  <!-- ══ TIMELINE ═════════════════════════════════════════ -->
+  <div class="timeline-wrap">
+
+    <!-- Ligne verticale continue -->
+    <div class="timeline-track">
+      <div class="timeline-fill" [style.height.%]="filledLinePercent"></div>
+    </div>
+
+    <!-- Items du niveau le plus haut au plus bas -->
+    <ul class="timeline-list">
+      <li
+        *ngFor="let reward of processedRewards; trackBy: trackByLevel"
+        class="timeline-item"
+        [class.is-current]="reward.current"
+        [class.is-unlocked]="reward.unlocked"
+        [class.is-locked]="!reward.unlocked && !reward.current">
+
+        <!-- ─ Marqueur latéral ─ -->
+        <div class="t-marker">
+          <div class="marker-gift" *ngIf="reward.current">
+            <ion-icon name="gift-outline"></ion-icon>
+          </div>
+          <span class="marker-level" *ngIf="!reward.current">{{reward.level}}</span>
+        </div>
+
+        <!-- ─ Carte ─ -->
+        <div class="reward-card" [class.reward-card--current]="reward.current">
+
+          <!-- Badge hexagonal -->
+          <div class="hex-wrap" *ngIf="reward.image; else hexPlaceholder">
+            <img
+              [src]="reward.image"
+              [alt]="reward.name"
+              class="hex-img"
+              [class.hex-img--locked]="!reward.unlocked && !reward.current" />
+            <svg class="hex-border" viewBox="0 0 100 115" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fcd34d"/>
+                  <stop offset="100%" stop-color="#d97706"/>
+                </linearGradient>
+              </defs>
+              <polygon
+                points="50,2 98,27 98,88 50,113 2,88 2,27"
+                fill="none"
+                [attr.stroke]="reward.unlocked || reward.current ? 'url(#hg)' : 'rgba(150,150,150,0.25)'"
+                stroke-width="3"/>
+            </svg>
+          </div>
+
+          <ng-template #hexPlaceholder>
+            <div class="hex-wrap hex-wrap--empty">
+              <svg viewBox="0 0 100 115" preserveAspectRatio="none" class="hex-placeholder-svg">
+                <polygon
+                  points="50,2 98,27 98,88 50,113 2,88 2,27"
+                  fill="rgba(200,200,200,0.12)"
+                  stroke="rgba(180,180,180,0.25)"
+                  stroke-width="3"/>
+              </svg>
+            </div>
+          </ng-template>
+
+          <!-- Infos texte -->
+          <div class="reward-info">
+            <h3 class="reward-name" [class.reward-name--locked]="!reward.unlocked && !reward.current">
+              {{reward.name}}
+            </h3>
+            <p class="reward-sub">{{reward.subtitle}}</p>
+
+            <!-- Progression XP du niveau actuel -->
+            <div class="xp-progress" *ngIf="reward.current">
+              <div class="xp-progress-bar">
+                <div class="xp-progress-fill" [style.width.%]="xpProgressPercent"></div>
+              </div>
+              <span class="xp-progress-text">{{xpProgressPercent}}%</span>
+            </div>
+
+            <!-- Gift label (si défini) -->
+            <p class="reward-gift-label" *ngIf="reward.gift?.label && (reward.current || reward.unlocked)">
+              🎁 {{reward.gift.label}}
+            </p>
+          </div>
+
+          <!-- Action droite -->
+          <div class="reward-action">
+
+            <!-- ① unlocked (collecté) → ✓ vert uniquement, pas de cadenas -->
+            <div class="collected-icon" *ngIf="reward.unlocked && reward.collected">
+              <ion-icon name="checkmark-circle"></ion-icon>
+            </div>
+
+            <!-- ② current + collectible + !collected → bouton switch Collecter -->
+            <button
+              class="collect-btn"
+              *ngIf="reward.current && reward.collectible && !reward.collected"
+              (click)="collect(reward)">
+              <span class="collect-toggle-dot"></span>
+              <span class="collect-label">Collecter</span>
+            </button>
+
+            <!-- ③ current + déjà collecté → ✓ vert -->
+            <div class="collected-icon" *ngIf="reward.current && reward.collected">
+              <ion-icon name="checkmark-circle"></ion-icon>
+            </div>
+
+            <!-- ④ locked strictement → cadenas -->
+            <div class="lock-icon" *ngIf="!reward.unlocked && !reward.current">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+            </div>
+
+          </div>
+        </div>
+      </li>
+    </ul>
+
+  </div>
+
+</ion-content>
