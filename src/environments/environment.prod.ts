@@ -1,13 +1,7 @@
 export const environment = {
   production: true,
- apiUrl: 'http://localhost/best_backend_ML',  // URL de votre API PHP
-  wsUrl: 'ws://localhost/best_backend_ML',
-  authToken: 'demo-client-key-123',
+ apiUrl: 'https://apis.majorware.net/best_academy_production_api',  // URL de votre API PHP
   adminUID:'uid_of_bestacademy',
-  MONCASH_CLIENT_ID:'7ab880c4608283f6a132c08361ced5ab',
-  MONCASH_CLIENT_SECRET:'jmyG_vJjO09JSt8EOk_N3w0GfFzChLsvI-A2jqgib6IA0gDmYZcLEYOhiXFEfROi',
-    MONCASH_BASE_URL:'https://sandbox.moncashbutton.digicelgroup.com/Api',
-
   firebase: {
   apiKey: "AIzaSyCEFjACaqVbWIdxcnoZ080MlokHpF-uY7c",
   authDomain: "datafire-681e8.firebaseapp.com",
