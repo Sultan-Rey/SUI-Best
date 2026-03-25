@@ -13,7 +13,7 @@ import {
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { CommentService } from '../../../services/COMMENTS_SERVICE/comment-service.js';
+import { CommentService } from '../../../services/service_comment/comment-service.js';
 import { Comment } from '../../../models/Comment';
 import { UserProfile } from '../../../models/User';
 import { ModalController} from '@ionic/angular';

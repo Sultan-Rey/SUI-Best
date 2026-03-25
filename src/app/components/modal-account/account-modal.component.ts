@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonBackButton, IonToolbar, IonSegment, IonSegmentButton, IonList, IonItem, IonRadioGroup, IonRadio, IonThumbnail, IonLabel, IonButton, IonButtons, IonIcon, IonInput } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { ToastController, LoadingController, ModalController, ActionSheetController } from '@ionic/angular';
-import { WalletService, UserBalance } from '../../../services/WALLET_SERVICE/wallet-service';
+import { WalletService, UserBalance } from '../../../services/Service_wallet/wallet-service';
 import { Pack, CouponTypeInfo } from '../../../interfaces/income.interfaces';
 import { Observable } from 'rxjs';
 import { CreateCouponModalComponent } from '../modal-create-coupon/create-coupon-modal.component';

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ProfileService } from '../PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../Service_profile/profile-service';
 import { Observable, of, throwError } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { UserProfile } from '../../models/User';

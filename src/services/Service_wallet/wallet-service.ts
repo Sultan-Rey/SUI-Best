@@ -4,7 +4,7 @@ import { tap, catchError, switchMap, map } from 'rxjs/operators';
 import { Wallet, Transaction } from '../../models/Wallet';
 import { Coupon, CouponType } from '../../models/Coupon';
 import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
-import { IncomeService } from '../INCOME_SERVICE/income-service';
+import { IncomeService } from '../service_income/income-service';
 import { Pack, CouponTypeInfo, CouponValidation } from '../../interfaces/income.interfaces';
 import { Auth } from '../AUTH/auth';
 

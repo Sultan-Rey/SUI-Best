@@ -25,14 +25,14 @@ import {
   chatbubbleEllipses,  
   share, chevronUp, chevronDown, trophyOutline, peopleOutline, timeOutline, playCircle, add, checkmarkCircle, close, happyOutline, send, arrowForward, refresh } from 'ionicons/icons';
 import { Content, ContentStatus } from 'src/models/Content.js';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service.js';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { CreationService } from 'src/services/Service_content/creation-service.js';
+import { ProfileService } from 'src/services/Service_profile/profile-service.js';
 import { Challenge, ParticipantType } from 'src/models/Challenge';
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
-import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service.js';
+import { CommentService } from 'src/services/service_comment/comment-service.js';
 import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize, count, take } from 'rxjs';
-import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
+import { ChallengeService } from 'src/services/Service_challenge/challenge-service.js';
 import { SideActionsComponent } from './components/side-actions/side-actions.component';
 import { ModalSelectPostComponent } from 'src/app/components/modal-select-post/modal-select-post.component.js';
 import { Segment } from 'src/models/Segment.js';

@@ -21,6 +21,7 @@ import {
   warning,
   createOutline,
   settingsOutline,
+  starHalfOutline,
   giftOutline,
   imagesOutline,
   arrowForwardOutline,
@@ -52,7 +53,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { UserProfile } from 'src/models/User.js';
 import { Content } from 'src/models/Content.js';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { ProfileService } from 'src/services/Service_profile/profile-service.js';
 import { Auth } from 'src/services/AUTH/auth';
 import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ModalEditProfileComponent } from '../components/modal-edit-profile/modal-edit-profile.component.js';
@@ -60,11 +61,12 @@ import { ShortNumberPipe } from '../utils/pipes/shortNumberPipe/short-number-pip
 import { FollowedViewComponent } from '../tab-home/containers/followed-panel/followed-view.component.js';
 import { HeaderComponentComponent } from '../components/header-component/header-component.component.js';
 import { SettingsPage } from '../settings/settings.page.js';
-import { UserService } from 'src/services/USER_SERVICE/user-service.js';
+import { UserService } from 'src/services/Service_user/user-service.js';
 import { getRewardsForUserType } from 'src/interfaces/levelReward.data';
 import { LevelRewardsComponent } from '../components/level-rewards-component/level-rewards-component.component';
 import { AwardsGalleryComponent } from '../components/awards-gallery/awards-gallery.component';
 import { RewardService } from 'src/services/Rewards/reward-service';
+import { CreateExclusiveContentComponent } from '../components/create-exclusive-content/create-exclusive-content.component';
 
 @Component({
   selector: 'app-profile',
@@ -137,7 +139,7 @@ export class ProfilePage implements OnInit {
       musicalNotesOutline, search, trophy, chevronBackOutline, ellipsisHorizontal,
       checkmark, videocamOutline, eyeOutline, locationOutline, logoInstagram,
       logoTwitter, logoYoutube, globeOutline, chatbubbleOutline, personCircleOutline,
-      homeOutline, compassOutline
+      homeOutline, compassOutline, starHalfOutline
     });
   }
 
@@ -332,6 +334,11 @@ export class ProfilePage implements OnInit {
 
     if (isOwnProfile) {
       buttons.push(
+         {
+          text: 'Creer contenu exclusif',
+          icon: 'star-half-outline',
+          handler: () => this.createExclusive()
+        },
         {
           text: 'Modifier le profil',
           icon: 'create-outline',
@@ -523,6 +530,14 @@ export class ProfilePage implements OnInit {
         this.showToast(errorMessage, 'danger');
       }
     }
+
+  private async createExclusive(){
+      const modal = await this.modalCtrl.create({
+      component: CreateExclusiveContentComponent,
+      handle: true
+    });
+     await modal.present();
+  }
 
   private async editProfile() {
     const modal = await this.modalCtrl.create({

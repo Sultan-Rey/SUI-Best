@@ -20,11 +20,11 @@ import {
   IonSpinner
 } from '@ionic/angular/standalone';
 import { User, UserProfile } from 'src/models/User.js';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { ProfileService } from 'src/services/Service_profile/profile-service.js';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { addIcons } from 'ionicons';
 import { camera, close, checkmark, closeOutline, checkmarkOutline, cameraOutline, createOutline, alertCircleOutline, mailOutline, informationCircleOutline } from 'ionicons/icons';
-import { CameraService } from 'src/services/CAMERA_SERVICE/camera-service';
+import { CameraService } from 'src/services/CAMERA/camera-service';
 
 @Component({
   selector: 'app-modal-edit-profile',

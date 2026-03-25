@@ -3,8 +3,7 @@ import { BehaviorSubject, catchError, forkJoin, map, Observable, of, switchMap, 
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { Content, ContentSource, ContentStatus } from '../../models/Content';
 import { UserProfile } from '../../models/User';
-import { ProfileService } from '../PROFILE_SERVICE/profile-service';
-import { FilterResult } from '../API/LOCAL/api-json';
+import { ProfileService } from '../Service_profile/profile-service';
 
 @Injectable({ providedIn: 'root' })
 export class CreationService {
@@ -196,7 +195,7 @@ export class CreationService {
         sort: { score: 'desc' },
         include_meta: true,
       }
-    }).pipe(
+    }, {cache:true}).pipe(
       map(result => result.data.filter(c => !excludedIds.includes(c.userId))),
       tap(contents => {
         page === 1

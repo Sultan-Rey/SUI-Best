@@ -3,14 +3,14 @@ import { IonIcon, IonButton, IonThumbnail, IonBadge, IonAvatar } from "@ionic/an
 import { ToastController, ModalController, LoadingController } from '@ionic/angular';
 import { Content } from 'src/models/Content';
 import { Challenge } from 'src/models/Challenge';
-import { VoteService } from 'src/services/VOTE_SERVICE/vote-service';
+import { VoteService } from 'src/services/Service_vote/vote-service';
 import { CouponModalComponent } from 'src/app/components/modal-coupon/coupon-modal.component';
 import { GiftModalComponent } from 'src/app/components/modal-gift/gift-modal.component';
 import { ModalCommentComponent } from 'src/app/components/modal-comment/modal-comment.component';
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { NgIf, NgFor } from '@angular/common';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
+import { CreationService } from 'src/services/Service_content/creation-service';
 
 @Component({
   selector: 'app-side-actions',

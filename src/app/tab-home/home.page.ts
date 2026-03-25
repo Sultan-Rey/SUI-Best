@@ -6,7 +6,7 @@ import {
   search, cloudOffline,
   notificationsOutline, sparklesOutline, logoBitcoin, addCircle, peopleOutline, trophy, star, person, refresh } from 'ionicons/icons';
 import { UserProfile } from 'src/models/User';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { Router } from '@angular/router';
 import { DiscoveryViewComponent } from "./containers/discovery-panel/discovery-view.component";
 import { FollowedViewComponent } from "./containers/followed-panel/followed-view.component";
@@ -19,7 +19,7 @@ import { BottomNavigationComponent } from '../components/bottom-navigation/botto
 import { PublicationComponent } from './containers/publication/publication.component';
 import { ChallengeComponent } from './containers/challenge/challenge.component';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
-import { MessageService } from 'src/services/MESSAGE_SERVICE/message-service';
+import { MessageService } from 'src/services/Service_message/message-service';
 import { Segment } from 'src/models/Segment';
 @Component({
   selector: 'app-home',

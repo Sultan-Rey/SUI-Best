@@ -14,7 +14,7 @@ import {
   IonButtons,
   IonBackButton,
   IonButton } from '@ionic/angular/standalone';
-import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../../services/Service_profile/profile-service';
 import { UserProfile } from '../../models/User';
 import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
@@ -22,7 +22,7 @@ import { searchOutline, personOutline, chevronForwardOutline, chevronForward, ch
 import { Router } from '@angular/router';
 import { ModalController } from '@ionic/angular';
 import { ModalConversationComponent } from '../components/modal-conversation/modal-conversation.component';
-import { MessageService } from 'src/services/MESSAGE_SERVICE/message-service';
+import { MessageService } from 'src/services/Service_message/message-service';
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',

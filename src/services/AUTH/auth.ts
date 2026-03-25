@@ -4,7 +4,7 @@ import { switchMap } from 'rxjs/operators';
 import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { User, UserProfile } from '../../models/User'
 import * as bcrypt from 'bcryptjs';
-import { ProfileService } from '../PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../Service_profile/profile-service';
 import { stringify } from 'uuid';
 import { Router } from '@angular/router';
 

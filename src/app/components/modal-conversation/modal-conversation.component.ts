@@ -9,7 +9,7 @@ import {
   ActionSheetController, AlertController
 } from '@ionic/angular';
 import { Subscription } from 'rxjs';
-import { MessageService, StreamEvent, PresenceData } from '../../../services/MESSAGE_SERVICE/message-service';
+import { MessageService, StreamEvent, PresenceData } from '../../../services/Service_message/message-service';
 import { DmTimePipe } from '../../utils/pipes/dmPipe/dmtime-pipe';
 import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { Conversation, Message, MessageStatus, ConversationUtils } from '../../../models/Conversation';

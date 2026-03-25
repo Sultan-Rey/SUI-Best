@@ -45,7 +45,7 @@ import {
 import { ModalController } from '@ionic/angular';
 import { ToastController } from '@ionic/angular';
 import { Challenge, ParticipantType } from '../../../models/Challenge.js';
-import { CreationService } from '../../../services/CREATION_SERVICE/creation-service.js';
+import { CreationService } from '../../../services/Service_content/creation-service.js';
 import { 
   IonIcon, 
   IonSelect, 
@@ -68,7 +68,7 @@ import {
 import { ReactiveFormsModule } from '@angular/forms';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { firstValueFrom, Subscription } from 'rxjs';
-import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service.js';
+import { ChallengeService } from 'src/services/Service_challenge/challenge-service.js';
 
 @Component({
   selector: 'app-challenge-form',

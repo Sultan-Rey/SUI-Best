@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { Observable, Subject, combineLatest, of } from 'rxjs';
 import { map, switchMap, takeUntil, catchError, startWith } from 'rxjs/operators';
-import { ProfileService } from '../../../services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../../../services/Service_profile/profile-service';
 import { UserProfile } from '../../../models/User';
 import { NgFor, NgIf, AsyncPipe } from '@angular/common';
 

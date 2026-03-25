@@ -12,13 +12,13 @@ import {
   arrowBackOutline, refreshOutline, shareOutline, shareSocial,
   chevronBackOutline, chevronForwardOutline, link
 } from 'ionicons/icons';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
+import { CreationService } from 'src/services/Service_content/creation-service';
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { GiftModalComponent } from '../modal-gift/gift-modal.component';
 import { FollowedViewComponent } from '../../tab-home/containers/followed-panel/followed-view.component';
 import { Content, ContentStatus } from 'src/models/Content';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service.js';
+import { ProfileService } from 'src/services/Service_profile/profile-service.js';
 import { ModalSelectPostComponent } from '../modal-select-post/modal-select-post.component';
 
 interface ParticipantWithStats extends UserProfile {

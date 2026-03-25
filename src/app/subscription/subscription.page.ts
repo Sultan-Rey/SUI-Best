@@ -5,7 +5,7 @@ import { AlertController, LoadingController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { UserProfile } from 'src/models/User';
 import { Plan } from '../../models/Plan';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { 
   IonContent,
   IonHeader,
@@ -28,9 +28,9 @@ import {
   trophy,
   eyeOutline,
 } from 'ionicons/icons';
-import { SubscriptionService } from 'src/services/SUBSCRIPTION_SERVICE/subscription-service';
+import { SubscriptionService } from 'src/services/Service_subscription/subscription-service';
 import { User } from 'src/models/User';
-import { UserService } from 'src/services/USER_SERVICE/user-service';
+import { UserService } from 'src/services/Service_user/user-service';
 import { firstValueFrom, map, tap } from 'rxjs';
 import { Auth } from 'src/services/AUTH/auth';
 import { environment } from 'src/environments/environment.prod';

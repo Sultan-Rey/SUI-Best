@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
-import { MessageService } from 'src/services/MESSAGE_SERVICE/message-service';
+import { MessageService } from 'src/services/Service_message/message-service';
 import { DmTimePipe } from '../../../utils/pipes/dmPipe/dmtime-pipe';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { Conversation, ConversationUtils } from 'src/models/Conversation';

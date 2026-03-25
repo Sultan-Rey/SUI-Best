@@ -3,8 +3,8 @@ import {
   ActionSheetController, AlertController,
   LoadingController, ToastController, ModalController
 } from '@ionic/angular';
-import { CameraService, MediaFile } from '../../../../services/CAMERA_SERVICE/camera-service';
-import { CreationService } from '../../../../services/CREATION_SERVICE/creation-service';
+import { CameraService, MediaFile } from '../../../../services/CAMERA/camera-service';
+import { CreationService } from '../../../../services/Service_content/creation-service';
 import { Content, ContentSource, ContentStatus } from '../../../../models/Content';
 import {
   IonButton, IonChip, IonToggle, IonTextarea, IonIcon,
@@ -23,12 +23,12 @@ import {
 } from 'ionicons/icons';
 import { Challenge } from '../../../../models/Challenge';
 import { Auth } from '../../../../services/AUTH/auth';
-import { ProfileService } from '../../../../services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../../../../services/Service_profile/profile-service';
 import { Router } from '@angular/router';
-import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
+import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { UserProfile } from 'src/models/User';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
-import { SystemMessenger } from 'src/services/MESSAGE_SERVICE/system-messenger';
+import { SystemMessenger } from 'src/services/Service_message/system-messenger';
 
 @Component({
   selector: 'app-publication',

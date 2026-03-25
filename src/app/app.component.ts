@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
-import { AnimationService } from '../services/ANIMATION_SERVICE/animation-service';
+import { AnimationService } from '../services/Animation/animation-service';
 import { NgIf, AsyncPipe } from '@angular/common';
 import { LottieComponent } from 'ngx-lottie';
 import { MediaCacheService } from 'src/services/Cache/media-cache-service';

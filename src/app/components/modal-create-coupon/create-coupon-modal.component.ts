@@ -2,8 +2,8 @@ import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgFor, NgIf, DecimalPipe } from '@angular/common';
 import { ModalController, AlertController } from '@ionic/angular';
-import { IncomeService } from 'src/services/INCOME_SERVICE/income-service';
-import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
+import { IncomeService } from 'src/services/service_income/income-service';
+import { WalletService } from 'src/services/Service_wallet/wallet-service';
 import { CouponType } from 'src/models/Coupon';
 import { Auth } from 'src/services/AUTH/auth';
 

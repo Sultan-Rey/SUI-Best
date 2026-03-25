@@ -4,7 +4,7 @@ import { Transaction } from '../../../models/Wallet';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
+import { WalletService } from 'src/services/Service_wallet/wallet-service';
 
 @Component({
   selector: 'app-transaction-history-modal',

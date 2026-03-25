@@ -5,7 +5,7 @@ import { Challenge, VoteRule } from '../../models/Challenge';
 import { Content } from 'src/models/Content';
 import { Observable, of, throwError } from 'rxjs';
 import { map, switchMap, catchError, tap, take } from 'rxjs/operators';
-import { ChallengeService } from '../CHALLENGE_SERVICE/challenge-service';
+import { ChallengeService } from '../Service_challenge/challenge-service';
 
 @Injectable({
   providedIn: 'root',

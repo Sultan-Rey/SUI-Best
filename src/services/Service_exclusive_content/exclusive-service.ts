@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
 import { ExclusiveContent, Series, Author } from '../../models/Content';
-import { ProfileService } from '../PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../Service_profile/profile-service';
 
 @Injectable({
   providedIn: 'root',
@@ -267,7 +267,7 @@ export class ExclusiveService {
   /**
    * Met à jour la liste des épisodes d'une série
    */
-  private updateSeriesEpisodes(seriesId: string): Observable<Series> {
+   updateSeriesEpisodes(seriesId: string): Observable<Series> {
     return this.getEpisodesBySeriesId(seriesId).pipe(
       switchMap(episodes => {
         const episodeIds = episodes.map(ep => ep.id);

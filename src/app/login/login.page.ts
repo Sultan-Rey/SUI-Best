@@ -1,4 +1,4 @@
-import { PreferenceService } from '../../services/PREFERENCES/preference-service';
+import { PreferenceService } from '../../services/preferences/preference-service';
 import { Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';

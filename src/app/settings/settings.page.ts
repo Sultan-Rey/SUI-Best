@@ -9,11 +9,11 @@ import { logOutOutline, chevronBackOutline, personCircleOutline, keyOutline, che
 import { ModalController, AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { ActivatedRoute } from '@angular/router';
 import { UserProfile, User } from '../../models/User';
-import { UserService } from '../../services/USER_SERVICE/user-service';
-import { PreferenceService } from '../../services/PREFERENCES/preference-service';
+import { UserService } from '../../services/Service_user/user-service';
+import { PreferenceService } from '../../services/preferences/preference-service';
 import { Setting } from '../../models/Setting';
 import * as bcrypt from 'bcryptjs';
-import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
+import { WalletService } from 'src/services/Service_wallet/wallet-service';
 
 interface PrivacySettings {
   disableLocation: boolean;

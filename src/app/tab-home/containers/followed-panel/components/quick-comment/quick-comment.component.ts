@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { IonIcon, IonInput, IonButton } from "@ionic/angular/standalone";
 import { FormsModule } from '@angular/forms';
-import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service';
+import { CommentService } from 'src/services/service_comment/comment-service';
 import { Content } from 'src/models/Content';
 import { UserProfile } from 'src/models/User';
 import { ToastController} from '@ionic/angular';

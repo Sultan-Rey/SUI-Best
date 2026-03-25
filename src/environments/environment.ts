@@ -4,10 +4,14 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost/api',  // URL de votre API PHP
+  apiUrl: 'http://192.168.0.114/api',  // URL de votre API PHP
   wsUrl: 'ws://localhost/api',
   authToken: 'demo-client-key-123',
-  adminUID:'uid_of_bestacademy'
+  adminUID:'uid_of_bestacademy',
+  MONCASH_CLIENT_ID:'7ab880c4608283f6a132c08361ced5ab',
+  MONCASH_CLIENT_SECRET:'jmyG_vJjO09JSt8EOk_N3w0GfFzChLsvI-A2jqgib6IA0gDmYZcLEYOhiXFEfROi',
+  MONCASH_BASE_URL:'https://sandbox.moncashbutton.digicelgroup.com/Api'
+
 };
 
 /*

@@ -18,8 +18,8 @@ import {
 import { ModalController, ToastController, AnimationController, LoadingController, ActionSheetController } from '@ionic/angular';
 import { Subscription, forkJoin } from 'rxjs';
 import { Challenge } from 'src/models/Challenge';
-import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
+import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
+import { CreationService } from 'src/services/Service_content/creation-service';
 import { ChallengeFormComponent } from 'src/app/components/modal-challenge-form/challenge-form.component';
 import { FollowedViewComponent } from '../followed-panel/followed-view.component';
 import { MediaUrlPipe} from '../../../utils/pipes/mediaUrlPipe/media-url-pipe';

@@ -1,13 +1,13 @@
 import { Component, Input } from '@angular/core';
 import { NgFor, NgIf, CommonModule } from '@angular/common';
 import { ModalController } from '@ionic/angular';
-import { AnimationService } from '../../../services/ANIMATION_SERVICE/animation-service';
+import { AnimationService } from '../../../services/Animation/animation-service';
 import { LottieComponent } from 'ngx-lottie';
 import { IonIcon } from '@ionic/angular/standalone';
 import { globeOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
 import { Content } from 'src/models/Content';
-import { WalletService } from 'src/services/WALLET_SERVICE/wallet-service';
+import { WalletService } from 'src/services/Service_wallet/wallet-service';
 
 @Component({
   selector: 'app-gift-modal',

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel, IonAvatar, IonButton, IonIcon, IonLoading, IonAlert } from '@ionic/angular/standalone';
-import { ProfileService } from '../../services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../../services/Service_profile/profile-service';
 import { UserProfile } from '../../models/User';
 import { ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';

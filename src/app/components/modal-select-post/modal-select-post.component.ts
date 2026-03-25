@@ -6,7 +6,7 @@ import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ShortNumberPipe } from '../../utils/pipes/shortNumberPipe/short-number-pipe.js';
 import { Content } from 'src/models/Content.js';
 import { UserProfile } from 'src/models/User.js';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service.js';
+import { CreationService } from 'src/services/Service_content/creation-service.js';
 import { addIcons } from 'ionicons';
 import { eye, close, checkmark, play, image } from 'ionicons/icons';
 

@@ -3,7 +3,7 @@ import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signO
 import { Firestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc } from '@angular/fire/firestore';
 import { BehaviorSubject, Observable, throwError, of, firstValueFrom } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from 'src/services/Service_profile/profile-service';
 
 export type AuthUser = {
   id: string;

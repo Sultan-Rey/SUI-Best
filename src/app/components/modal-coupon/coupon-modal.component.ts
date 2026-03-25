@@ -6,11 +6,11 @@ import { IonicModule, ModalController, AlertController, ToastController } from '
 import { addIcons } from 'ionicons';
 import { Coupon } from '../../../models/Coupon';
 import { Auth } from '../../../services/AUTH/auth';
-import { ProfileService } from '../../../services/PROFILE_SERVICE/profile-service';
-import { WalletService } from '../../../services/WALLET_SERVICE/wallet-service';
+import { ProfileService } from '../../../services/Service_profile/profile-service';
+import { WalletService } from '../../../services/Service_wallet/wallet-service';
 import { switchMap, map, catchError, filter } from 'rxjs/operators';
 import { forkJoin, take, of, tap, Observable } from 'rxjs';
-import { VoteService } from 'src/services/VOTE_SERVICE/vote-service';
+import { VoteService } from 'src/services/Service_vote/vote-service';
 import { VoteRule } from 'src/models/Challenge';
 import { stringify } from 'uuid';
 import { UserProfile } from 'src/models/User';
@@ -34,8 +34,8 @@ import {
   ellipsisHorizontal
 } from 'ionicons/icons';
 import { Vote, VoteStatusResponse } from 'src/models/Vote';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
-import { ChallengeService } from 'src/services/CHALLENGE_SERVICE/challenge-service';
+import { CreationService } from 'src/services/Service_content/creation-service';
+import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { BuyCouponModalComponent } from '../modal-buy-coupon/buy-coupon-modal.component';
 
 // Interface pour les coupons

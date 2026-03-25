@@ -4,15 +4,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { UserProfile } from 'src/models/User';
-import { CreationService } from 'src/services/CREATION_SERVICE/creation-service';
+import { CreationService } from 'src/services/Service_content/creation-service';
 import { ModalController, ToastController } from '@ionic/angular';
 import { map, filter, switchMap, forkJoin, of, take, finalize, catchError } from 'rxjs';
-import { ProfileService } from 'src/services/PROFILE_SERVICE/profile-service';
+import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { assignDiscoveryLayout } from 'src/app/utils/discovery-layout.utils';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { FollowedViewComponent } from '../followed-panel/followed-view.component';
 import { Router } from '@angular/router';
-import { CommentService } from 'src/services/COMMENTS_SERVICE/comment-service';
+import { CommentService } from 'src/services/service_comment/comment-service';
 import { Segment } from 'src/models/Segment';
 export interface DiscoveryAuthor {
   name: string;

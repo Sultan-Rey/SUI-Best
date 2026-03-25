@@ -20,7 +20,7 @@ import {
 } from 'ionicons/icons';
 import { Observable, combineLatest, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
-import { ExclusiveService } from '../../services/EXCLUSIVE_SERVICE/exclusive-service';
+import { ExclusiveService } from '../../services/Service_exclusive_content/exclusive-service';
 import { ExclusiveContent, Series } from '../../models/Content';
 
 // ─── Models ───────────────────────────────────────────────────────────────────

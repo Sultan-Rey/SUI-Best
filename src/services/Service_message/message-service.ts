@@ -3,7 +3,7 @@ import { Observable, BehaviorSubject, of, forkJoin, throwError } from 'rxjs';
 import { map, tap, catchError, switchMap } from 'rxjs/operators';
 import { map as rxMap } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
-import { ProfileService } from '../PROFILE_SERVICE/profile-service';
+import { ProfileService } from '../Service_profile/profile-service';
 import {
   Conversation, Message, MessageStatus,
   ConversationStatus, ConversationUtils
