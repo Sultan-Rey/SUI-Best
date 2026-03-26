@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
- apiUrl: 'https://apis.majorware.net/best_academy_production_api',  // URL de votre API PHP
+  apiUrl: 'https://apis.majorware.net/best_academy_production_api',  // URL de votre API PHP
   adminUID:'uid_of_bestacademy',
   firebase: {
   apiKey: "AIzaSyCEFjACaqVbWIdxcnoZ080MlokHpF-uY7c",
