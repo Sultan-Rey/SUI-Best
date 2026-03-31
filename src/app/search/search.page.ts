@@ -23,27 +23,25 @@ import { Router } from '@angular/router';
 import { ModalController } from '@ionic/angular';
 import { ModalConversationComponent } from '../components/modal-conversation/modal-conversation.component';
 import { MessageService } from 'src/services/Service_message/message-service';
+import { HeaderComponentComponent } from "../components/header-component/header-component.component";
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
   styleUrls: ['./search.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [NgIf, IonButton, 
-    IonContent, 
-    IonHeader, 
-    IonTitle, 
+  imports: [NgIf, IonButton,
+    IonContent,
+    IonHeader,
+    IonTitle,
     IonToolbar,
     IonSearchbar,
     IonIcon,
     IonSkeletonText,
-    IonButtons,
-    IonBackButton,
-    CommonModule, 
+    CommonModule,
     FormsModule,
     ShortNumberPipe,
-    MediaUrlPipe
-  ]
+    MediaUrlPipe, HeaderComponentComponent]
 })
 export class SearchPage implements OnInit, OnDestroy, AfterViewInit {
   searchQuery = '';

@@ -1,19 +1,11 @@
-<!-- <ion-header [translucent]="true" class="header">
-  <ion-toolbar class="header-toolbar">
-    <div class="search-container">
-      <div class="search-wrapper">
-        <ion-icon name="search" class="search-icon"></ion-icon>
-        <input
-          type="text"
-          placeholder="Search Artists..."
-          class="search-input"
-        />
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-header> -->
 <app-header-component></app-header-component>
-<ion-content [fullscreen]="true" color="dark">
+<ion-content [fullscreen]="false" color="dark">
+  <!-- Refresher pour pull-to-refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content pullingIcon="circular" pullingText="Tirer pour rafraîchir" refreshingSpinner="circles" refreshingText="Chargement...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <div class="ranking-container">
     <!-- Header Section -->
     <div class="header-section">
@@ -21,7 +13,7 @@
       <p class="subtitle">Découvrez les talents qui font vibrer notre communauté</p>
       
       <!-- Tab Buttons -->
-      <div class="tab-buttons">
+      <!-- <div class="tab-buttons">
         <ion-button 
           [fill]="selectedTab === 'votes' ? 'solid' : 'outline'" 
           [color]="selectedTab === 'votes' ? 'warning' : 'medium'"
@@ -30,7 +22,7 @@
           <ion-icon name="trophy" slot="start"></ion-icon>
           Top Votes
         </ion-button>
-        <ion-button 
+         <ion-button 
           [fill]="selectedTab === 'dons' ? 'solid' : 'outline'" 
           [color]="selectedTab === 'dons' ? 'warning' : 'medium'"
           (click)="selectTab('dons')"
@@ -38,7 +30,7 @@
           <ion-icon name="cash" slot="start"></ion-icon>
           Top Dons
         </ion-button>
-      </div>
+      </div> -->
     </div>
 
     <!-- Loading State -->
@@ -51,7 +43,22 @@
     <!-- SECTION VOTES (affichée uniquement si votes) -->
     <!-- ============================================ -->
     <ng-container *ngIf="!isLoading && selectedTab === 'votes'">
+      <!-- Empty State - Pas de défis -->
+      <div *ngIf="!challengeRankings || challengeRankings.length === 0" class="empty-state">
+        <div class="empty-icon">🏆</div>
+        <h3 class="empty-title">Aucun classement disponible</h3>
+        <p class="empty-description">
+          Suivez des créateurs pour voir leurs défis dans le classement.
+        </p>
+        <ion-button fill="clear" class="empty-action" (click)="openSearch()">
+          <ion-icon name="search" slot="start"></ion-icon>
+          Explorer les créateurs
+        </ion-button>
+      </div>
+
+      <!-- Contenu normal quand il y a des défis -->
       <app-votes-ranking 
+        *ngIf="challengeRankings && challengeRankings.length > 0"
         [isLoading]="isLoading"
         [challengeRankings]="challengeRankings"
         [topArtists]="topArtists"
@@ -59,18 +66,7 @@
       </app-votes-ranking>
     </ng-container>
 
-    <!-- ============================================ -->
-    <!-- SECTION DONS (affichée uniquement si dons)  -->
-    <!-- ============================================ -->
-    <ng-container *ngIf="!isLoading && selectedTab === 'dons'">
-      <app-donations-ranking 
-        [isLoading]="isLoading"
-        [topDonors]="topDonors"
-        [donorTiers]="donorTiers"
-        (viewDonor)="onViewDonor($event)">
-      </app-donations-ranking>
-    </ng-container>
+  
   </div>
   
- 
 </ion-content>

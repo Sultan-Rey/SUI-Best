@@ -7,7 +7,9 @@ import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre Api
 import { IncomeService } from '../service_income/income-service';
 import { Pack, CouponTypeInfo, CouponValidation } from '../../interfaces/income.interfaces';
 import { Auth } from '../AUTH/auth';
-
+// Import de l'environnement pour récupérer l'adminUID
+import { environment } from '../../environments/environment';
+  
 // Interface locale pour compatibilité
 export interface UserBalance {
   coins: number;
@@ -158,7 +160,7 @@ export class WalletService {
    * Crée un nouveau wallet pour l'utilisateur
    */
   createWallet(userId: string): Observable<Wallet> {
-    console.log('🔄 Création d\'un nouveau wallet pour l\'utilisateur:', userId);
+   // console.log('🔄 Création d\'un nouveau wallet pour l\'utilisateur:', userId);
     
     const newWallet = {
       userId,
@@ -382,69 +384,6 @@ export class WalletService {
       balance: updatedBalance,
       coupons: currentWallet.coupons || []
     });
-  }
-
-  /**
-   * Factorisation - Traite l'achat d'un pack de coupons
-   */
-   private purchaseCouponsPack(currentWallet: Wallet, pack: Pack, paymentMethod: string, buyerId: string): Observable<Wallet> {
-    // Préparer les mises à jour pour le pack
-    const currentHolders: string[] = (pack.holder || []).map(h => String(h));
-    const currentQtySold = pack.qtySold || 0;
-    
-    const newHolders: string[] = [...currentHolders, String(buyerId)];
-    
-    const packUpdates: Partial<Pack> = {
-      holder: newHolders,
-      qtySold: currentQtySold + 1
-    };
-
-    // Créer la transaction pour l'achat de coupons
-    const transaction: Transaction = {
-      id: this.generateTransactionId(),
-      walletId: currentWallet.id,
-      type: 'purchase',
-      amount: pack.amount,
-      itemType: 'coupons',
-      description: `Achat de ${pack.amount} coupons`,
-      date: new Date().toISOString(),
-      price: pack.price,
-      paymentMethod,
-      metadata: { packId: pack.id }
-    };
-
-    // Mettre à jour le wallet avec la nouvelle transaction et balance
-    const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
-    const updatedTransactions = [transaction, ...currentTransactions];
-    
-    // Les coupons sont gérés via les propriétés holder et qtySold du pack
-    const updatedBalance = {
-      coins: currentWallet.balance.coins || 0,
-      coupons: (currentWallet.balance.coupons || 0) + pack.amount
-    };
-
-    // D'abord mettre à jour le pack, puis générer les coupons individuels et mettre à jour le wallet
-    return this.incomeService.updatePack(pack.id, packUpdates).pipe(
-      switchMap((updatedPack) => {
-        // Succès de la mise à jour du pack, maintenant générer les coupons individuels
-        return this.generateIndividualCoupons(pack, currentWallet).pipe(
-          switchMap((walletWithCoupons) => {
-            // Mettre à jour le wallet avec la transaction et la balance
-            return this.updateWallet({
-              transactions: updatedTransactions,
-              balance: updatedBalance,
-              coupons: walletWithCoupons.coupons // Utiliser les coupons générés
-            });
-          })
-        );
-      }),
-      catchError((error) => {
-        console.error('❌ Erreur lors de la mise à jour du pack:', error);
-        // Rembourser les coins en cas d'erreur
-        this.addCoins(pack.price).subscribe();
-        return throwError(() => new Error('Erreur lors de la mise à jour du pack'));
-      })
-    );
   }
 
   private loadUserWalletAndGet(userId: string): Observable<Wallet | null> {
@@ -788,4 +727,128 @@ export class WalletService {
   refreshWallet(userId: string): void {
     this.loadUserWallet(userId);
   }
+
+  /**
+   * Méthode publique pour l'achat de packs de coupons
+   */
+  purchaseCouponsPack(currentWallet: Wallet, pack: Pack, paymentMethod: string, buyerId: string): Observable<Wallet> {
+    // Créer la transaction pour l'achat de coupons
+    const transaction: Transaction = {
+      id: this.generateTransactionId(),
+      walletId: currentWallet.id,
+      type: 'purchase',
+      amount: pack.amount,
+      itemType: 'coupons',
+      description: `Achat de ${pack.amount} coupons`,
+      date: new Date().toISOString(),
+      price: pack.price,
+      paymentMethod,
+      metadata: { packId: pack.id }
+    };
+
+    // Mettre à jour le wallet avec la nouvelle transaction et générer les coupons
+    const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
+    const updatedTransactions = [transaction, ...currentTransactions];
+    
+    const updatedBalance = {
+      coins: (currentWallet.balance.coins || 0) - pack.price,
+      coupons: (currentWallet.balance.coupons || 0) + pack.amount
+    };
+
+    return this.generateIndividualCoupons(pack, currentWallet).pipe(
+      switchMap(walletWithCoupons => {
+        return this.updateWallet({
+          transactions: updatedTransactions,
+          balance: updatedBalance,
+          coupons: walletWithCoupons.coupons || []
+        });
+      })
+    );
+  }
+
+  /**
+ * Met à jour les transactions du wallet de l'administrateur système
+ * @param transactions - Nouvelles transactions à ajouter ou remplacer
+ * @param replace - Si true, remplace toutes les transactions; si false, ajoute à l'existant
+ */
+updateAdminWalletTransactions(transactions: Transaction[], replace: boolean = false): Observable<Wallet> {
+  
+  return this.auth.getAdminUID().pipe(
+    switchMap(adminId => {
+      if (!adminId) {
+        return throwError(() => new Error('Admin UID not found'));
+      }
+
+      // Récupérer le wallet de l'admin
+      return this.api.get<Wallet>(this.WALLET_RESOURCE, { userId: adminId }).pipe(
+        map(response => {
+          if (Array.isArray(response)) {
+            return response.length > 0 ? response[0] : null;
+          }
+          return response;
+        }),
+        switchMap(adminWallet => {
+          if (!adminWallet) {
+            // Créer le wallet de l'admin s'il n'existe pas
+            return this.createWallet(adminId);
+          }
+          return of(adminWallet);
+        }),
+        switchMap(adminWallet => {
+          const currentTransactions = Array.isArray(adminWallet.transactions) ? adminWallet.transactions : [];
+          const updatedTransactions = replace ? transactions : [...transactions, ...currentTransactions];
+
+          return this.api.update<Wallet>(this.WALLET_RESOURCE, adminWallet.id, {
+            transactions: updatedTransactions
+          });
+        }),
+        catchError(error => {
+          console.error('❌ Erreur lors de la mise à jour des transactions du wallet admin:', error);
+          return throwError(() => new Error(`Failed to update admin wallet transactions: ${error.message}`));
+        })
+      );
+    })
+  );
+}
+
+ /**
+ * Crée une transaction d'utilisation de coupon et l'ajoute au wallet de l'administrateur
+ * @param couponId - ID du coupon utilisé
+ * @param usageValue - Valeur d'utilisation du coupon
+ * @param userId - ID de l'utilisateur qui utilise le coupon
+ * @param contentId - ID du contenu concerné (optionnel)
+ * @param challengeId - ID du challenge concerné (optionnel)
+ * @returns Observable<Wallet> - Le wallet de l'admin mis à jour
+ */
+createCouponUsageTransaction(
+  couponId: string, 
+  usageValue: number, 
+  userId: string, 
+  contentId?: string, 
+  challengeId?: string
+): Observable<Wallet> {
+  
+  // Créer la transaction d'utilisation
+  const transaction: Transaction = {
+    id: 'TR_'+couponId,
+    walletId: `admin_${this.auth.getAdminUID()}`, // Référence au wallet admin
+    type: 'usage',
+    amount: usageValue,
+    itemType: 'coupons',
+    description: `Utilisation de coupon ${couponId} par utilisateur ${userId}`,
+    date: new Date().toISOString(),
+    metadata: {
+      couponId,
+      userId,
+      contentId,
+      challengeId,
+      usageValue,
+      actionType: 'coupon_usage'
+    }
+  };
+
+  // Ajouter cette transaction au wallet de l'admin
+  return this.updateAdminWalletTransactions([transaction], false);
+}
+
 }

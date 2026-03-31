@@ -58,21 +58,21 @@
       >
         <!-- Thumbnail -->
         <div class="card-thumb" [ngClass]="{ 'is-locked': item.locked }">
-          <img *ngIf="item.thumbnail && !item.locked" [src]="item.thumbnail" [alt]="item.title" />
+          <img *ngIf="item.media?.thumbnail && !item.locked" [src]="item.media.thumbnail" [alt]="item.title" />
           <div class="lock-overlay" *ngIf="item.locked">
             <div class="lock-icon-wrap">
               <ion-icon name="lock-closed-outline"></ion-icon>
             </div>
             <span class="lock-price">{{ item.price }}€</span>
           </div>
-          <div class="card-duration-badge" *ngIf="item.duration">
+          <div class="card-duration-badge" *ngIf="item.media?.duration">
             <ion-icon name="time-outline"></ion-icon>
-            {{ item.duration }}
+            {{ item.media.duration }}s
           </div>
           <!-- Badge Série -->
-          <div class="series-badge" *ngIf="item.isSeries">
+          <div class="series-badge" *ngIf="item.series?.isSeries">
             <ion-icon name="play"></ion-icon>
-            {{ item.totalEpisodes }} épisodes
+            {{ item.series?.totalEpisodes }} épisodes
           </div>
         </div>
 
@@ -86,25 +86,21 @@
               </div>
               <span class="author-name">{{ item.author.name }}</span>
             </div>
-            <div class="views-row">
-              <ion-icon name="eye-outline"></ion-icon>
-              {{ item.viewCount || 0 }}
-            </div>
           </div>
           <button
             class="btn-buy"
             *ngIf="item.locked"
             (click)="onBuy(item, $event)"
           >
-            Acheter {{ item.price }}€
+            Acheter {{ item.price }}HTG
           </button>
           <button
             class="btn-watch"
             *ngIf="!item.locked"
             (click)="onWatch(item, $event)"
           >
-            <span *ngIf="!item.isSeries">Regarder</span>
-            <span *ngIf="item.isSeries">Voir la série</span>
+            <span *ngIf="!item.series?.isSeries">Regarder</span>
+            <span *ngIf="item.series?.isSeries">Voir la série</span>
           </button>
         </div>
       </div>
@@ -126,7 +122,7 @@
       <!-- LIVE card -->
       <ng-container *ngIf="item.isLive">
         <div class="content-thumb live-thumb">
-          <img [src]="item.thumbnail" [alt]="item.title" />
+          <img [src]="item.media.thumbnail" [alt]="item.title" />
           <div class="live-badge">
             <span class="live-dot"></span>
             LIVE
@@ -136,7 +132,7 @@
           </div>
           <div class="thumb-type-badge">LIVE</div>
           <!-- Badge Série -->
-          <div class="series-badge" *ngIf="item.isSeries">
+          <div class="series-badge" *ngIf="item.series?.isSeries">
             <ion-icon name="play"></ion-icon>
             Série
           </div>
@@ -149,10 +145,6 @@
                 {{ item.author.initials }}
               </div>
               <span class="author-name">{{ item.author.name }}</span>
-            </div>
-            <div class="views-row">
-              <ion-icon name="eye-outline"></ion-icon>
-              {{ item.viewCount || 0 }}
             </div>
           </div>
         </div>
@@ -167,13 +159,13 @@
             </div>
             <span class="lock-big-price">{{ item.price }}€</span>
           </div>
-          <div class="card-duration-badge top-right" *ngIf="item.duration">
+          <div class="card-duration-badge top-right" *ngIf="item.media.duration">
             <ion-icon name="time-outline"></ion-icon>
-            {{ item.duration }}
+            {{ item.media.duration }}s
           </div>
           <!-- Badge Épisode -->
-          <div class="episode-badge" *ngIf="item.episodeNumber">
-            Ép. {{ item.episodeNumber }}
+          <div class="episode-badge" *ngIf="item.series?.episodeNumber">
+            Ép. {{ item.series?.episodeNumber }}
           </div>
         </div>
         <div class="content-info">
@@ -185,10 +177,6 @@
               </div>
               <span class="author-name">{{ item.author.name }}</span>
             </div>
-            <div class="views-row">
-              <ion-icon name="eye-outline"></ion-icon>
-              {{ item.viewCount || 0 }}
-            </div>
           </div>
         </div>
         <button class="btn-buy-full" (click)="onBuy(item, $event)">
@@ -199,17 +187,17 @@
       <!-- FREE / UNLOCKED full card -->
       <ng-container *ngIf="!item.isLive && !item.locked">
         <div class="content-thumb">
-          <img [src]="item.thumbnail" [alt]="item.title" />
-          <div class="card-duration-badge top-right" *ngIf="item.duration">
+          <img [src]="item.media.thumbnail" [alt]="item.title" />
+          <div class="card-duration-badge top-right" *ngIf="item.media.duration">
             <ion-icon name="time-outline"></ion-icon>
-            {{ item.duration }}
+            {{ item.media.duration }}s
           </div>
           <!-- Badge Épisode -->
-          <div class="episode-badge" *ngIf="item.episodeNumber">
-            Ép. {{ item.episodeNumber }}
+          <div class="episode-badge" *ngIf="item.series?.episodeNumber">
+            Ép. {{ item.series?.episodeNumber }}
           </div>
           <!-- Badge Série -->
-          <div class="series-badge" *ngIf="item.isSeries">
+          <div class="series-badge" *ngIf="item.series?.isSeries">
             <ion-icon name="play"></ion-icon>
             Série
           </div>
@@ -222,10 +210,6 @@
                 {{ item.author.initials }}
               </div>
               <span class="author-name">{{ item.author.name }}</span>
-            </div>
-            <div class="views-row">
-              <ion-icon name="eye-outline"></ion-icon>
-              {{ item.viewCount || 0 }}
             </div>
           </div>
         </div>

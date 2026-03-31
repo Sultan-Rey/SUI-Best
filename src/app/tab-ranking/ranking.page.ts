@@ -1,30 +1,26 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ModalController } from '@ionic/angular';
+import { RefresherCustomEvent } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { starOutline, cash, search, diamond, ribbon, trophy, trophyOutline, checkmarkCircle, trendingUp, gift, heart } from 'ionicons/icons';
+import { search, diamond, ribbon, trophy, cash, trophyOutline, checkmarkCircle, trendingUp, gift, heart, starOutline } from 'ionicons/icons';
 import { ChallengeService } from '../../services/Service_challenge/challenge-service';
 import { CreationService } from '../../services/Service_content/creation-service';
 import { VoteService } from '../../services/Service_vote/vote-service';
 import { ProfileService } from '../../services/Service_profile/profile-service';
-import { forkJoin, Observable, of } from 'rxjs';
-import { switchMap, map, catchError } from 'rxjs/operators';
+import { forkJoin, Observable, of, Subject, from } from 'rxjs';
+import { switchMap, map, catchError, takeUntil, filter, take } from 'rxjs/operators';
 import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import { 
   IonContent, 
-  IonHeader, 
-  IonToolbar, 
-  IonButton,
-  IonIcon,
-  IonCard,
-  IonCardContent,
-  IonSpinner
-} from '@ionic/angular/standalone';
+  IonSpinner, IonRefresher, IonRefresherContent, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { Artist } from 'src/models/User';
 import { VotesRankingComponent } from '../components/view-votes-ranking/votes-ranking.component';
-import { DonationsRankingComponent } from '../components/view-donations-ranking/donations-ranking.component';
-
-
+import { ModalRankingComponent } from '../components/modal-ranking/modal-ranking.component';
+import { UserProfile } from 'src/models/User';
+import { Auth } from 'src/services/AUTH/auth';
+import { Router } from '@angular/router';
 
 interface Donor {
   id: string;
@@ -61,24 +57,33 @@ interface ChallengeRanking {
   templateUrl: './ranking.page.html',
   styleUrls: ['./ranking.page.scss'],
   standalone: true,
-  imports: [
+  providers: [ModalController],
+  imports: [IonRefresherContent, IonRefresher, 
     CommonModule,
     FormsModule,
     HeaderComponentComponent,
     IonContent,
+    IonSpinner,
     IonButton,
     IonIcon,
-    IonSpinner,
-    VotesRankingComponent,
-    DonationsRankingComponent
+    VotesRankingComponent
   ]
 })
-export class RankingPage implements OnInit {
+export class RankingPage implements OnInit, OnDestroy {
   selectedTab: 'votes' | 'dons' = 'votes';
   isLoading = true;
   challengeRankings: ChallengeRanking[] = [];
   allArtists: Artist[] = [];
   topArtists: Artist[] = [];
+
+  private destroy$ = new Subject<void>();
+  
+  // Modal properties
+  showRankingModal: boolean = false;
+  selectedRanking: ChallengeRanking | null = null;
+  
+  // User profile
+  currentUserProfile: UserProfile | null = null;
 
   topDonors: Donor[] = [];
   donorTiers: DonorTier[] = [
@@ -186,7 +191,10 @@ export class RankingPage implements OnInit {
     private challengeService: ChallengeService,
     private creationService: CreationService,
     private voteService: VoteService,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    private auth: Auth,
+    private router: Router,
+    private modalCtrl: ModalController
   ) {
     addIcons({search,diamond,ribbon, trophy,cash,trophyOutline,checkmarkCircle,trendingUp,gift,heart,starOutline});
   }
@@ -196,7 +204,25 @@ export class RankingPage implements OnInit {
     this.loadDonorsData();
   }
 
-    // Ajoutez cette méthode dans ngOnInit ou loadRankingData
+  // Méthode pour gérer le pull-to-refresh
+  doRefresh(event: RefresherCustomEvent) {
+    console.log('Rafraîchissement du classement...');
+    
+    // Recharger les données
+    this.loadRankingData();
+    this.loadDonorsData();
+    
+    // Terminer le refresher après 1 seconde pour montrer l'animation
+    setTimeout(() => {
+      event.detail.complete();
+    }, 1000);
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   loadDonorsData() {
     // Simuler le chargement des données
     this.topDonors = this.mockDonors;
@@ -226,121 +252,103 @@ export class RankingPage implements OnInit {
     
     const progress = ((donor.totalDonations - currentTier.minAmount) / 
                      (nextTier.minAmount - currentTier.minAmount)) * 100;
-    return Math.min(Math.max(progress, 0), 100);
-  }
-
-
-
-  loadRankingData() {
+  
+                     return progress;
+                    }
+  
+ async loadRankingData() {
     this.isLoading = true;
     
-    // Charger les défis actifs
-    this.challengeService.getActiveChallenges().pipe(
-      switchMap(challenges => {
-        if (!challenges || challenges.length === 0) {
-          return of([]);
-        }
-        
-        const rankings$ = challenges.map(challenge => 
-          this.getChallengeRanking(challenge)
-        );
-        return forkJoin(rankings$);
-      })
-    ).subscribe({
-      next: (rankings: ChallengeRanking[]) => {
-        this.challengeRankings = rankings.filter(r => r.artists.length > 0);
-        this.prepareArtistsData();
+    try {
+      // 1- Récupérer le profil utilisateur courant
+      const currentUser = this.auth.getCurrentUser();
+      if (!currentUser) {
         this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading ranking data:', error);
-        this.isLoading = false;
+        return;
       }
-    });
-  }
-
-  private getChallengeRanking(challenge: any): Observable<ChallengeRanking> {
-    // Étape 1: Récupérer les participants réels du défi
-    return this.creationService.getChallengeParticipantProfiles(challenge.id).pipe(
-      switchMap((participants: any[]) => {
-        if (!participants || participants.length === 0) {
-          return of({
+      
+      const currentProfile = await this.profileService.getProfileById(currentUser.id).toPromise();
+      this.currentUserProfile = currentProfile as UserProfile;
+      
+      // 2- Récupérer les challenges actifs des créateurs suivis
+      const challenges = await this.challengeService.getActiveChallenges().toPromise();
+      const followedCreatorIds = this.currentUserProfile?.myFollows || [];
+      const filteredChallenges = challenges?.filter(challenge => 
+        followedCreatorIds.includes(challenge.creator_id)
+      );
+      
+      if (!filteredChallenges || filteredChallenges.length === 0) {
+        this.challengeRankings = [];
+        this.isLoading = false;
+        return;
+      }
+      
+      // 3- Récupérer tous les contenus de ces challenges
+      const allContents = await this.creationService.getContents({}).toPromise();
+      const challengeContents = allContents?.filter(content => 
+        filteredChallenges.some(challenge => challenge.id === content.challengeId)
+      );
+      
+      // 4- Créer les classements simples
+      const rankings = await Promise.all(
+        filteredChallenges.map(async (challenge) => {
+          // Récupérer les contenus de ce challenge
+          const contents = challengeContents?.filter(c => c.challengeId === challenge.id);
+          
+          if(!contents){
+            return null;
+          }
+          
+          // Grouper par utilisateur et compter les votes
+          const userVotesMap = new Map<string, number>();
+          
+          for (const content of contents) {
+            const votes = await this.voteService.getTotalVotesForContent(content.id || '').toPromise();
+            const currentVotes = userVotesMap.get(content.userId) || 0;
+            userVotesMap.set(content.userId, currentVotes + (votes||0));
+          }
+          
+          // Récupérer les profils des créateurs
+          const artists: Artist[] = [];
+          for (const [userId, totalVotes] of userVotesMap.entries()) {
+            const userProfile = await this.profileService.getProfileById(userId).toPromise();
+            artists.push({
+              id: userId,
+              name: userProfile?.displayName || userProfile?.username || 'Artiste inconnu',
+              imageUrl: userProfile?.avatar || 'assets/icon/avatar-default.png',
+              category: 'Artiste',
+              votes: totalVotes,
+              rank: 0
+            });
+          }
+          
+          // Trier par votes
+          artists.sort((a, b) => b.votes - a.votes);
+          artists.forEach((artist, index) => {
+            artist.rank = index + 1;
+          });
+          
+          return {
             challengeId: challenge.id,
             challengeName: challenge.name,
-            artists: []
-          });
-        }
-
-        // Étape 2: Récupérer tous les contenus du défi pour calculer les votes
-        return this.creationService.getContents({ChallengeId:challenge.id}).pipe(
-          switchMap((contents: any[]) => {
-            // Étape 3: Calculer les votes pour chaque participant
-            const participantsWithVotes$ = participants.map((participant: any) => {
-              // Filtrer les contenus de ce participant
-              const participantContents = contents.filter((content: any) => content.userId === participant.id);
-              
-              // Calculer le total des votes pour tous ses contenus
-              const votesForParticipant$ = participantContents.length > 0 
-                ? forkJoin(
-                    participantContents.map((content: any) => 
-                      this.voteService.getTotalVotesForContent(content.id || '')
-                    )
-                  ).pipe(
-                    map(votesArray => votesArray.reduce((total, votes) => total + votes, 0))
-                  )
-                : of(0); // Aucun contenu = 0 votes
-
-              return votesForParticipant$.pipe(
-                map(totalVotes => ({
-                  participant,
-                  totalVotes,
-                  contentCount: participantContents.length
-                }))
-              );
-            });
-
-            return forkJoin(participantsWithVotes$).pipe(
-              map((participantsData: any[]) => {
-                // Étape 4: Transformer en objets Artist et trier
-                const artists: Artist[] = participantsData.map(({ participant, totalVotes, contentCount }: any) => ({
-                  id: participant.id,
-                  name: participant.displayName || participant.username || 'Artiste inconnu',
-                  imageUrl: participant.avatar || 'assets/icon/avatar-default.png',
-                  category: 'Artiste',
-                  votes: totalVotes,
-                  contentCount: contentCount, // Utile pour le debug
-                  rank: 0 // Sera calculé après le tri
-                }));
-
-                // Trier par nombre de votes décroissant
-                artists.sort((a, b) => b.votes - a.votes);
-                
-                // Ajouter le rang
-                artists.forEach((artist, index) => {
-                  artist.rank = index + 1;
-                });
-
-                return {
-                  challengeId: challenge.id,
-                  challengeName: challenge.name,
-                  coverImage: challenge.cover_image_url,
-                  description: challenge.description,
-                  artists: artists
-                };
-              })
-            );
-          })
-        );
-      }),
-      catchError(error => {
-        console.error(`Error getting ranking for challenge ${challenge.id}:`, error);
-        return of({
-          challengeId: challenge.id,
-          challengeName: challenge.name,
-          artists: []
-        });
-      })
-    );
+            coverImage: challenge.cover_image_url,
+            description: challenge.description,
+            artists: artists
+          };
+        })
+      );
+      
+      // Filtrer les résultats nuls et assigner
+      this.challengeRankings = rankings.filter(r => r !== null) as ChallengeRanking[];
+      
+      // Préparer les données pour l'affichage
+      this.prepareArtistsData();
+      this.isLoading = false;
+      
+    } catch (error) {
+      console.error('Error loading ranking data:', error);
+      this.isLoading = false;
+    }
   }
 
   private prepareArtistsData() {
@@ -376,25 +384,15 @@ export class RankingPage implements OnInit {
     this.topArtists = this.allArtists.slice(0, 6);
   }
 
-  formatVotes(votes: number): string {
-    if (votes >= 1000000) {
-      return (votes / 1000000).toFixed(1) + 'M';
-    }
-    if (votes >= 1000) {
-      return (votes / 1000).toFixed(1) + 'K';
-    }
-    return votes.toString();
+ 
+openSearch() {
+   this.router.navigate(['/search']);
   }
 
   selectTab(tab: 'votes' | 'dons') {
     this.selectedTab = tab;
     console.log("Tab is : ",this.selectedTab);
     // Implémentez la logique pour l'onglet "dons" si nécessaire
-  }
-
-  toggleFavorite(artist: Artist) {
-    artist.isFavorite = !artist.isFavorite;
-    // Implémentez la logique pour sauvegarder les favoris si nécessaire
   }
 
   // Gestion des erreurs d'image
@@ -411,9 +409,17 @@ export class RankingPage implements OnInit {
   }
 
   // Méthode pour afficher le classement complet d'un défi
-  onViewChallenge(challengeId: string) {
-    // Implémentez la logique pour afficher le classement complet
-    console.log('View challenge ranking:', challengeId);
+  async onViewChallenge(ranking: any) {
+     const modal = await this.modalCtrl.create({
+          component: ModalRankingComponent,
+          componentProps: { ranking: ranking},
+          cssClass: 'auto-height',
+          initialBreakpoint: 0.75,
+          breakpoints: [0, 0.75, 1],
+          handle: true
+        });
+        
+        await modal.present();
   }
 
   // Méthode appelée lorsqu'un donateur est sélectionné

@@ -1,0 +1,234 @@
+<div class="content-wrapper">
+  <div class="post-content-header">
+    <div class="post-content-toolbar">
+      <div class="toolbar-start">
+        <button class="back-button" (click)="prevStep()" *ngIf="currentStep > 1">
+          <ion-icon name="arrow-back"></ion-icon>
+        </button>
+      </div>
+      <div class="toolbar-title">
+        <span *ngIf="currentStep === 1">Nouvelle publication</span>
+        <span *ngIf="currentStep === 2">Détails</span>
+        <span *ngIf="currentStep === 3">Associer un défi</span>
+      </div>
+      <div class="toolbar-end">
+        <button class="next-button" (click)="nextStep()" [disabled]="!canProceed()" *ngIf="currentStep < totalSteps">
+          <span>Suivant</span>
+        </button>
+        <button class="submit-button" (click)="submit()" [disabled]="!canSubmit() || isUploading" *ngIf="currentStep === totalSteps">
+          <ion-spinner *ngIf="isUploading" name="crescent" class="submit-spinner"></ion-spinner>
+          <span>{{ isUploading ? 'Publication...' : 'Publier' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="step-indicators">
+      <div class="step-dot"
+           *ngFor="let s of [1,2,3]"
+           [class.active]="currentStep === s"
+           [class.done]="currentStep > s">
+      </div>
+    </div>
+  </div>
+
+  <div class="steps-container">
+
+<!-- ══════════════════════════════════ -->
+<!-- ÉTAPE 1 · Sélection média         -->
+<!-- ══════════════════════════════════ -->
+<div *ngIf="currentStep === 1" class="gallery-step step-enter">
+
+  <!-- Zone principale : spinner / drop-zone / preview -->
+  <div class="media-zone" [class.has-media]="hasMedia">
+
+    <!-- Chargement en cours -->
+    <div *ngIf="isPickingMedia" class="picking-overlay">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Chargement…</p>
+    </div>
+
+    <!-- Aucun média -->
+    <div *ngIf="!hasMedia && !isPickingMedia" class="drop-zone" (click)="pickFromGallery()">
+      <div class="drop-icon-wrap">
+        <ion-icon name="image-outline"></ion-icon>
+      </div>
+      <p class="drop-title">Choisissez une photo ou une vidéo</p>
+      <p class="drop-sub">JPG, PNG, MP4 · Max 50 Mo</p>
+    </div>
+
+    <!-- Preview du média actif dans le carrousel -->
+    <div *ngIf="hasMedia && !isPickingMedia" class="preview-zone">
+
+      <img
+        *ngIf="isImage()"
+        [src]="activeMedia!.previewUrl"
+        class="preview-media"
+        alt="Aperçu">
+
+      <video
+        *ngIf="isVideo()"
+        [src]="activeMedia!.previewUrl"
+        class="preview-media"
+        autoplay muted loop playsinline>
+      </video>
+
+      <!-- Bouton supprimer -->
+      <button class="preview-remove" (click)="removeMedia($event)" aria-label="Supprimer">
+        <ion-icon name="close"></ion-icon>
+      </button>
+
+      <!-- Badge type -->
+      <div class="preview-badge">
+        <ion-icon [name]="isVideo() ? 'videocam' : 'image'"></ion-icon>
+        <span>{{ isVideo() ? 'Vidéo' : 'Photo' }}</span>
+      </div>
+
+      <!-- Dots de position (si plusieurs médias) -->
+      <div *ngIf="selectedMedia.length > 1" class="carousel-dots">
+        <span
+          *ngFor="let m of selectedMedia; let i = index"
+          class="carousel-dot"
+          [class.active]="activeIndex === i">
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Thumbnails cliquables (carrousel) -->
+  <div *ngIf="selectedMedia.length > 1" class="carousel-thumbs">
+    <button
+      *ngFor="let media of selectedMedia; let i = index"
+      class="carousel-thumb"
+      [class.active]="activeIndex === i"
+      (click)="selectMedia(i)">
+      <img    *ngIf="media.isImage" [src]="media.previewUrl" class="thumb-img" alt="">
+      <video  *ngIf="media.isVideo" [src]="media.previewUrl" class="thumb-img" muted></video>
+      <div    *ngIf="media.isVideo" class="thumb-video-badge">
+        <ion-icon name="videocam"></ion-icon>
+      </div>
+      <div *ngIf="activeIndex === i" class="thumb-active-check">
+        <ion-icon name="checkmark"></ion-icon>
+      </div>
+    </button>
+  </div>
+
+  <!-- Boutons caméra / galerie -->
+  <div class="media-actions">
+    <button class="media-btn" (click)="takePhoto()" [disabled]="isPickingMedia">
+      <div class="media-btn-icon"><ion-icon name="camera-outline"></ion-icon></div>
+      <span>Appareil photo</span>
+    </button>
+    <button class="media-btn" (click)="pickFromGallery()" [disabled]="isPickingMedia">
+      <div class="media-btn-icon"><ion-icon name="images-outline"></ion-icon></div>
+      <span>Galerie</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- ÉTAPE 2 · Détails                 -->
+<!-- ══════════════════════════════════ -->
+<div *ngIf="currentStep === 2" class="details-step step-enter">
+
+  <div class="details-header">
+    <div class="details-thumb">
+      <img   *ngIf="isImage()" [src]="activeMedia!.previewUrl" alt="">
+      <video *ngIf="isVideo()" [src]="activeMedia!.previewUrl" muted></video>
+    </div>
+    <ion-textarea
+      class="desc-input"
+      [(ngModel)]="content.description"
+      placeholder="Décrivez votre publication…"
+      rows="4"
+      autoGrow="true">
+    </ion-textarea>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="settings-group">
+    <div class="setting-row">
+      <div class="setting-info">
+        <span class="setting-title">Rendre public</span>
+        <span class="setting-desc">Visible par tous les utilisateurs</span>
+      </div>
+      <ion-toggle [(ngModel)]="isPublic" [disabled]="isLocked" class="setting-toggle"></ion-toggle>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <span class="setting-title">Commentaires</span>
+        <span class="setting-desc">Autoriser les commentaires</span>
+      </div>
+      <ion-toggle [(ngModel)]="content.allowComments" class="setting-toggle"></ion-toggle>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <span class="setting-title">Téléchargement</span>
+        <span class="setting-desc">Autoriser le téléchargement</span>
+      </div>
+      <ion-toggle [(ngModel)]="content.allowDownloads" class="setting-toggle"></ion-toggle>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <span class="setting-title">Publicité</span>
+        <span class="setting-desc">Type de contenu publicitaire</span>
+      </div>
+      <ion-toggle [(ngModel)]="isAdvertisement" [disabled]="isLocked" class="setting-toggle"></ion-toggle>
+    </div>
+    <!-- Options de publicité -->
+    <div class="advertisement-options" *ngIf="isAdvertisement">
+      <ion-radio-group [(ngModel)]="advertisementType" (ngModelChange)="onAdvertisementTypeChange()">
+        <div class="radio-option">
+          <ion-radio value="ads_post" [disabled]="isLocked"></ion-radio>
+          <label for="ads_post">Contenu publicitaire</label>
+        </div>
+        <div class="radio-option">
+          <ion-radio value="ads_banner" [disabled]="isLocked"></ion-radio>
+          <label for="ads_banner">Bannière publicitaire</label>
+        </div>
+      </ion-radio-group>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════ -->
+<!-- ÉTAPE 3 · Sélection du défi       -->
+<!-- ══════════════════════════════════ -->
+<div *ngIf="currentStep === 3" class="challenge-step step-enter ion-padding">
+
+  <div class="challenge-intro">
+    <h2>Associer à un défi</h2>
+    <p>Facultatif — rejoignez un défi pour maximiser votre visibilité</p>
+  </div>
+
+  <ion-radio-group [(ngModel)]="selectedChallenge">
+
+    <label class="challenge-card" [class.challenge-selected]="selectedChallenge === null">
+      <ion-radio [value]="null" class="challenge-radio"></ion-radio>
+      <div class="challenge-card-body">
+        <div class="challenge-icon neutral"><ion-icon name="close-circle-outline"></ion-icon></div>
+        <span class="challenge-name">Sans défi</span>
+      </div>
+    </label>
+
+    <label
+      *ngFor="let challenge of challenges"
+      class="challenge-card"
+      [class.challenge-selected]="selectedChallenge?.id === challenge.id">
+      <ion-radio [value]="challenge" class="challenge-radio"></ion-radio>
+      <div class="challenge-card-body">
+        <div class="challenge-icon active"><ion-icon name="trophy-outline"></ion-icon></div>
+        <div class="challenge-text">
+          <span class="challenge-name">{{ challenge.name }}</span>
+          <span *ngIf="challenge.description" class="challenge-desc">{{ challenge.description }}</span>
+        </div>
+      </div>
+    </label>
+
+  </ion-radio-group>
+</div>
+</div>
+</div>

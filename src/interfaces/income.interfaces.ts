@@ -5,16 +5,13 @@ import { Coupon, CouponType } from '../models/Coupon';
 export interface Pack {
   id: string;
   name: string;
-  ownerId : string;
   amount: number;
   price: number;
   icon: string;
   couponType: CouponType;
   itemType: 'coins' | 'coupons' | 'gift';
-  holder?: string[]; //contient les Ids des users ayant un achat valide en cours
   qtySold?: number;
   isBestValue?: boolean;
-  isBestAcademy: boolean;
   promo?: string;
   expiryDate: Date;
 }

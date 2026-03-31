@@ -1,10 +1,10 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
-import { NgIf, NgSwitch, NgSwitchCase } from '@angular/common';
+import { NgIf, NgSwitch, NgSwitchCase, AsyncPipe } from '@angular/common';
 import {IonContent, IonFooter, IonButton, IonIcon, ToastController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   search, cloudOffline,
-  notificationsOutline, sparklesOutline, logoBitcoin, addCircle, peopleOutline, trophy, star, person, refresh } from 'ionicons/icons';
+  notificationsOutline, sparklesOutline, logoBitcoin, addCircle, peopleOutline, trophy, star, person, refresh, close } from 'ionicons/icons';
 import { UserProfile } from 'src/models/User';
 import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { Router } from '@angular/router';
@@ -18,9 +18,13 @@ import { HeaderComponentComponent } from '../components/header-component/header-
 import { BottomNavigationComponent } from '../components/bottom-navigation/bottom-navigation.component';
 import { PublicationComponent } from './containers/publication/publication.component';
 import { ChallengeComponent } from './containers/challenge/challenge.component';
+import { BannerAdsComponent } from './containers/banner-ads/banner-ads.component';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 import { MessageService } from 'src/services/Service_message/message-service';
 import { Segment } from 'src/models/Segment';
+import { MediaUrlPipe } from "../utils/pipes/mediaUrlPipe/media-url-pipe";
+import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
+
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -30,6 +34,7 @@ import { Segment } from 'src/models/Segment';
   imports: [
     NgIf,
     NgSwitchCase,
+    AsyncPipe,
     IonFooter,
     IonButton,
     IonIcon,
@@ -40,7 +45,9 @@ import { Segment } from 'src/models/Segment';
     PublicationComponent,
     HeaderComponentComponent,
     ChallengeComponent,
-    BottomNavigationComponent, NgSwitch
+    BannerAdsComponent,
+    BottomNavigationComponent, NgSwitch,
+    MediaUrlPipe
   ]
 })
 
@@ -55,6 +62,11 @@ export class HomePage implements OnInit {
   args: any[] = [];
   navigationExtra!: any;
   goBackTarget!: Segment | undefined;
+  
+  // Propriétés pour les bannières publicitaires
+  showBannerAd = false;
+  hasContent = false;
+  private bannerDisplayProbability = 0.3; // 30% de chance d'afficher la bannière
   
   @ViewChild('contentRef', { read: ElementRef }) contentRef!: ElementRef;
 
@@ -149,7 +161,8 @@ export class HomePage implements OnInit {
     private messageService: MessageService,
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private notificationManager: NotificationManagerService
   ) {
     this.currentUserProfile.stats = {} as {
       posts: 0;
@@ -158,20 +171,19 @@ export class HomePage implements OnInit {
       stars: 0;
     };
     this.currentUserProfile.myFollows = [];
-    addIcons({sparklesOutline,logoBitcoin, cloudOffline,addCircle,trophy,star,person,notificationsOutline,peopleOutline,search, refresh});
+    addIcons({close,cloudOffline,refresh,sparklesOutline,logoBitcoin,addCircle,trophy,star,person,notificationsOutline,peopleOutline,search});
   }
 
   ngOnInit() {
-    if(this.authService.isAuthenticated() && this.authService['api'].getToken()!=='' ){
-   this.setupConnectionListeners();
+    this.setupConnectionListeners();
     this.setupAuthSubscription();
     this.setupSwipeGesture();
     this.unreadMessagesCount();
     
-   
-    }else{
-      this.authService.logout();
-    }
+    // Initialiser la vérification de bannière après le chargement du profil
+    setTimeout(() => {
+      this.checkBannerDisplay();
+    }, 1000);
   }
 
   private unreadMessagesCount(): void{
@@ -179,6 +191,16 @@ export class HomePage implements OnInit {
     
     this.messageService.getTotalUnread(this.currentUserProfile.id).subscribe({
       next: (response: { user_id: string; unread_total: number }) => {
+        // Notifier si de nouveaux messages sont arrivés
+        if (response.unread_total > this.countUnreadMessages && response.unread_total > 0) {
+          this.notificationManager.notifyNewMessage(
+            'Système',
+            `Vous avez ${response.unread_total} message(s) non lu(s)`,
+            'system',
+            this.currentUserProfile.id
+          );
+        }
+        
         this.countUnreadMessages = response.unread_total;
         this.cdr.markForCheck();
       },
@@ -246,6 +268,53 @@ private setupSwipeGesture(): void {
     
     // Pas de calculs - juste un changement de classe CSS
     // Les transitions CSS font tout le travail
+    
+    // Vérifier si on doit afficher une bannière aléatoirement
+    this.checkBannerDisplay();
+  }
+
+  // Méthode pour vérifier si on doit afficher la bannière
+  private checkBannerDisplay(): void {
+    // Seulement pour discovery et followed
+    if (this.selectedSegment !== 'discovery' && this.selectedSegment !== 'followed') {
+      this.showBannerAd = false;
+      return;
+    }
+    
+    // Vérifier s'il y a du contenu (posts, follows, etc.)
+    this.hasContent = this.checkForContent();
+    
+    if (this.hasContent) {
+      // Affichage aléatoire basé sur la probabilité
+      const random = Math.random();
+      this.showBannerAd = random < this.bannerDisplayProbability;
+    } else {
+      this.showBannerAd = false;
+    }
+    
+    this.cdr.markForCheck();
+  }
+
+  // Méthode pour vérifier s'il y a du contenu à afficher
+  private checkForContent(): boolean {
+    if (!this.currentUserProfile) return false;
+    
+    switch (this.selectedSegment) {
+      case 'discovery':
+        // Toujours du contenu pour discovery (posts publics)
+        return true;
+      case 'followed':
+        // Vérifier s'il y a des follows ou des posts
+        return this.currentUserProfile.myFollows && this.currentUserProfile.myFollows.length > 0;
+      default:
+        return false;
+    }
+  }
+
+  // Méthode pour fermer la bannière manuellement
+  closeBannerAd(): void {
+    this.showBannerAd = false;
+    this.cdr.markForCheck();
   }
 
   openSearch() {

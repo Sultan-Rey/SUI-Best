@@ -4,8 +4,16 @@
 <app-header-component [goBackTarget]="goBackTarget" (goBack)="onGoBack($event)"></app-header-component>
 
 <!-- Contenu Ionic simplifié -->
-<ion-content [fullscreen]="true" class="home-content" #contentRef>
+<ion-content [fullscreen]="false" class="home-content" #contentRef>
   <div class="content-spacer"></div>
+  
+  <!-- Section Bannières Publicitaires Superposée -->
+  <div class="floating-banner-ad" *ngIf="showBannerAd && hasContent">
+    <app-banner-ads></app-banner-ads>
+    <button class="close-banner-btn" (click)="closeBannerAd()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+  </div>
   
   <div class="views-container" [ngSwitch]="selectedSegment">
     <!-- Affiche les vues même offline - les composants géreront le cache -->
@@ -68,7 +76,7 @@
 <div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id">
   <!-- Affiche même offline pour accès au profil cached -->
   <img 
-  [src]="currentUserProfile.avatar || 'assets/avatar-default.png'" 
+  [src]="currentUserProfile.avatar | mediaUrl | async" 
   [alt]="currentUserProfile.displayName || 'Profile'"
   class="avatar-img"
   (load)="onAvatarLoad($event)"
@@ -82,6 +90,7 @@
   <app-bottom-navigation
     (activeItemChange)="onNavigationChange($event)"
     [theme]="'dark'"
+    [allowedToExclusive] = "currentUserProfile.isVerified"
     [unreadCount]="countUnreadMessages">
   </app-bottom-navigation>
 </ion-footer>

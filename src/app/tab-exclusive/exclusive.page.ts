@@ -21,7 +21,7 @@ import {
 import { Observable, combineLatest, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { ExclusiveService } from '../../services/Service_exclusive_content/exclusive-service';
-import { ExclusiveContent, Series } from '../../models/Content';
+import { ExclusiveContent, ExclusiveContentType, Series } from '../../models/Content';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ export class ExclusivePage implements OnInit {
     
     // Mettre à jour les observables avec les filtres
     if (filterId === 'series') {
-      // Afficher les séries
+      // Afficher les séries (converties en contenus pour l'affichage)
       this.featuredItems$ = this.exclusiveService.getSeries().pipe(
         map(series => series.map(s => this.convertSeriesToContent(s)))
       );
@@ -108,11 +108,13 @@ export class ExclusivePage implements OnInit {
         map(series => series.map(s => this.convertSeriesToContent(s)))
       );
     } else {
-      // Filtrer les contenus par type
+      // Filtrer les contenus par type (utilise les vues optimisées)
       this.featuredItems$ = this.exclusiveService.getFeaturedContents().pipe(
         map(contents => filterId === 'all' ? contents : contents.filter(c => c.type === filterId))
       );
-      this.allContents$ = this.exclusiveService.getAllContents({ type: filterId === 'all' ? undefined : filterId as any });
+      this.allContents$ = this.exclusiveService.getAllContents({ 
+        type: filterId === 'all' ? undefined : filterId as ExclusiveContentType 
+      });
     }
   }
 
@@ -149,43 +151,45 @@ export class ExclusivePage implements OnInit {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Convertit une Series en ExclusiveContent pour l'affichage unifié
+   */
   private convertSeriesToContent(series: Series): ExclusiveContent {
     return {
       id: series.id,
-      userId: '', // Sera rempli par le backend
-      challengeId: '',
-      commentIds: [],
-      fileUrl: '',
-      mimeType: 'video/series',
-      fileSize: 0,
-      cadrage: 'default',
-      isPublic: true,
-      allowDownloads: true,
-      allowComments: true,
-      source: 'gallery' as any,
-      status: 'published' as any,
-      created_at: series.created_at,
-      
-      // Propriétés ExclusiveContent
+      userId: 'current-user', // Sera rempli par le backend
       title: series.title,
+      description: series.description || '',
       author: series.author,
-      thumbnail: series.thumbnail,
+      type: series.type as ExclusiveContentType,
+      status: 'published' as any,
+      
+      // Média
+      media: {
+        videoFile: undefined,
+        thumbnail: series.thumbnail,
+        mimeType: 'video/mp4',
+        fileSize: 0,
+        duration: 0
+      },
+      
+      // Monétisation
       locked: false, // Les séries sont généralement déverrouillées
       price: series.price,
       isLive: false,
-      type: series.type,
       
-      // Propriétés série
-      seriesId: series.id,
-      seriesTitle: series.title,
-      isSeries: true,
-      totalEpisodes: series.totalEpisodes,
-      viewCount: series.viewCount,
-      likeCount: series.likeCount,
+      // Série (pour l'affichage)
+      series: {
+        isSeries: true,
+        seriesId: series.id,
+        seriesTitle: series.title,
+        episodeNumber: undefined,
+        totalEpisodes: series.totalEpisodes,
+        season: undefined
+      },
       
-      // Métadonnées calculées
-      description: series.description,
-      duration: series.duration ? Number(series.duration) : undefined,
+      created_at: series.created_at,
+      updatedAt: series.updated_at
     };
   }
 

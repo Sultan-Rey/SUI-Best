@@ -1,5 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
-import { environment } from 'src/environments/environment.prod';
+import { environment } from 'src/environments/environment';
 import {
   HttpClient, HttpEvent, HttpHeaders, HttpParams, HttpErrorResponse
 } from '@angular/common/http';

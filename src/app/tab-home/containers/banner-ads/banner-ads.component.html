@@ -1,0 +1,57 @@
+<div class="banner-ads-container" *ngIf="bannerAds.length > 0; else emptyState">
+  
+  <!-- Bannière actuelle -->
+  <div class="banner-wrapper" *ngIf="currentBanner">
+    <div class="banner-content">
+      <!-- Image de la bannière (300x250px max) -->
+      <ion-img 
+        [src]="currentBanner.fileUrl | mediaUrl" 
+        [alt]="currentBanner.description || 'Publicité'"
+        class="banner-image"
+        (click)="onBannerClick(currentBanner)">
+      </ion-img>
+      
+      <!-- Bouton de fermeture -->
+      <button class="close-banner" (click)="closeBanner()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </div>
+    
+    <!-- Navigation (si plusieurs bannières) -->
+    <div class="banner-navigation" *ngIf="bannerAds.length > 1">
+      <button class="nav-btn prev" (click)="previousBanner()">
+        <ion-icon name="chevron-back"></ion-icon>
+      </button>
+      
+      <div class="banner-indicators">
+        <span 
+          *ngFor="let banner of bannerAds; let i = index"
+          class="indicator"
+          [class.active]="i === currentIndex">
+        </span>
+      </div>
+      
+      <button class="nav-btn next" (click)="nextBanner()">
+        <ion-icon name="chevron-forward"></ion-icon>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Empty states -->
+<ng-template #emptyState>
+  <div class="banner-empty" *ngIf="isLoading; else errorState">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+  
+  <ng-template #errorState>
+    <div class="banner-error" *ngIf="hasError">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <p>Impossible de charger les publicités</p>
+      <button class="retry-btn" (click)="retry()">
+        <ion-icon name="refresh-outline"></ion-icon>
+        Réessayer
+      </button>
+    </div>
+  </ng-template>
+</ng-template>

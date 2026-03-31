@@ -31,10 +31,10 @@ export interface RegisterResponse {
 export class Auth {
 
   private readonly STORAGE_KEY = 'best_auth_user';
-  private readonly TOKEN_STORAGE_KEY = 'access_token';
-  private readonly REFRESH_TOKEN_STORAGE_KEY = 'refresh_token';
+  private readonly TOKEN_STORAGE_KEY = 'best_access_token';
   private readonly SETTING_STORAGE_KEY = 'best_user_settings';
   private readonly WALLET_STORAGE_KEY = 'best_user_wallet_cache';
+  private readonly ADMIN_UID_STORAGE_KEY = 'best_admin_uid';
   private readonly MAX_ATTEMPTS = 5;
   private readonly LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
   private loginAttempts = new Map<string, { attempts: number; lastAttempt: number }>();
@@ -164,7 +164,7 @@ export class Auth {
         };
       }
 
-      private async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
+  private async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
             // Nettoyer les caractères spéciaux et les accents
             const cleanString = (str: string) => {
               return str
@@ -300,7 +300,7 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
  
 }
 
-  private recordFailedAttempt(email: string): void {
+private recordFailedAttempt(email: string): void {
     const now = Date.now();
     const attempt = this.loginAttempts.get(email) || { attempts: 0, lastAttempt: 0 };
     
@@ -409,12 +409,6 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
      ====================== */
 
   logout(): void {
-    // Supprimer les données d'authentification
-    localStorage.removeItem(this.STORAGE_KEY);
-    localStorage.removeItem(this.TOKEN_STORAGE_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_STORAGE_KEY);
-    localStorage.removeItem(this.SETTING_STORAGE_KEY);
-    localStorage.removeItem(this.WALLET_STORAGE_KEY);
     
     // Supprimer tous les caches
     this.clearAllCaches();
@@ -472,7 +466,7 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
       // 4. Nettoyer localStorage (au cas où)
       const localStorageKeys = Object.keys(localStorage);
       localStorageKeys.forEach(key => {
-        if (key.includes('cache') || key.includes('temp')) {
+        if (key.includes('cache') || key.includes('best')) {
           localStorage.removeItem(key);
         }
       });
@@ -480,12 +474,10 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
       // 5. Nettoyer sessionStorage
       const sessionStorageKeys = Object.keys(sessionStorage);
       sessionStorageKeys.forEach(key => {
-        if (key.includes('cache') || key.includes('temp')) {
+        if (key.includes('cache') || key.includes('best')) {
           sessionStorage.removeItem(key);
         }
       });
-
-      console.log('🧹 Tous les caches ont été supprimés après la déconnexion');
       
     } catch (error) {
       console.error('❌ Erreur lors de la suppression des caches:', error);
@@ -503,6 +495,38 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
   getCurrentUser(): AuthUser | null {
     return this.currentUserSubject.value;
   }
+
+ /**
+ * Récupère l'adminUID depuis les profiles admin avec cache local
+ */
+getAdminUID(): Observable<string> {
+  // Vérifier d'abord le cache local
+  const cachedAdminUID = localStorage.getItem(this.ADMIN_UID_STORAGE_KEY);
+  if (cachedAdminUID) {
+    return of(cachedAdminUID);
+  }
+
+  // Sinon, appeler l'API
+  return this.api.filter<string>('profiles', {filters: {type: 'admin'}}, {cache: false}).pipe(
+    map(response => {
+      // Vérifier si response.data existe et contient des éléments
+      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const adminUID = response.data[0];
+        // Sauvegarder dans le localStorage
+        localStorage.setItem(this.ADMIN_UID_STORAGE_KEY, adminUID);
+        return adminUID;
+      }
+      
+      // Si aucun admin trouvé, retourner une chaîne vide
+      return '';
+    }),
+    catchError(error => {
+      console.error('❌ Erreur récupération adminUID:', error);
+      // En cas d'erreur, retourner une chaîne vide
+      return of('');
+    })
+  );
+}
 
   private loadUserFromStorage(): AuthUser | null {
     const raw = localStorage.getItem(this.STORAGE_KEY);

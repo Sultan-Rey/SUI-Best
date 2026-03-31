@@ -4,11 +4,38 @@
 .active-challenges {
   margin-bottom: 2.5rem;
   
+  @media screen and (max-width: 480px) {
+    margin-bottom: 1.5rem;
+  }
+  
+  @media screen and (min-width: 768px) {
+    margin-bottom: 3rem;
+  }
+  
+  @media screen and (min-width: 1024px) {
+    margin-bottom: 3.5rem;
+  }
+  
   .section-title {
     margin: 0 0 1rem 1rem;
     font-size: 1.2rem;
     font-weight: 600;
     color: #fff;
+    
+    @media screen and (max-width: 480px) {
+      font-size: 1rem;
+      margin: 0 0 0.75rem 0.75rem;
+    }
+    
+    @media screen and (min-width: 768px) {
+      font-size: 1.4rem;
+      margin: 0 0 1.25rem 1.25rem;
+    }
+    
+    @media screen and (min-width: 1024px) {
+      font-size: 1.6rem;
+      margin: 0 0 1.5rem 1.5rem;
+    }
   }
   
   .slider-container {
@@ -44,6 +71,23 @@
     align-items: flex-end;
     padding: 0;
     
+    @media screen and (max-width: 480px) {
+      height: 160px;
+      border-radius: 12px;
+    }
+    
+    @media screen and (min-width: 768px) {
+      height: 250px;
+    }
+    
+    @media screen and (min-width: 1024px) {
+      height: 300px;
+    }
+    
+    @media screen and (min-width: 1440px) {
+      height: 350px;
+    }
+    
     &-overlay {
       position: absolute;
       top: 0;
@@ -60,6 +104,18 @@
       padding: 1.5rem;
       width: 100%;
       color: white;
+      
+      @media screen and (max-width: 480px) {
+        padding: 1rem;
+      }
+      
+      @media screen and (min-width: 768px) {
+        padding: 2rem;
+      }
+      
+      @media screen and (min-width: 1024px) {
+        padding: 2.5rem;
+      }
     }
     
     .challenge-title {
@@ -68,6 +124,19 @@
       margin: 0 0 0.5rem 0;
       line-height: 1.2;
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      
+      @media screen and (max-width: 480px) {
+        font-size: 1.2rem;
+        margin: 0 0 0.25rem 0;
+      }
+      
+      @media screen and (min-width: 768px) {
+        font-size: 1.8rem;
+      }
+      
+      @media screen and (min-width: 1024px) {
+        font-size: 2rem;
+      }
     }
     
     .challenge-description {
@@ -80,6 +149,23 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
+      
+      @media screen and (max-width: 480px) {
+        font-size: 0.8rem;
+        margin: 0 0 0.75rem 0;
+        -webkit-line-clamp: 2;
+      }
+      
+      @media screen and (min-width: 768px) {
+        font-size: 1rem;
+        margin: 0 0 1.25rem 0;
+        -webkit-line-clamp: 3;
+      }
+      
+      @media screen and (min-width: 1024px) {
+        font-size: 1.1rem;
+        -webkit-line-clamp: 3;
+      }
     }
     
     .challenge-button {
@@ -189,6 +275,25 @@
   position: relative;
   transition: transform 0.3s ease;
   
+  @media screen and (max-width: 480px) {
+    width: 130px;
+    border-radius: 10px;
+  }
+  
+  @media screen and (min-width: 768px) {
+    width: 170px;
+    border-radius: 14px;
+  }
+  
+  @media screen and (min-width: 1024px) {
+    width: 190px;
+    border-radius: 16px;
+  }
+  
+  @media screen and (min-width: 1440px) {
+    width: 210px;
+  }
+  
   &:active {
     transform: scale(0.98);
   }
@@ -226,6 +331,22 @@
     background-position: center;
     position: relative;
     
+    @media screen and (max-width: 480px) {
+      height: 120px;
+    }
+    
+    @media screen and (min-width: 768px) {
+      height: 170px;
+    }
+    
+    @media screen and (min-width: 1024px) {
+      height: 190px;
+    }
+    
+    @media screen and (min-width: 1440px) {
+      height: 210px;
+    }
+    
     .image-overlay {
       position: absolute;
       bottom: 0;
@@ -239,6 +360,18 @@
   .artist-info {
     padding: 0.75rem;
     
+    @media screen and (max-width: 480px) {
+      padding: 0.5rem;
+    }
+    
+    @media screen and (min-width: 768px) {
+      padding: 1rem;
+    }
+    
+    @media screen and (min-width: 1024px) {
+      padding: 1.25rem;
+    }
+    
     .artist-name {
       margin: 0 0 0.25rem 0;
       font-size: 0.9rem;
@@ -247,12 +380,36 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      
+      @media screen and (max-width: 480px) {
+        font-size: 0.8rem;
+      }
+      
+      @media screen and (min-width: 768px) {
+        font-size: 1rem;
+      }
+      
+      @media screen and (min-width: 1024px) {
+        font-size: 1.1rem;
+      }
     }
     
     .artist-category {
       margin: 0 0 0.25rem 0;
       font-size: 0.75rem;
       color: rgba(255, 255, 255, 0.7);
+      
+      @media screen and (max-width: 480px) {
+        font-size: 0.7rem;
+      }
+      
+      @media screen and (min-width: 768px) {
+        font-size: 0.8rem;
+      }
+      
+      @media screen and (min-width: 1024px) {
+        font-size: 0.85rem;
+      }
     }
     
     .artist-votes {
@@ -260,6 +417,18 @@
       font-size: 0.8rem;
       color: var(--ion-color-warning);
       font-weight: 500;
+      
+      @media screen and (max-width: 480px) {
+        font-size: 0.75rem;
+      }
+      
+      @media screen and (min-width: 768px) {
+        font-size: 0.9rem;
+      }
+      
+      @media screen and (min-width: 1024px) {
+        font-size: 0.95rem;
+      }
     }
   }
 }

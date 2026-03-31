@@ -51,10 +51,10 @@ export class LoginPage implements OnInit {
     private alertController: AlertController,
     private preferenceService: PreferenceService
   ) {
-    if(this.auth.isAuthenticated()){
-       this.router.navigateByUrl('/home');
-    }
     addIcons({mailOutline,lockClosedOutline,arrowForward,logoGoogle,logoFacebook,trophyOutline,sparkles,personCircleOutline,keyOutline,helpCircleOutline,star,shieldCheckmark,'eyeOutline':eyeOutline,'eyeOffOutline':eyeOffOutline,createOutline,settingsOutline});
+    if(this.auth.isAuthenticated()){
+      this.auth.logout();
+    }
   }
 
   ngOnInit() { }

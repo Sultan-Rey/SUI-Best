@@ -69,6 +69,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service.js';
+import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
 
 @Component({
   selector: 'app-challenge-form',
@@ -137,7 +138,8 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
     private creationService: CreationService,
     private challengeService : ChallengeService,
     private modalCtrl: ModalController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private notificationManager: NotificationManagerService
   ) {
     this.challengeForm = this.createForm();
        addIcons({arrowBack,image,trash,calendarOutline,playCircleOutline, checkmarkCircleOutline, stopCircleOutline,informationCircleOutline,thumbsUpOutline,person,checkmarkCircle,infinite,giftOutline,listOutline,addCircle,closeCircle,optionsOutline,flash,ticketOutline,peopleOutline,rocket,timeOutline,camera,pencil});
@@ -404,6 +406,32 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
         ? 'Défi mis à jour avec succès !' 
         : 'Défi créé avec succès !'
     );
+
+    // Notifier la création du défi
+    await this.notificationManager.notifyChallengeCreated(
+      formData.name as string,
+      result.id,
+      this.profileId || 'unknown'
+    );
+
+    // Planifier un rappel de début de défi
+    if (formData.start_date) {
+      const startDate = new Date(formData.start_date);
+      await this.notificationManager.notifyChallengeStarting(
+        formData.name as string,
+        result.id,
+        startDate
+      );
+    }
+
+    // Planifier un rappel de fin de défi
+    if (this.computedEndDate) {
+      await this.notificationManager.notifyChallengeEnding(
+        formData.name as string,
+        result.id,
+        this.computedEndDate
+      );
+    }
 
   } catch (error: any) {
     console.error('Erreur lors de la sauvegarde du défi', error);

@@ -1,0 +1,205 @@
+<div class="excl-shell">
+
+  <!-- ── Titre de section ─────────────────────────────── -->
+  <div class="excl-page-header">
+    <div class="excl-page-title">
+      <span class="excl-page-title-label">Contenu exclusif</span>
+      <span class="excl-page-title-mode">{{ editMode ? 'Modification' : 'Nouveau' }}</span>
+    </div>
+  </div>
+
+  <form [formGroup]="createForm" (ngSubmit)="onSubmit()" class="excl-form">
+
+    <!-- ── Type de contenu ──────────────────────────────── -->
+    <section class="excl-section">
+      <span class="excl-section-label">Type de contenu</span>
+      <div class="excl-type-grid">
+        <button
+          type="button"
+          *ngFor="let type of contentTypes"
+          class="excl-type-chip"
+          [class.excl-type-chip--active]="createForm.get('type')?.value === type.value"
+          [style.--chip-color]="type.color"
+          (click)="createForm.get('type')?.setValue(type.value)">
+          <ion-icon [name]="type.icon"></ion-icon>
+          <span>{{ type.label }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Informations principales ─────────────────────── -->
+    <section class="excl-section">
+      <span class="excl-section-label">Informations</span>
+
+      <div class="excl-field">
+        <label class="excl-label">
+          Titre
+          <span class="excl-required">*</span>
+          <span class="excl-error" *ngIf="formErrors.title">{{ formErrors.title }}</span>
+        </label>
+        <ion-input
+          formControlName="title"
+          placeholder="Titre attractif…"
+          class="excl-input"
+          fill="outline">
+        </ion-input>
+      </div>
+
+      <div class="excl-field">
+        <label class="excl-label">
+          Description
+          <span class="excl-required">*</span>
+          <span class="excl-error" *ngIf="formErrors.description">{{ formErrors.description }}</span>
+        </label>
+        <ion-textarea
+          formControlName="description"
+          placeholder="Décrivez votre contenu…"
+          class="excl-textarea"
+          rows="3"
+          fill="outline">
+        </ion-textarea>
+      </div>
+
+      <div class="excl-field">
+        <label class="excl-label">Auteur</label>
+        <div class="excl-author-row">
+          <ion-input
+            formControlName="authorName"
+            placeholder="Nom"
+            class="excl-input"
+            fill="outline">
+          </ion-input>
+          <ion-input
+            formControlName="authorInitials"
+            placeholder="Init."
+            class="excl-input excl-input--short"
+            fill="outline">
+          </ion-input>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Médias ──────────────────────────────────────── -->
+    <section class="excl-section">
+      <span class="excl-section-label">Médias</span>
+
+      <div class="excl-media-row">
+
+        <!-- Miniature -->
+        <div class="excl-field excl-field--half">
+          <label class="excl-label">Miniature</label>
+          <div class="excl-upload" (click)="triggerThumbnailUpload()">
+            <input #thumbnailInput type="file" accept="image/*"
+              (change)="onThumbnailSelect($event)" style="display:none">
+            <ng-container *ngIf="thumbnailPreview; else thumbPlaceholder">
+              <img [src]="thumbnailPreview" class="excl-upload-img" alt="">
+              <div class="excl-upload-overlay"><ion-icon name="image-outline"></ion-icon></div>
+            </ng-container>
+            <ng-template #thumbPlaceholder>
+              <div class="excl-upload-placeholder">
+                <ion-icon name="image-outline"></ion-icon>
+                <span>Photo</span>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- Vidéo -->
+        <div class="excl-field excl-field--half">
+          <label class="excl-label">Vidéo</label>
+          <div class="excl-upload" (click)="triggerVideoUpload()">
+            <input #videoInput type="file" accept="video/*"
+              (change)="onVideoSelect($event)" style="display:none">
+            <ng-container *ngIf="videoFileName; else videoPlaceholder">
+              <div class="excl-upload-placeholder excl-upload-placeholder--filled">
+                <ion-icon name="videocam-outline"></ion-icon>
+                <span>{{ videoFileName }}</span>
+              </div>
+            </ng-container>
+            <ng-template #videoPlaceholder>
+              <div class="excl-upload-placeholder">
+                <ion-icon name="cloud-upload-outline"></ion-icon>
+                <span>Vidéo</span>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Options de publication ───────────────────────── -->
+    <section class="excl-section">
+      <span class="excl-section-label">Options</span>
+
+      <div class="excl-toggle-row">
+        <div class="excl-toggle-info">
+          <span class="excl-toggle-title">Contenu payant</span>
+          <span class="excl-toggle-sub">Accès réservé aux abonnés</span>
+        </div>
+        <ion-toggle formControlName="locked" class="excl-toggle"></ion-toggle>
+      </div>
+
+      <div class="excl-field excl-price-field" *ngIf="createForm.get('locked')?.value">
+        <label class="excl-label">Prix (€)</label>
+        <ion-input
+          formControlName="price"
+          type="number"
+          placeholder="0.00"
+          class="excl-input"
+          fill="outline">
+        </ion-input>
+      </div>
+
+      <!-- Série -->
+      <div class="excl-toggle-row" *ngIf="currentType?.value === 'series'">
+        <div class="excl-toggle-info">
+          <span class="excl-toggle-title">C'est une série</span>
+          <span class="excl-toggle-sub">Épisodes multiples</span>
+        </div>
+        <ion-toggle formControlName="isSeries" class="excl-toggle"></ion-toggle>
+      </div>
+
+      <div *ngIf="createForm.get('isSeries')?.value" class="excl-series-fields">
+        <div class="excl-field">
+          <label class="excl-label">
+            Titre de la série
+            <span class="excl-required">*</span>
+            <span class="excl-error" *ngIf="formErrors.seriesTitle">{{ formErrors.seriesTitle }}</span>
+          </label>
+          <ion-input formControlName="seriesTitle" placeholder="Titre de la série"
+            class="excl-input" fill="outline"></ion-input>
+        </div>
+        <div class="excl-author-row">
+          <div class="excl-field excl-field--half">
+            <label class="excl-label">
+              Nb épisodes
+              <span class="excl-required">*</span>
+            </label>
+            <ion-input formControlName="totalEpisodes" type="number" placeholder="12"
+              class="excl-input" fill="outline"></ion-input>
+          </div>
+          <div class="excl-field excl-field--half">
+            <label class="excl-label">Épisode n°</label>
+            <ion-input formControlName="episodeNumber" type="number" placeholder="1"
+              class="excl-input" fill="outline"></ion-input>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Submit ─────────────────────────────────────── -->
+    <div class="excl-actions">
+      <button
+        type="submit"
+        class="excl-submit"
+        [disabled]="createForm.invalid || isSubmitting">
+        <ion-spinner *ngIf="isSubmitting" name="crescent" class="excl-spinner"></ion-spinner>
+        <ion-icon *ngIf="!isSubmitting" name="checkmark-outline"></ion-icon>
+        <span>{{ isSubmitting ? 'Enregistrement…' : (editMode ? 'Mettre à jour' : 'Créer le contenu') }}</span>
+      </button>
+    </div>
+
+  </form>
+</div>

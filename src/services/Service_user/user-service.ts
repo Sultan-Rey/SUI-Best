@@ -90,6 +90,37 @@ export class UserService {
     return this.api.delete(this.resource, id);
   }
 
+  /* =====================
+     PUSH TOKEN MANAGEMENT
+     ===================== */
+
+  updatePushToken(token: string, userId: string): Observable<any> {
+    return this.api.patch(`${this.resource}/push-token`, userId, {
+      pushToken: token,
+      deviceId: this.getDeviceId(),
+      platform: this.getPlatform()
+    });
+  }
+
+  private getDeviceId(): string {
+    // Générer ou récupérer un ID unique pour l'appareil
+    let deviceId = localStorage.getItem('device_id');
+    if (!deviceId) {
+      deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now();
+      localStorage.setItem('device_id', deviceId);
+    }
+    return deviceId;
+  }
+
+  private getPlatform(): string {
+    const userAgent = navigator.userAgent;
+    if (/android/i.test(userAgent)) return 'android';
+    if (/iphone|ipad|ipod/i.test(userAgent)) return 'ios';
+    if (/windows/i.test(userAgent)) return 'windows';
+    if (/mac/i.test(userAgent)) return 'mac';
+    return 'web';
+  }
+
   
 
 

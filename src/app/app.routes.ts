@@ -1,14 +1,16 @@
 import { Routes } from '@angular/router';
+import { authGuard } from '../guards/auth-guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'login',
+    redirectTo: 'home',
     pathMatch: 'full'
   },
   {
   path: 'home',
-  loadComponent: () => import('./tab-home/home.page').then(m => m.HomePage)
+  loadComponent: () => import('./tab-home/home.page').then(m => m.HomePage),
+  canActivate: [authGuard]
 },
   {
     path: 'login',
@@ -20,11 +22,13 @@ export const routes: Routes = [
   },
   {
     path: 'settings',
-    loadComponent: () => import('./settings/settings.page').then( m => m.SettingsPage)
+    loadComponent: () => import('./settings/settings.page').then( m => m.SettingsPage),
+    canActivate: [authGuard]
   },
   {
     path: 'search',
-    loadComponent: () => import('./search/search.page').then( m => m.SearchPage)
+    loadComponent: () => import('./search/search.page').then( m => m.SearchPage),
+    canActivate: [authGuard]
   },
   {
     path: 'subscription',
@@ -32,15 +36,18 @@ export const routes: Routes = [
   },
    {
     path: 'ranking',
-    loadComponent: () => import('./tab-ranking/ranking.page').then( m => m.RankingPage)
+    loadComponent: () => import('./tab-ranking/ranking.page').then( m => m.RankingPage),
+    canActivate: [authGuard]
   },
   {
     path: 'exclusive',
-    loadComponent: () => import('./tab-exclusive/exclusive.page').then( m => m.ExclusivePage)
+    loadComponent: () => import('./tab-exclusive/exclusive.page').then( m => m.ExclusivePage),
+    canActivate: [authGuard]
   },
   {
     path: 'blacklist',
-    loadComponent: () => import('./blacklist/blacklist.page').then( m => m.BlacklistPage)
+    loadComponent: () => import('./blacklist/blacklist.page').then( m => m.BlacklistPage),
+    canActivate: [authGuard]
   },
   {
     path: 'profile/:id',
@@ -48,7 +55,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'login'
+    redirectTo: 'home'
   }
   
   

@@ -336,7 +336,7 @@ ion-modal {
 }
 // === SECTION HEADER ===
 .section-header {
-  padding: 100px 16px 4px 16px;
+  padding: 10px 16px 4px 16px;
 
   .section-title {
     font-size: 26px;
@@ -624,6 +624,7 @@ ion-modal {
 
 // === FLOATING ACTION BUTTON ===
 ion-fab {
+  margin-bottom: 30%;
   ion-fab-button {
     --background: #ffffff;
     --color: var(--color-purple);

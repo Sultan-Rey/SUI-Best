@@ -5,6 +5,12 @@ export enum ContentType {
   VIDEO = 'video'
 }
 
+export enum ContentCategory{
+  POST = 'post',
+  ADS_BANNER = 'ads_banner',
+  ADS_POST = 'ads_post'
+}
+
 export enum ContentStatus {
   DRAFT = 'draft',
   PUBLISHED = 'published',
@@ -31,6 +37,7 @@ export interface Content {
   description?: string;       // Description optionnelle
   username?:string;            // Nom d'utilisateur du post
   tags?: string[];            // Mots-clés pour la recherche
+  category: ContentCategory;
   cadrage: 'default' | 'fit'; // cadrage de l'image 
   isPublic: boolean;          // Visibilité publique/privée
   allowDownloads: boolean;    // Autoriser le téléchargement
@@ -72,25 +79,62 @@ export interface Author {
   color: string; // CSS gradient string
 }
 
-export interface ExclusiveContent extends Content {
-  id: string;
-  title: string;
-  author: Author;
+export enum ExclusiveContentType {
+  VIDEO = 'video',
+  BEHIND = 'behind', 
+  MASTERCLASS = 'masterclass',
+  SERIES = 'series'
+}
+
+export enum ExclusiveContentStatus {
+  DRAFT = 'draft',
+  PUBLISHED = 'published',
+  ARCHIVED = 'archived'
+}
+
+export interface SeriesInfo {
+  seriesId?: string;
+  seriesTitle?: string;
+  episodeNumber?: number;
+  season?: number;
+  totalEpisodes?: number;
+  isSeries?: boolean;
+  nextEpisodeId?: string;
+  previousEpisodeId?: string;
+}
+
+export interface MediaInfo {
+  videoFile?: File;
   thumbnail?: string;
+  mimeType: string;
+  fileSize: number;
+  duration: number;
+}
+
+export interface ExclusiveContent {
+  // Identifiants système
+  id?: string;
+  userId: string;
+  created_at?: string;
+  updatedAt?: string;
+  
+  // Métadonnées principales
+  title: string;
+  description: string;
+  author: Author;
+  type: ExclusiveContentType;
+  status: ExclusiveContentStatus;
+  
+  // Média
+  media: MediaInfo;
+  
+  // Monétisation
   locked: boolean;
   price?: number;
   isLive?: boolean;
-  type: 'video' | 'behind' | 'masterclass' | 'series';
   
-  // Propriétés pour les séries et suites continues
-  seriesId?: string;          // ID de la série parente
-  seriesTitle?: string;       // Titre de la série (pour éviter une requête supplémentaire)
-  episodeNumber?: number;     // Numéro de l'épisode dans la série
-  season?: number;            // Numéro de saison (optionnel)
-  totalEpisodes?: number;     // Nombre total d'épisodes dans la série
-  isSeries?: boolean;         // Indique si c'est une série ou un contenu standalone
-  nextEpisodeId?: string;     // ID de l'épisode suivant
-  previousEpisodeId?: string;  // ID de l'épisode précédent
+  // Série (optionnel)
+  series?: SeriesInfo;
 }
 
 export interface Series {

@@ -1,7 +1,7 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { BehaviorSubject, catchError, forkJoin, map, Observable, of, switchMap, tap, throwError, filter } from 'rxjs';
 import { ApiJSON } from '../API/LOCAL/api-json';
-import { Content, ContentSource, ContentStatus } from '../../models/Content';
+import { Content, ContentCategory, ContentSource, ContentStatus } from '../../models/Content';
 import { UserProfile } from '../../models/User';
 import { ProfileService } from '../Service_profile/profile-service';
 
@@ -16,10 +16,12 @@ export class CreationService {
   private newContentSubject    = new BehaviorSubject<Content | null>(null);
   private discoveryFeedSubject = new BehaviorSubject<Content[]>([]);
   private followedFeedSubject  = new BehaviorSubject<Content[]>([]);
+  private bannerAdsSubject    = new BehaviorSubject<Content[]>([]);
 
   newContent$    = this.newContentSubject.asObservable();
   discoveryFeed$ = this.discoveryFeedSubject.asObservable();
   followedFeed$  = this.followedFeedSubject.asObservable();
+  bannerAds$    = this.bannerAdsSubject.asObservable();
 
   constructor(
     private api: ApiJSON,
@@ -46,6 +48,7 @@ export class CreationService {
       commentIds: string[];
       likedIds: string[];
       status: ContentStatus;
+      category: ContentCategory;
       challengeId?: string;
       cadrage: 'default' | 'fit';
       source: ContentSource;
@@ -158,12 +161,16 @@ export class CreationService {
       filters: { status: ContentStatus.PUBLISHED, isPublic: true },
       options: {
         page,
-        per_page: limit,
+        per_page: limit * 2, // Récupérer plus pour compenser le filtrage
         sort: { score: 'desc' },
         include_meta: true,
       }
     }).pipe(
-      map(result => result.data.filter(c => followedIds.includes(c.userId))),
+      map(result => result.data
+        .filter(c => followedIds.includes(c.userId))
+        .filter(c => c.category === ContentCategory.POST || c.category === ContentCategory.ADS_POST)
+        .slice(0, limit) // Limiter au nombre demandé
+      ),
       tap(contents => {
         page === 1
           ? this.followedFeedSubject.next(contents)
@@ -191,12 +198,16 @@ export class CreationService {
       filters: { status: ContentStatus.PUBLISHED, isPublic: true },
       options: {
         page,
-        per_page: limit,
+        per_page: limit * 2, // Récupérer plus pour compenser le filtrage
         sort: { score: 'desc' },
         include_meta: true,
       }
     }, {cache:true}).pipe(
-      map(result => result.data.filter(c => !excludedIds.includes(c.userId))),
+      map(result => result.data
+        .filter(c => !excludedIds.includes(c.userId))
+        .filter(c => c.category === ContentCategory.POST || c.category === ContentCategory.ADS_POST)
+        .slice(0, limit) // Limiter au nombre demandé
+      ),
       tap(contents => {
         page === 1
           ? this.discoveryFeedSubject.next(contents)
@@ -204,6 +215,36 @@ export class CreationService {
       }),
       catchError(err => {
         console.error('[CreationService] getDiscoveryFeedContents:', err);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Feed "Bannières Publicitaires" — contenus publicitaires de type bannière,
+   * triés par date décroissante.
+   */
+  getBannerAdsContents(
+    page = 1,
+    limit = 10
+  ): Observable<Content[]> {
+    return this.api.filter<Content>(this.RESOURCE, {
+      filters: { status: ContentStatus.PUBLISHED, category: ContentCategory.ADS_BANNER, isPublic: true },
+      options: {
+        page,
+        per_page: limit,
+        sort: { createdAt: 'desc' },
+        include_meta: true,
+      }
+    }).pipe(
+      map(result => result.data),
+      tap(contents => {
+        page === 1
+          ? this.bannerAdsSubject.next(contents)
+          : this.bannerAdsSubject.next([...this.bannerAdsSubject.value, ...contents]);
+      }),
+      catchError(err => {
+        console.error('[CreationService] getBannerAdsContents:', err);
         return of([]);
       })
     );

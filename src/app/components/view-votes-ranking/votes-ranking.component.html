@@ -11,8 +11,7 @@
 <div *ngIf="topArtists.length > 0" class="section">
   <div class="section-header">
     <h2 class="section-title">Top 6</h2>
-    <a (click)="viewChallengeRanking('top6')" class="see-more">Voir tout</a>
-  </div>
+     </div>
   
   <div class="top-artists-scroll">
     <div class="artist-card" *ngFor="let artist of topArtists">
@@ -26,7 +25,7 @@
       <div class="artist-info">
         <h3 class="artist-name">{{ artist.name }}</h3>
         <p class="artist-category">{{ artist.category }}</p>
-        <p class="artist-votes">{{ formatVotes(artist.votes) }} votes</p>
+        <p class="artist-votes">{{ artist.votes | shortNumber}} votes</p>
       </div>
     </div>
   </div>
@@ -46,7 +45,7 @@
           <div class="slide-content">
             <h3 class="challenge-title">{{ challenge.challengeName }}</h3>
             <p class="challenge-description">{{ challenge.description || 'Participez à ce défi passionnant !' }}</p>
-            <ion-button (click)="viewChallengeRanking(challenge.challengeId)" fill="clear" class="challenge-button">
+            <ion-button (click)="viewChallengeRanking(challenge)" fill="clear" class="challenge-button">
               Voir le classement
               <ion-icon slot="end" name="arrow-forward"></ion-icon>
             </ion-button>
@@ -68,7 +67,7 @@
 <div *ngFor="let ranking of challengeRankings" class="section">
   <div class="section-header">
     <h2 class="section-title">{{ ranking.challengeName }}</h2>
-    <a (click)="viewChallengeRanking(ranking.challengeId)" class="see-more">Voir tout</a>
+    <a (click)="viewChallengeRanking(ranking)" class="see-more">Voir tout</a>
   </div>
   
   <div class="top-artists-scroll">
@@ -77,13 +76,13 @@
         <ion-icon *ngIf="i === 0" name="trophy"></ion-icon>
         <span *ngIf="i !== 0">{{ i + 1 }}</span>
       </div>
-      <div class="artist-image" [style.background-image]="'url(' + (artist.imageUrl | mediaUrl | async) + ')'" (error)="onImageError($event)">
+      <div class="artist-image" (click)="showAccount(artist.id)" [style.background-image]="'url(' + (artist.imageUrl | mediaUrl | async) + ')'" (error)="onImageError($event)">
         <div class="image-overlay"></div>
       </div>
       <div class="artist-info">
         <h3 class="artist-name">{{ artist.name }}</h3>
         <p class="artist-category">{{ artist.category }}</p>
-        <p class="artist-votes">{{ formatVotes(artist.votes) }} votes</p>
+        <p class="artist-votes">{{ artist.votes | shortNumber }} votes</p>
       </div>
     </div>
   </div>

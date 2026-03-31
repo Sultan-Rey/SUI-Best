@@ -6,12 +6,13 @@ import { addIcons } from 'ionicons';
 import { trophy, trophyOutline, arrowForward } from 'ionicons/icons';
 import { Artist } from 'src/models/User';
 import { ChallengeRanking } from '../../../models/Challenge';
-
+import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
 import { 
   IonButton,
   IonIcon,
   IonSpinner
 } from '@ionic/angular/standalone';
+import { Router } from '@angular/router';
 
 
 @Component({
@@ -23,6 +24,7 @@ import {
     CommonModule,
     FormsModule,
     MediaUrlPipe,
+    ShortNumberPipe,
     IonIcon,
     IonButton
   ]
@@ -34,17 +36,17 @@ export class VotesRankingComponent implements OnInit {
   
   currentSlide = 0;
 
-  constructor() {
+  constructor(private router: Router) {
     addIcons({ trophy, trophyOutline, arrowForward });
   }
 
   ngOnInit() {}
 
-  // Méthode pour formater les nombres de votes
-  formatVotes(votes: number): string {
-    if (!votes) return '0';
-    return votes >= 1000 ? (votes / 1000).toFixed(1) + 'k' : votes.toString();
-  }
+    
+showAccount(userId:string){
+        this.router.navigate(['/profile', userId]);
+       
+      }
 
  
 
@@ -72,9 +74,9 @@ export class VotesRankingComponent implements OnInit {
   }
 
   // Méthode pour afficher le classement complet d'un défi
-  @Output() viewChallenge = new EventEmitter<string>();
+  @Output() viewChallenge = new EventEmitter<ChallengeRanking>();
   
-  viewChallengeRanking(challengeId: string) {
-    this.viewChallenge.emit(challengeId);
+  viewChallengeRanking(ranking: ChallengeRanking) {
+    this.viewChallenge.emit(ranking);
   }
 }

@@ -21,7 +21,7 @@ import {
   warning,
   createOutline,
   settingsOutline,
-  starHalfOutline,
+  eyeOffOutline,
   giftOutline,
   imagesOutline,
   arrowForwardOutline,
@@ -43,6 +43,7 @@ import {
   globeOutline,
   chatbubbleOutline,
   personCircleOutline,
+  walletOutline,
   homeOutline,
   compassOutline } from 'ionicons/icons';
 import { 
@@ -59,6 +60,7 @@ import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { ModalEditProfileComponent } from '../components/modal-edit-profile/modal-edit-profile.component.js';
 import { ShortNumberPipe } from '../utils/pipes/shortNumberPipe/short-number-pipe.js';
 import { FollowedViewComponent } from '../tab-home/containers/followed-panel/followed-view.component.js';
+import { ModalFollowingComponent } from '../components/modal-following/modal-following.component.js';
 import { HeaderComponentComponent } from '../components/header-component/header-component.component.js';
 import { SettingsPage } from '../settings/settings.page.js';
 import { UserService } from 'src/services/Service_user/user-service.js';
@@ -66,7 +68,7 @@ import { getRewardsForUserType } from 'src/interfaces/levelReward.data';
 import { LevelRewardsComponent } from '../components/level-rewards-component/level-rewards-component.component';
 import { AwardsGalleryComponent } from '../components/awards-gallery/awards-gallery.component';
 import { RewardService } from 'src/services/Rewards/reward-service';
-import { CreateExclusiveContentComponent } from '../components/create-exclusive-content/create-exclusive-content.component';
+import { TransactionHistoryModalComponent } from '../components/modal-transaction-history/transaction-history-modal.component';
 
 @Component({
   selector: 'app-profile',
@@ -139,7 +141,7 @@ export class ProfilePage implements OnInit {
       musicalNotesOutline, search, trophy, chevronBackOutline, ellipsisHorizontal,
       checkmark, videocamOutline, eyeOutline, locationOutline, logoInstagram,
       logoTwitter, logoYoutube, globeOutline, chatbubbleOutline, personCircleOutline,
-      homeOutline, compassOutline, starHalfOutline
+      homeOutline, compassOutline, eyeOffOutline, walletOutline
     });
   }
 
@@ -334,10 +336,33 @@ export class ProfilePage implements OnInit {
 
     if (isOwnProfile) {
       buttons.push(
+        {
+          text: 'Mes Transactions',
+          icon: 'wallet-outline',
+          handler: async () =>{
+             try {
+      const modal = await this.modalCtrl.create({
+        component: TransactionHistoryModalComponent,
+        cssClass: 'auto-height',
+        initialBreakpoint: 0.95,
+        breakpoints: [0, 0.95, 1],
+        handle: true
+      });
+      
+      await modal.present();
+    } catch (error) {
+      console.error('Erreur lors de l\'ouverture de la modale following:', error);
+      await this.showToast('Erreur lors du chargement des abonnements', 'danger');
+    }
+          }
+        },
          {
-          text: 'Creer contenu exclusif',
-          icon: 'star-half-outline',
-          handler: () => this.createExclusive()
+          text: 'BlackList',
+          icon: 'eye-off-outline',
+          handler: () =>{
+             this.modalCtrl.dismiss();
+             this.router.navigate(['/blacklist']);
+          }
         },
         {
           text: 'Modifier le profil',
@@ -531,13 +556,7 @@ export class ProfilePage implements OnInit {
       }
     }
 
-  private async createExclusive(){
-      const modal = await this.modalCtrl.create({
-      component: CreateExclusiveContentComponent,
-      handle: true
-    });
-     await modal.present();
-  }
+ 
 
   private async editProfile() {
     const modal = await this.modalCtrl.create({
@@ -713,6 +732,34 @@ export class ProfilePage implements OnInit {
       cssClass: 'custom-toast',
     });
     await toast.present();
+  }
+
+  /**
+   * Ouvre la modale des abonnements (following/fans)
+   */
+  async openModalFollowing() {
+    if (!this.userProfile || !this.userProfile.id) {
+      console.error('Aucun profil utilisateur trouvé');
+      return;
+    }
+
+    try {
+      const modal = await this.modalCtrl.create({
+        component: ModalFollowingComponent,
+        componentProps: {
+          CurrentUserId: this.userProfile.id
+        },
+        cssClass: 'auto-height',
+        initialBreakpoint: 0.95,
+        breakpoints: [0, 0.95, 1],
+        handle: true
+      });
+      
+      await modal.present();
+    } catch (error) {
+      console.error('Erreur lors de l\'ouverture de la modale following:', error);
+      await this.showToast('Erreur lors du chargement des abonnements', 'danger');
+    }
   }
 
 

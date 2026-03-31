@@ -9,7 +9,7 @@ import { WalletService } from '../../../services/Service_wallet/wallet-service';
 import { IncomeService } from 'src/services/service_income/income-service';
 import { PaymentService } from '../../../services/Service_payment/payment-service';
 import { Pack, PaymentMethod } from 'src/interfaces/income.interfaces';
-import { cardOutline, logoPaypal, cashOutline, chevronBackOutline, chevronForwardOutline, close, closeOutline, alertCircle, refresh, cubeOutline } from 'ionicons/icons';
+import { cardOutline, logoPaypal, cashOutline, chevronBack, chevronForward, close, closeOutline, alertCircle, refresh, cubeOutline, sparklesOutline, refreshOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
 import { firstValueFrom } from 'rxjs';
 import { Browser } from '@capacitor/browser';
@@ -53,7 +53,7 @@ export class BuyCoinModalComponent implements OnInit {
     private incomeService: IncomeService,
     private paymentService: PaymentService
   ) {
-    addIcons({close, closeOutline, alertCircle, refresh, cubeOutline, chevronBackOutline, chevronForwardOutline, cardOutline, logoPaypal, cashOutline});
+    addIcons({closeOutline,sparklesOutline,refreshOutline,chevronBackOutline,chevronForwardOutline,chevronBack,chevronForward,close,alertCircle,refresh,cubeOutline,cardOutline,logoPaypal,cashOutline});
     const returnUrl = localStorage.getItem('moncash_return_url');
 if (returnUrl) {
   this.router.navigateByUrl(returnUrl);
@@ -205,6 +205,7 @@ if (returnUrl) {
       loading = await this.loadingController.create({
         message: this.paymentMessage,
         spinner: 'circles',
+        duration: 10000,
         backdropDismiss: false
       });
       await loading.present();

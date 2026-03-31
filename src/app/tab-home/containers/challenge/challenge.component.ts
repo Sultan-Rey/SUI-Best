@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { environment } from 'src/environments/environment';
+import { Auth } from 'src/services/AUTH/auth';
 import {
   IonContent, IonIcon, IonFab, IonFabButton, IonSkeletonText, IonModal, IonList, IonItem, IonLabel, IonButton } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -16,7 +16,7 @@ import {
   trophyOutline, timeOutline, informationCircleOutline, addSharp
 } from 'ionicons/icons';
 import { ModalController, ToastController, AnimationController, LoadingController, ActionSheetController } from '@ionic/angular';
-import { Subscription, forkJoin } from 'rxjs';
+import { Subscription, forkJoin, of, switchMap, map } from 'rxjs';
 import { Challenge } from 'src/models/Challenge';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { CreationService } from 'src/services/Service_content/creation-service';
@@ -70,7 +70,8 @@ export class ChallengeComponent implements OnInit, OnDestroy {
     private loadingController: LoadingController,
     private actionSheetController: ActionSheetController,
     private animationCtrl: AnimationController,
-    private cdr:              ChangeDetectorRef
+    private cdr:              ChangeDetectorRef,
+    private auth:             Auth
   ) {
     addIcons({
       starOutline, star, ellipse, addCircleOutline, create, addSharp,
@@ -134,7 +135,15 @@ export class ChallengeComponent implements OnInit, OnDestroy {
     // Une seule souscription par section — les données vont directement
     // dans des tableaux, le template utilise *ngFor sans | async
     this.subscriptions.push(
-      this.challengeService.getChallengesBySingleCreator(environment.adminUID).subscribe({
+      this.auth.getAdminUID().pipe(
+        switchMap(adminId => {
+          if (!adminId) {
+            // Si pas d'admin, retourner un tableau vide
+            return of([]);
+          }
+          return this.challengeService.getChallengesBySingleCreator(adminId);
+        })
+      ).subscribe({
         next: challenges => {
           this.forYouChallenges = challenges;
           this.forYouLoading    = false;
@@ -148,7 +157,26 @@ export class ChallengeComponent implements OnInit, OnDestroy {
         }
       }),
 
-      this.challengeService.getActiveChallenges().subscribe({
+      this.auth.getAdminUID().pipe(
+        switchMap(adminId => {
+          return this.challengeService.getActiveChallenges().pipe(
+            map(challenges => {
+              // Filtrer les challenges pour exclure ceux créés par l'admin
+              let filteredChallenges = challenges.filter(challenge => challenge.creator_id !== adminId);
+              
+              // Filtrer également pour n'afficher que les défis créés par les utilisateurs suivis
+              if (this.CurrentUserProfile && this.CurrentUserProfile.myFollows) {
+                const followedCreatorIds = this.CurrentUserProfile.myFollows;
+                filteredChallenges = filteredChallenges.filter(challenge => 
+                  followedCreatorIds.includes(challenge.creator_id)
+                );
+              }
+              
+              return filteredChallenges;
+            })
+          );
+        })
+      ).subscribe({
         next: challenges => {
           this.exploreChallenges = challenges;
           this.exploreLoading    = false;

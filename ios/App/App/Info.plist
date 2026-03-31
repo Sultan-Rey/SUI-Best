@@ -47,5 +47,24 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Permissions pour Push Notifications iOS -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<!-- Configuration APNs (Apple Push Notification Service) -->
+	<key>UIUserNotificationSettings</key>
+	<dict>
+		<key>UIUserNotificationTypeAlert</key>
+		<true/>
+		<key>UIUserNotificationTypeBadge</key>
+		<true/>
+		<key>UIUserNotificationTypeSound</key>
+		<true/>
+	</dict>
+	<!-- Permissions pour iOS 13+ -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Best Academy utilise les notifications pour vous informer des messages, défis et récompenses.</string>
 </dict>
 </plist>

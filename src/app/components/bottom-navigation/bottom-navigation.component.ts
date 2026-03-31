@@ -11,6 +11,7 @@ interface NavItem {
   route: string;
   iconPath: string;
   badge?: number;
+  star?: boolean;
 }
 
 @Component({
@@ -86,6 +87,13 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
     const messagesItem = this.navItems.find(item => item.page === 'messages');
     if (messagesItem) {
       messagesItem.badge = value && value > 0 ? value : undefined;
+    }
+  }
+
+  @Input() set allowedToExclusive(value: boolean | undefined){
+      const publicationItem = this.navItems.find(item => item.page === 'publier');
+      if (publicationItem) {
+      publicationItem.star = value && value == true ? value : undefined;
     }
   }
 
@@ -264,6 +272,15 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
     this.snapToIndex(targetIdx);
   }
 
+  // ── Click handler for nav-item ──
+  onNavItemClick(item: NavItem) {
+    console.log("snap simulation");
+    // Navigation directe vers la route de l'item
+    this.router.navigate([item.route]);
+    // Simule le même comportement que le snap après glissement
+    this.snapToIndex(item.idx);
+  }
+
   // ── Mouse handlers (template) ──
   onMouseDown(e: MouseEvent) { this.onPointerDown(e.clientX); }
 
@@ -271,12 +288,6 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
   onTouchStart(e: TouchEvent) { this.onPointerDown(e.touches[0].clientX); }
   onTouchMoveLocal(e: TouchEvent) { e.preventDefault(); this.pointerMove(e.touches[0].clientX); }
   onTouchEndLocal() { this.pointerUp(); }
-
-  // ── Circle action button ──
-  onCircleAction() {
-    // Navigate to dedicated action page — customize as needed
-    this.router.navigate(['/action']);
-  }
 
   // ── Helpers for template ──
   isCapture(item: NavItem): boolean { return item.idx === this.activeIdx; }

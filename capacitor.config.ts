@@ -13,6 +13,16 @@ const config: CapacitorConfig = {
     Browser: {
       enabled: true,
     },
+    // Configuration des notifications locales
+    LocalNotifications: {
+      smallIcon: 'ic_stat_icon_config',
+      iconColor: '#FF6B35',
+      sound: 'default'
+    },
+    // Configuration des Push Notifications
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"]
+    },
     // Configuration des URL schemes pour les deep links
     server: {
       iosScheme: 'bestacademy',

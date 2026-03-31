@@ -5,6 +5,7 @@ import { addIcons } from 'ionicons';
 import { LevelReward } from 'src/models/LevelReward';
 import { RewardService } from 'src/services/Rewards/reward-service';
 import { Auth } from 'src/services/AUTH/auth';
+import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
 
 import {
   star,
@@ -64,6 +65,7 @@ export class LevelRewardsComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private rewardService: RewardService,
     private authService: Auth,
+    private notificationManager: NotificationManagerService
   ) {
     addIcons({ star, closeOutline, giftOutline, lockClosedOutline, checkmarkCircle, checkmarkCircleOutline, timeOutline });
   }
@@ -202,6 +204,9 @@ export class LevelRewardsComponent implements OnInit {
           reward.collectible = false;
           this.cdr.markForCheck();
           console.log(`Récompense de niveau ${reward.level} collectée avec succès`);
+          
+          // Notifier la collecte réussie
+          this.notificationManager.notifyRewardCollected(reward.level, currentUser.id);
         } else {
           console.error('Échec de la collecte de la récompense');
         }

@@ -1,72 +1,3 @@
-/* ==================== */
-/*       HEADER         */
-/* ==================== */
-.header {
-  --background: transparent;
-  --border-style: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  height: 64px;
-  backdrop-filter: blur(10px);
-  background: rgba(10, 10, 10, 0.8);
-
-  &-toolbar {
-    --background: transparent;
-    --border-style: none;
-    --padding-top: env(safe-area-inset-top);
-    --padding-start: 1rem;
-    --padding-end: 1rem;
-    --min-height: 64px;
-  }
-}
-
-.search-container {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 0.75rem;
-}
-
-.search-wrapper {
-  flex: 1;
-  position: relative;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.5rem 1rem 0.5rem 2.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  color: white;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
-  }
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-}
-
-.search-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: white;
-  width: 1.25rem;
-  height: 1.25rem;
-  pointer-events: none;
-}
 
 ion-content {
   --background: #0a0a0a;
@@ -77,7 +8,7 @@ ion-content {
 
 .ranking-container {
   padding: 20px;
-  padding-top: 84px; /* Hauteur du header + espacement */
+ /* Hauteur du header + espacement */
   background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
   min-height: 100%;
   box-sizing: border-box;
@@ -109,6 +40,59 @@ ion-content {
     font-size: 14px;
     margin: 16px 0 0;
     font-weight: 500;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  text-align: center;
+  min-height: 300px;
+  
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.8;
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .empty-title {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    text-align: center;
+  }
+  
+  .empty-description {
+    color: #8e8e93;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 24px 0;
+    max-width: 300px;
+    text-align: center;
+  }
+  
+  .empty-action {
+    --background: transparent;
+    --color: #ff9500;
+    --border-color: #ff9500;
+    font-weight: 500;
+    margin-top: 8px;
+    
+    ion-icon {
+      font-size: 16px;
+    }
+    
+    &:hover {
+      --background: rgba(255, 149, 0, 0.1);
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
   }
 }
 

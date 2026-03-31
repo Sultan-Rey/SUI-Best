@@ -30,6 +30,8 @@ export class HeaderComponentComponent  implements OnInit {
    private destroy$ = new Subject<void>();
     balance$!: Observable<UserBalance>;
     userBalance: UserBalance = { coins: 0, coupons: 0 };
+    userXp!: number;
+    userLvl!:number;
    subscriptionStatus: 'active' | 'expiring' | 'expired' | 'inactive' = 'inactive';
    // Animation Lottie pour les coins
    showCoinAnimation: boolean = false;
@@ -37,6 +39,9 @@ export class HeaderComponentComponent  implements OnInit {
    // Propriétés pour gérer le retour
    @Input() goBackTarget: Segment | undefined;
    @Output() goBack = new EventEmitter<{ target: Segment }>();
+
+   // ViewChild pour le modal de récompenses
+   @ViewChild('rewardModal') rewardModal!: IonModal;
 
    // Propriétés pour les récompenses quotidiennes
    recompensesQuotidiennes: Record<string, any> = {};
@@ -152,7 +157,12 @@ export class HeaderComponentComponent  implements OnInit {
     });
   }
 
-   // Méthode pour gérer le retour
+   // Méthode pour ouvrir le modal des récompenses
+  async openRewardModal() {
+    await this.rewardModal.present();
+  }
+
+  // Méthode pour gérer le retour
   handleGoBack(): void {
     this.goBack.emit({ target: this.goBackTarget as Segment });
     
@@ -169,7 +179,15 @@ export class HeaderComponentComponent  implements OnInit {
  
 // Méthode pour vérifier si un onglet est actif
 isTabActive(path: string): boolean {
-  return this.router.url.includes(path);
+  if (!path || path.trim() === '') {
+    return false;
+  }
+  const currentUrl = this.router.url;
+ 
+  const isroute =  currentUrl === path || currentUrl.endsWith(path) || currentUrl.includes(path);
+
+  // Vérification exacte ou包含
+  return isroute;
 }
 
 // Vérifier si on est sur la page home
@@ -186,8 +204,10 @@ isHomePage(): boolean {
     }
 
     const user = await this.profileService.getProfileById(currentUser.id.toString()).toPromise();
-   
+  
     if (user?.userInfo.memberShip) {
+      this.userXp = user.xpPercent;
+      this.userLvl = user.level;
       const endDate = new Date(user.userInfo.memberShip.date);
       const today = new Date();
       

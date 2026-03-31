@@ -6,7 +6,7 @@ ion-content.tiktok-content {
 }
 
 .posts-container {
-  height: 100vh;
+  height: calc(100% - 70px);      // ✅ Hauteur totale moins header et bottom navigation
   overflow-y: scroll;
   scroll-snap-type: y mandatory;   // ✅ LE cœur du fix
   -webkit-overflow-scrolling: touch;
@@ -34,8 +34,7 @@ ion-refresher {
 .post {
   position: relative;
   width: 100%;
-  margin-top: 8vh;
-  height: 90vh;                   // ✅ Chaque post = 1 écran exact
+  height: 100%;                   // ✅ Chaque post = 1 écran exact
   scroll-snap-align: start;        // ✅ S'accroche au haut
   scroll-snap-stop: always;        // ✅ Force l'arrêt sur chaque post (comme TikTok)
   overflow: hidden;
@@ -131,7 +130,9 @@ ion-button[disabled] {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0 1.25rem 6.5rem;
+  /* On ajoute la safe-area au padding existant */
+  /* Si 6.5rem était déjà beaucoup, vous pouvez l'ajuster */
+  padding: 0 1.25rem calc(3rem + env(safe-area-inset-bottom)); 
   z-index: 3;
   display: flex;
   justify-content: space-between;
@@ -685,4 +686,42 @@ ion-button[disabled] {
     opacity: 0; 
     transform: translateY(-10px); 
   } // Pause 4s
+}
+
+/* ==================== */
+/*   LOADING CONTAINER   */
+/* ==================== */
+.loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin: 0;
+  padding: 0;
+}
+
+.loading-text {
+  margin-top: 20px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  opacity: 0.9;
+}
+
+ion-spinner {
+  --color: #ffffff;
+  width: 50px;
+  height: 50px;
 }

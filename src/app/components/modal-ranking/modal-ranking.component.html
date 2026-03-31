@@ -1,0 +1,61 @@
+<div class="modal-overlay" 
+     *ngIf="isVisible" 
+     @overlayFadeInOut
+     (click)="closeModal()">
+  <div class="modal-container" 
+       @modalSlideInOut
+       (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <h2 class="modal-title">{{ title }}</h2>
+      <button class="close-btn" (click)="closeModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="modal-content">
+      <div class="ranking-list">
+        <div class="ranking-item" 
+             *ngFor="let artist of sortedArtists; let i = index" 
+             [class.top-three]="i < 3"
+             (click)="showAccount(artist.id)">
+          
+          <!-- Rank -->
+          <div class="rank-badge" 
+               [style.color]="getRankColor(i + 1)"
+               [class.podium]="i < 3">
+            <span class="rank-icon">{{ getRankIcon(i + 1) }}</span>
+          </div>
+
+          <!-- Artist Info -->
+          <div class="artist-info">
+            <img [src]="artist.imageUrl || 'assets/icon/avatar-default.png'" 
+                 [alt]="artist.name"
+                 class="artist-avatar"
+                 (error)="onImageError($event)">
+            <div class="artist-details">
+              <h3 class="artist-name">{{ artist.name }}</h3>
+              <p class="artist-category">{{ artist.category || 'Artiste' }}</p>
+            </div>
+          </div>
+
+          <!-- Votes -->
+          <div class="votes-info">
+            <span class="votes-number">{{ artist.votes | shortNumber }}</span>
+            <span class="votes-label">votes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!sortedArtists || sortedArtists.length === 0">
+        <div class="empty-icon">📊</div>
+        <p class="empty-text">Aucun artiste dans ce classement</p>
+      </div>
+    </div>
+  </div>
+</div>

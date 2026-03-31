@@ -132,7 +132,6 @@
   <div class="stories-section" *ngIf="!isLoading && stories.length!==0">
     <div class="section-header">
       <h2 class="section-title">Top stars</h2>
-      <a class="section-more">Tout voir</a>
     </div>
     <div class="stories-scroll">
       <div class="story-item" (click)="showAccount(story.id)" *ngFor="let story of stories">
@@ -145,6 +144,5 @@
     </div>
   </div>
 
-  <div style="height: 120px"></div>
   </ng-container>
 </div>

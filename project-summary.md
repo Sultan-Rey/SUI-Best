@@ -1,0 +1,157 @@
+## Capacitor Plugins
+
+- 🟩 [@capacitor/app@8.0.0](https://github.com/ionic-team/capacitor-plugins.git) - (Latest 8.1.0)
+- 🟩 [@capacitor/browser@8.0.1](https://github.com/ionic-team/capacitor-plugins.git) - (Latest 8.0.3)
+- 🟩 [@capacitor/camera@8.0.1](https://github.com/ionic-team/capacitor-plugins.git) - (Latest 8.0.2)
+- 🟩 [@capacitor/dialog@8.0.1](https://github.com/ionic-team/capacitor-plugins.git)
+- 🟩 [@capacitor/filesystem@8.1.2](https://github.com/ionic-team/capacitor-filesystem.git)
+- 🟩 [@capacitor/haptics@8.0.0](https://github.com/ionic-team/capacitor-haptics.git) - (Latest 8.0.2)
+- 🟩 [@capacitor/keyboard@8.0.0](https://github.com/ionic-team/capacitor-keyboard.git) - (Latest 8.0.2)
+- 🟩 [@capacitor/local-notifications@8.0.1](https://github.com/ionic-team/capacitor-plugins.git) - (Latest 8.0.2)
+- 🟩 [@capacitor/push-notifications@8.0.3](https://github.com/ionic-team/capacitor-plugins.git)
+- 🟩 [@capacitor/status-bar@8.0.0](https://github.com/ionic-team/capacitor-plugins.git) - (Latest 8.0.2)
+## Cordova Plugins
+
+## Dependencies
+
+- 🟩 [@angular-devkit/architect@0.2000.6](https://github.com/angular/angular-cli.git) - (Latest 0.2102.5)
+- 🟧 [@angular-devkit/build-angular@20.3.22](https://github.com/angular/angular-cli.git) - (Latest 21.2.5) - Is behind 1 major version.
+- 🟧 [@angular-devkit/core@20.3.22](https://github.com/angular/angular-cli.git) - (Latest 21.2.5) - Is behind 1 major version.
+- 🟧 [@angular-eslint/builder@20.7.0](https://github.com/angular-eslint/angular-eslint.git) - (Latest 21.3.1) - Is behind 1 major version.
+- 🟧 [@angular-eslint/eslint-plugin@20.7.0](https://github.com/angular-eslint/angular-eslint.git) - (Latest 21.3.1) - Is behind 1 major version.
+- 🟧 [@angular-eslint/eslint-plugin-template@20.7.0](https://github.com/angular-eslint/angular-eslint.git) - (Latest 21.3.1) - Is behind 1 major version.
+- 🟧 [@angular-eslint/schematics@20.7.0](https://github.com/angular-eslint/angular-eslint.git) - (Latest 21.3.1) - Is behind 1 major version.
+- 🟧 [@angular-eslint/template-parser@20.7.0](https://github.com/angular-eslint/angular-eslint.git) - (Latest 21.3.1) - Is behind 1 major version.
+- 🟧 [@angular/animations@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/cli@20.3.15](https://github.com/angular/angular-cli.git) - (Latest 21.2.5) - Is behind 1 major version.
+- 🟧 [@angular/common@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/compiler@20.3.18](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/compiler-cli@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/core@20.3.18](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟩 [@angular/fire@20.0.1](https://github.com/angular/angularfire.git)
+- 🟧 [@angular/forms@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/language-service@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/platform-browser@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/platform-browser-dynamic@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/router@20.3.16](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟧 [@angular/service-worker@20.3.17](https://github.com/angular/angular.git) - (Latest 21.2.6) - Is behind 1 major version.
+- 🟩 [@capacitor/android@8.1.0](https://github.com/ionic-team/capacitor.git) - (Latest 8.3.0)
+- 🟧 [@capacitor/assets@3.0.5](https://github.com/ionic-team/capacitor-assets.git) - May be unmaintained (2 years since last release)
+- 🟩 [@capacitor/cli@8.0.0](https://github.com/ionic-team/capacitor.git) - (Latest 8.3.0)
+- 🟩 [@capacitor/core@8.1.0](https://github.com/ionic-team/capacitor.git) - (Latest 8.3.0)
+- 🟩 [@capacitor/ios@8.1.0](https://github.com/ionic-team/capacitor.git) - (Latest 8.3.0)
+- 🟩 [@ionic/angular@8.7.17](https://github.com/ionic-team/ionic-framework.git) - (Latest 8.8.2)
+- 🟩 [@ionic/angular-toolkit@12.3.0](https://github.com/ionic-team/angular-toolkit.git)
+- 🟥 [@ionic/storage-angular@4.0.0](https://github.com/ionic-team/ionic-storage.git) - Unmaintained (2.9 years since last release)
+- 🟧 @types/bcryptjs@2.4.6 - May be unmaintained (1 years since last release)
+- 🟧 [@types/jasmine@5.1.15](https://github.com/DefinitelyTyped/DefinitelyTyped.git) - (Latest 6.0.0) - Is behind 1 major version.
+- 🟧 @types/uuid@10.0.0 - Unable to find information on npm.
+- 🟩 [@typescript-eslint/eslint-plugin@8.56.0](https://github.com/typescript-eslint/typescript-eslint.git) - (Latest 8.57.2)
+- 🟩 [@typescript-eslint/parser@8.56.0](https://github.com/typescript-eslint/typescript-eslint.git) - (Latest 8.57.2)
+- 🟩 [bcryptjs@3.0.3](https://github.com/dcodeIO/bcrypt.js.git)
+- 🟧 [eslint@9.39.3](https://github.com/eslint/eslint.git) - (Latest 10.1.0) - Is behind 1 major version.
+- 🟩 [eslint-plugin-import@2.32.0](https://github.com/import-js/eslint-plugin-import.git)
+- 🟧 [eslint-plugin-jsdoc@48.11.0](https://github.com/gajus/eslint-plugin-jsdoc.git) - (Latest 62.8.1) - Is behind 14 major versions.
+- 🟥 [eslint-plugin-prefer-arrow@1.2.2](https://github.com/TristonJ/eslint-plugin-prefer-arrow.git) - (Latest 1.2.3) - Unmaintained (5.2 years since last release)
+- 🟩 [firebase@12.11.0](https://github.com/firebase/firebase-js-sdk.git)
+- 🟥 [html5-qrcode@2.3.8](https://github.com/mebjas/html5-qrcode.git) - Unmaintained (3 years since last release)
+- 🟧 [ionicons@7.4.0](https://github.com/ionic-team/ionicons.git) - (Latest 8.0.13) - Is behind 1 major version.
+- 🟧 [jasmine-core@5.1.2](https://github.com/jasmine/jasmine.git) - (Latest 6.1.0) - Is behind 1 major version.
+- 🟧 [jasmine-spec-reporter@5.0.2](https://github.com/bcaudan/jasmine-spec-reporter.git) - (Latest 7.0.0) - Is behind 2 major versions.
+- 🟧 [karma@6.4.4](https://github.com/karma-runner/karma.git) - May be unmaintained (1.7 years since last release)
+- 🟥 [karma-chrome-launcher@3.2.0](https://github.com/karma-runner/karma-chrome-launcher.git) - Unmaintained (2.9 years since last release)
+- 🟥 [karma-coverage@2.2.1](https://github.com/karma-runner/karma-coverage.git) - Unmaintained (2.8 years since last release)
+- 🟥 [karma-jasmine@5.1.0](https://github.com/karma-runner/karma-jasmine.git) - Unmaintained (3.8 years since last release)
+- 🟩 [karma-jasmine-html-reporter@2.1.0](https://github.com/dfederm/karma-jasmine-html-reporter.git) - (Latest 2.2.0)
+- 🟩 [lottie-web@5.13.0](https://github.com/airbnb/lottie-web.git)
+- 🟧 moncash-sdk - Requires manual developer maintenance as it custom / forked.
+- 🟩 [ngx-lottie@21.2.0](https://github.com/ngx-lottie/ngx-lottie.git)
+- 🟧 [rxjs@7.8.2](https://github.com/reactivex/rxjs.git) - May be unmaintained (1.1 years since last release)
+- 🟧 [tslib@2.8.1](https://github.com/Microsoft/tslib.git) - May be unmaintained (1.4 years since last release)
+- 🟧 [typescript@5.9.3](https://github.com/microsoft/TypeScript.git) - (Latest 6.0.2) - Is behind 1 major version.
+- 🟩 [zone.js@0.15.1](https://github.com/angular/angular.git) - (Latest 0.16.1)
+### Maintenance Score
+27 out of 66 dependencies were up to date without issues.
+
+
+
+## Nonstandard naming
+The following files and folders do not follow the standard naming convention:
+
+- \app\components\modal-select-post\README.md
+- \app\utils\pipes\dmPipe\dmtime-pipe.spec.ts
+- \app\utils\pipes\dmPipe\dmtime-pipe.ts
+- \app\utils\pipes\filterPipe\filter-pipe.spec.ts
+- \app\utils\pipes\filterPipe\filter-pipe.ts
+- \app\utils\pipes\mediaUrlPipe\media-url-pipe.spec.ts
+- \app\utils\pipes\mediaUrlPipe\media-url-pipe.ts
+- \app\utils\pipes\shortNumberPipe\short-number-pipe.spec.ts
+- \app\utils\pipes\shortNumberPipe\short-number-pipe.ts
+- \assets\lottie\Celebration.json
+- \assets\lottie\Crown.json
+- \assets\lottie\Diamond.json
+- \assets\lottie\Rose.json
+- \interfaces\levelReward.data.ts
+- \models\Challenge.ts
+- \models\Comment.ts
+- \models\Content.ts
+- \models\Conversation.ts
+- \models\Coupon.ts
+- \models\Donation.ts
+- \models\Gift.ts
+- \models\LevelReward.ts
+- \models\Notification.ts
+- \models\Plan.ts
+- \models\Segment.ts
+- \models\Setting.ts
+- \models\User.ts
+- \models\Vote.ts
+- \models\Wallet.ts
+- \services\Animation\animation-service.spec.ts
+- \services\Animation\animation-service.ts
+- \services\API\firebase\firebase-service.spec.ts
+- \services\API\firebase\firebase-service.ts
+- \services\API\LOCAL\api-json.spec.ts
+- \services\API\LOCAL\api-json.ts
+- \services\AUTH\auth.spec.ts
+- \services\AUTH\auth.ts
+- \services\AUTH\fireAuth\fire-auth.spec.ts
+- \services\AUTH\fireAuth\fire-auth.ts
+- \services\Cache\data-cache.spec.ts
+- \services\Cache\data-cache.ts
+- \services\Cache\media-cache-service.spec.ts
+- \services\Cache\media-cache-service.ts
+- \services\CAMERA\camera-service.spec.ts
+- \services\CAMERA\camera-service.ts
+- \services\FCM\fcmservice.spec.ts
+- \services\FCM\fcmservice.ts
+- \services\Notification\notification-manager-service.spec.ts
+- \services\Notification\notification-manager-service.ts
+- \services\Notification\notification.spec.ts
+- \services\Notification\notification.ts
+- \services\Rewards\daily-rewards.spec.ts
+- \services\Rewards\daily-rewards.ts
+- \services\Rewards\reward-service.spec.ts
+- \services\Rewards\reward-service.ts
+- \services\Service_challenge\challenge-service.spec.ts
+- \services\Service_challenge\challenge-service.ts
+- \services\Service_content\creation-service.spec.ts
+- \services\Service_content\creation-service.ts
+- \services\Service_exclusive_content\exclusive-service.spec.ts
+- \services\Service_exclusive_content\exclusive-service.ts
+- \services\Service_message\message-service.spec.ts
+- \services\Service_message\message-service.ts
+- \services\Service_message\system-messenger.spec.ts
+- \services\Service_message\system-messenger.ts
+- \services\Service_payment\payment-service.spec.ts
+- \services\Service_payment\payment-service.ts
+- \services\Service_profile\profile-service.spec.ts
+- \services\Service_profile\profile-service.ts
+- \services\Service_subscription\subscription-service.spec.ts
+- \services\Service_subscription\subscription-service.ts
+- \services\Service_user\user-service.spec.ts
+- \services\Service_user\user-service.ts
+- \services\Service_vote\vote-service.spec.ts
+- \services\Service_vote\vote-service.ts
+- \services\Service_wallet\wallet-service.spec.ts
+- \services\Service_wallet\wallet-service.ts

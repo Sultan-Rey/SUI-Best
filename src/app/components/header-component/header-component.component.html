@@ -1,71 +1,96 @@
 <ion-header class="top-bar">
- 
 
   <div class="stats-container">
 
-    <!-- groupe gauche -->
-    <div class="left-group">
+    <!-- ── Ligne 1 : navigation ────────────────────────────────────────── -->
+    <div class="header-row-nav">
 
-  <!-- Custom back button - visible quand goBackTarget est défini -->
-  <ion-buttons slot="start" *ngIf="goBackTarget || !isHomePage()">
-    <ion-back-button defaultHref="/home" (click)="handleGoBack()"></ion-back-button>
-  </ion-buttons>
-      <!-- XP - visible seulement sur home et quand pas de bouton de retour -->
-      <ion-chip class="xp-chip" *ngIf="isHomePage() && !goBackTarget" id="open-modal">
-        <ion-icon name="sparkles-outline"></ion-icon>
-        <ion-label>1K • <ion-text color="primary">L1</ion-text></ion-label>
-      </ion-chip>
+      <!-- Gauche : bouton retour OU xp-chip -->
+      <div class="left-group">
 
-      <!-- Coins -->
-      <ion-chip class="coin-chip">
+        <!-- Bouton retour — visible si goBackTarget défini ou hors home -->
+        <ion-buttons slot="start" *ngIf="goBackTarget || !isHomePage()">
+          <ion-back-button defaultHref="/home" (click)="handleGoBack()"></ion-back-button>
+        </ion-buttons>
+
+        <!-- XP chip — visible sur home uniquement, sans bouton retour -->
+        <ion-chip class="xp-chip"
+                  *ngIf="isHomePage() && !goBackTarget"
+                  (click)="openRewardModal()">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <ion-label>{{userXp | shortNumber}} • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
+        </ion-chip>
+
+      </div>
+
+      <!-- Droite : boutons trophy / crown / search -->
+      <div class="icons">
+        <ion-buttons>
+
+          <button class="action-button margin-right"
+                  [class.active]="isTabActive('/ranking')"
+                  (click)="navigateTo('/ranking')">
+            <ion-icon name="trophy"></ion-icon>
+          </button>
+
+          <button class="action-button margin-right"
+                  [class.active]="isTabActive('/exclusive')"
+                  (click)="navigateTo('/exclusive')">
+            <div class="led-indicator" [ngClass]="getSubscriptionStatus()"></div>
+            <ion-img class="header-icon" src="assets/icon/crown.png"></ion-img>
+          </button>
+
+          <button class="action-button search-button"
+                  [class.active]="isTabActive('/search')"
+                  (click)="navigateTo('/search')">
+            <ion-icon name="search" class="action-icon"></ion-icon>
+          </button>
+
+        </ion-buttons>
+      </div>
+
+    </div>
+
+    <!-- ── Ligne 2 : solde coins (toujours visible, jamais tronqué) ─────── -->
+    <div class="header-row-balance">
+
+      <div class="coin-balance">
         <ion-img src="assets/icon/coin-collecting.png"></ion-img>
-        <ion-label [class]="'coin-count' + (showCoinAnimation ? ' animating' : '')">{{userBalance.coins | shortNumber | currency}}</ion-label>
-        <ion-icon name="add-circle" (click)="buyCoins()"></ion-icon>
-        
-        <!-- Overlay Lottie local pour l'animation de coins -->
+        <span [class]="'coin-amount' + (showCoinAnimation ? ' animating' : '')">
+          {{ userBalance.coins | shortNumber | currency }}
+        </span>
+        <span class="coin-label">coins</span>
+
+        <!-- Overlay Lottie animation gain de coins -->
         <div class="coin-lottie-overlay" *ngIf="showCoinAnimation">
-          <ng-lottie 
+          <ng-lottie
             [options]="{ path: 'lottie/coin-bust.json', autoplay: true, loop: false }"
             (animationCreated)="onCoinAnimationCreated($event)">
           </ng-lottie>
         </div>
-      </ion-chip>
+      </div>
+
+      <!-- Bouton acheter des coins -->
+      <button class="coin-add-btn" (click)="buyCoins()">
+        <ion-icon name="add-circle"></ion-icon>
+      </button>
 
     </div>
 
-    <!-- icones droite -->
-   <div class="icons">
-      <ion-buttons>
-        <!-- Bouton ranking -->
-<button class="action-button" 
-        [class.active]="isTabActive('/ranking')"
-        (click)="navigateTo('/ranking')">
-   <ion-icon name="trophy"></ion-icon>
-</button>
-
-<!-- Bouton subscription -->
-<button class="action-button" 
-        [class.active]="isTabActive('/exclusive')"
-        (click)="navigateTo('/exclusive')">
-  <div class="led-indicator" [ngClass]="getSubscriptionStatus()"></div>
-  <ion-img class="header-icon" src="assets/icon/crown.png"></ion-img>
-</button>
-
-<!-- Bouton search -->
-<button class="action-button search-button" 
-        [class.active]="isTabActive('/search')"
-        (click)="navigateTo('/search')">
-  <ion-icon name="search" class="action-icon"></ion-icon>
-</button>
-      </ion-buttons>
-    </div>
   </div>
 
 </ion-header>
 
-<ion-modal id="reward-modal" #rewardModal trigger="open-modal" [enterAnimation]="enterAnimation" [leaveAnimation]="leaveAnimation">
+
+<!-- ── Modal récompenses quotidiennes ──────────────────────────────────────── -->
+
+<ion-modal id="reward-modal"
+           #rewardModal
+           [enterAnimation]="enterAnimation"
+           [leaveAnimation]="leaveAnimation">
   <ng-template>
     <div class="modal-wrapper">
+
       <div class="reward-header">
         <div class="star-background">
           <ion-icon name="star" class="bg-star-icon s1"></ion-icon>
@@ -86,21 +111,24 @@
               <ion-icon *ngIf="recompensesQuotidiennes[jour]?.recoltee" name="checkmark"></ion-icon>
               <span *ngIf="!recompensesQuotidiennes[jour]?.recoltee">DAY {{ i + 1 }}</span>
             </div>
-            <div *ngIf="i < 4" class="line" [class.active]="recompensesQuotidiennes[jour]?.recoltee"></div>
+            <div *ngIf="i < 4"
+                 class="line"
+                 [class.active]="recompensesQuotidiennes[jour]?.recoltee">
+            </div>
           </ng-container>
         </div>
 
         <h2>DAILY REWARDS</h2>
         <p>{{ getMessageRecompense() }}</p>
 
-        <ion-button 
-          expand="block" 
-          class="claim-button" 
-          [disabled]="!peutReclamerAujourdHui || estWeekend"
-          (click)="reclamerRecompenseQuotidienne(rewardModal)">
+        <ion-button expand="block"
+                    class="claim-button"
+                    [disabled]="!peutReclamerAujourdHui || estWeekend"
+                    (click)="reclamerRecompenseQuotidienne(rewardModal)">
           {{ getTexteBouton() }}
         </ion-button>
       </div>
+
     </div>
   </ng-template>
 </ion-modal>

@@ -6,14 +6,12 @@ import { IonicModule, ModalController, AlertController, ToastController } from '
 import { addIcons } from 'ionicons';
 import { Coupon } from '../../../models/Coupon';
 import { Auth } from '../../../services/AUTH/auth';
-import { ProfileService } from '../../../services/Service_profile/profile-service';
 import { WalletService } from '../../../services/Service_wallet/wallet-service';
 import { switchMap, map, catchError, filter } from 'rxjs/operators';
 import { forkJoin, take, of, tap, Observable } from 'rxjs';
 import { VoteService } from 'src/services/Service_vote/vote-service';
 import { VoteRule } from 'src/models/Challenge';
-import { stringify } from 'uuid';
-import { UserProfile } from 'src/models/User';
+
 import {
   ticketOutline,
   star,
@@ -31,12 +29,13 @@ import {
   layersOutline,
   walletOutline,
   informationCircleOutline,
-  ellipsisHorizontal
+  ellipsisHorizontal,
+  qrCodeOutline
 } from 'ionicons/icons';
 import { Vote, VoteStatusResponse } from 'src/models/Vote';
-import { CreationService } from 'src/services/Service_content/creation-service';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { BuyCouponModalComponent } from '../modal-buy-coupon/buy-coupon-modal.component';
+import { ModalQRscannerComponent } from '../modal-qrscanner/modal-qrscanner.component';
 
 // Interface pour les coupons
 
@@ -76,6 +75,12 @@ export class CouponModalComponent implements OnInit {
       icon: 'wallet-outline',
       color: 'primary'
     },
+     {
+      id: 'scan',
+      label: 'Charger un coupon',
+      icon: 'qr-code-outline',
+      color: 'secondary'
+    },
     {
       id: 'raffle',
       label: 'Tombola & Tirage au sort',
@@ -101,7 +106,6 @@ export class CouponModalComponent implements OnInit {
   private _hasMoreCoupons = true;
 
   constructor(private modalController: ModalController,
-    private auth: Auth,
     private walletService: WalletService,
     private voteService: VoteService,
     private challengeService: ChallengeService,
@@ -125,7 +129,8 @@ export class CouponModalComponent implements OnInit {
       informationCircleOutline,
       ellipsisHorizontal,
       helpCircleOutline,
-      walletOutline
+      walletOutline,
+      qrCodeOutline
     });
   }
  async ngOnInit() {
@@ -239,8 +244,8 @@ export class CouponModalComponent implements OnInit {
 
     this._isLoadingMore = false;
 
-    console.log('Coupons disponibles après chargement:', this.availableCoupons.length);
-    console.log(`Chargé ${nextBatch.length} coupons, reste: ${this.allCoupons.length - totalUsed}`);
+   // console.log('Coupons disponibles après chargement:', this.availableCoupons.length);
+   // console.log(`Chargé ${nextBatch.length} coupons, reste: ${this.allCoupons.length - totalUsed}`);
   }
 
   //#endregion
@@ -291,7 +296,7 @@ export class CouponModalComponent implements OnInit {
 
     // Utilisation de la valeur de burnCoupon pour déterminer la quantité à décrémenter
     const usageValue = this.burnCoupon == true ? this.selectedCoupon.usageValue : 1;
-    console.log("usageValue: "+usageValue);
+    //console.log("usageValue: "+usageValue);
      //preparation du vote
     const voteData:Vote = {
       userId: this.userId,
@@ -303,37 +308,48 @@ export class CouponModalComponent implements OnInit {
 
     // Chaîner les opérations pour assurer l'atomicité
     this.walletService.decrementUserCouponUsage(this.selectedCoupon.id, usageValue).pipe(
-      tap(() => {
-        // Mettre à jour la liste des coupons après l'utilisation
-        this.loadAvailableCoupons();
-      }),
-      switchMap(() =>
-        // Si le décrément a réussi, on ajoute le vote
-        this.voteService.addVoteToContent(
-          voteData,
-          this.usageRule
-        ).pipe(
-          tap(() => this.selectedCoupon = null)
-        )
-      )
-    ).subscribe({
-      next: () => {
-        // Afficher un message de succès
-        this.toastController.create({
-          message: 'Vote confirmé',
-          duration: 2000,
-          color: 'success',
-          position: 'bottom'
-        }).then(toast => toast.present());
-        this.closeModal(true, 'Vote confirmé');
-      },
-      error: (error: any) => {
-        console.error('Erreur lors de la confirmation du vote:', error);
-        this.closeModal(false, 'Erreur lors du vote');
-      }
-    });
+  tap(() => {
+    // Mettre à jour la liste des coupons après l'utilisation
+    this.loadAvailableCoupons();
+  }),
+  switchMap(() => 
+    // Créer la transaction pour le wallet admin
+    this.walletService.createCouponUsageTransaction(
+      this.selectedCoupon?.id || '',
+      usageValue,
+      this.userId,
+      this.postId,
+      this.challengeId
+    )
+  ),
+  switchMap(() =>
+    // Si la transaction admin est créée, on ajoute le vote
+    this.voteService.addVoteToContent(
+      voteData,
+      this.usageRule
+    ).pipe(
+      tap(() => this.selectedCoupon = null)
+    )
+  )
+).subscribe({
+  next: () => {
+    // Afficher un message de succès
+    this.toastController.create({
+      message: 'Vote confirmé',
+      duration: 2000,
+      color: 'success',
+      position: 'bottom'
+    }).then(toast => toast.present());
+    this.closeModal(true, 'Vote confirmé');
+  },
+  error: (error: any) => {
+    console.error('Erreur lors de la confirmation du vote:', error);
+    this.closeModal(false, 'Erreur lors du vote');
+  }
+});
   }
 
+ 
 
   // Gestion du slide pour mobile (touch)
   onTouchStart(event: TouchEvent): void {
@@ -440,16 +456,24 @@ export class CouponModalComponent implements OnInit {
 
   handleCouponOption(optionId: string) {
     if (optionId === 'buy') {
-      this.modalController.dismiss();
+      this.modalController.dismiss().then(()=>{
       this.modalController.create({
         component: BuyCouponModalComponent,
+        initialBreakpoint: 0.75,
+        breakpoints: [0, 0.75, 1],
         handle: true
       }).then((modal)=> modal.present())
+    });
+      return;
+    }else if(optionId =="scan"){
+      this.modalController.dismiss().then(()=>{
+      this.modalController.create({
+        component: ModalQRscannerComponent,
+        handle: true
+      }).then((modal)=> modal.present())
+    });
       return;
     }
-
-    // Autres options à implémenter plus tard
-    console.log('Option sélectionnée:', optionId);
   }
   //#endregion
   //#region UTILS

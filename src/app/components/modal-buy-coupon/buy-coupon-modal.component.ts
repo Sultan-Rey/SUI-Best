@@ -1,24 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonImg, IonIcon } from '@ionic/angular/standalone';
+import { IonContent, IonImg, IonIcon, IonSpinner } from '@ionic/angular/standalone';
 import { ModalController, ToastController, LoadingController, ActionSheetController } from '@ionic/angular';
 import { UserBalance, WalletService } from '../../../services/Service_wallet/wallet-service';
 import { IncomeService } from '../../../services/service_income/income-service';
 import { Pack } from '../../../interfaces/income.interfaces';
 import { cardOutline, logoPaypal, ticket, cashOutline, close, schoolOutline, businessOutline, flash, timeOutline, checkmarkCircle, ticketOutline, layersOutline, walletOutline, logoBitcoin, alertCircleOutline, refreshOutline, lockClosed } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
-import { ProfileService } from 'src/services/Service_profile/profile-service';
-import { switchMap, map, forkJoin, of, catchError } from 'rxjs';
-import { IonSpinner } from '@ionic/angular/standalone';
 import { Auth, AuthUser } from 'src/services/AUTH/auth';
 
 // Interface pour les packs avec informations du propriétaire
 interface CouponPackWithOwner extends Pack {
   ownerName: string;
 }
-
-
 
 @Component({
   selector: 'app-buy-coupon-modal',
@@ -36,8 +31,6 @@ interface CouponPackWithOwner extends Pack {
 })
 export class BuyCouponModalComponent implements OnInit {
   couponPacks: CouponPackWithOwner[] = [];
-  bestAcademyPacks: CouponPackWithOwner[] = [];
-  otherCreatorsPacks: { creatorName: string; creatorId: string; packs: CouponPackWithOwner[] }[] = [];
   isProcessingPayment = false;
   balance!: UserBalance;
   isLoading = true;
@@ -51,7 +44,6 @@ export class BuyCouponModalComponent implements OnInit {
     private actionSheetController: ActionSheetController,
     private walletService: WalletService,
     private incomeService: IncomeService,
-    private profileService: ProfileService,
     private authService: Auth
   ) {
     this.balance = {} as UserBalance;
@@ -62,71 +54,23 @@ export class BuyCouponModalComponent implements OnInit {
   ngOnInit() {
     this.currentUser = this.authService.getCurrentUser() as AuthUser;
     this.loadCouponPacksFromAPI();
-   
   }
 
   loadCouponPacksFromAPI() {
     this.isLoading = true;
     this.loadingError = null;
     
-    this.incomeService.getCouponsPacks().pipe(
-      switchMap(packs => {
-        if (packs.length === 0) {
-          // Si aucun pack, retourner directement
-          return of([] as CouponPackWithOwner[]);
-        }
-        
-        const nonBestAcademyPacks = packs.filter(pack => !pack.isBestAcademy);
-        
-        if (nonBestAcademyPacks.length === 0) {
-          // Si seulement des packs BEST Academy, retourner directement
-          return of(packs.map(pack => ({
-            ...pack,
-            ownerName: 'BEST Academy'
-          })) as CouponPackWithOwner[]);
-        }
-        
-        const profileRequests = nonBestAcademyPacks.map(pack => 
-          this.profileService.getProfileById(pack.ownerId).pipe(
-            map(profile => ({
-              packId: pack.id,
-              ownerName: profile?.displayName || profile?.username || `Creator ${pack.ownerId}`
-            })),
-            // Gérer les erreurs individuellement sans casser tout le flux
-            catchError(() => of({
-              packId: pack.id,
-              ownerName: `Creator ${pack.ownerId}`
-            }))
-          )
-        );
-        
-        return forkJoin(profileRequests).pipe(
-          map(profileNames => {
-            return packs.map(pack => {
-              const profileInfo = profileNames.find((p: any) => p.packId === pack.id);
-              return {
-                ...pack,
-                ownerName: pack.isBestAcademy ? 'BEST Academy' : 
-                         (profileInfo?.ownerName || `Creator ${pack.ownerId}`)
-              };
-            }) as CouponPackWithOwner[];
-          })
-        );
-      }),
-      catchError((error: any) => {
-        console.error('Erreur lors du chargement des packs:', error);
-        this.loadingError = 'Impossible de charger les packs. Veuillez réessayer.';
-        return of([] as CouponPackWithOwner[]);
-      })
-    ).subscribe({
-      next: (packsWithNames: CouponPackWithOwner[]) => {
-        this.couponPacks = packsWithNames;
-        this.organizePacksByCreator();
+    this.incomeService.getCouponsPacks().subscribe({
+      next: (packs: Pack[]) => {
+        this.couponPacks = packs.map(pack => ({
+          ...pack,
+          ownerName: 'BEST Academy'
+        }));
         this.isLoading = false;
       },
       error: (error: any) => {
-        console.error('Erreur dans le flux principal:', error);
-        this.loadingError = 'Une erreur est survenue. Veuillez réessayer.';
+        console.error('Erreur lors du chargement des packs:', error);
+        this.loadingError = 'Impossible de charger les packs. Veuillez réessayer.';
         this.isLoading = false;
       }
     });
@@ -146,39 +90,12 @@ export class BuyCouponModalComponent implements OnInit {
    debugState() {
     console.log('isLoading:', this.isLoading);
     console.log('loadingError:', this.loadingError);
-    console.log('bestAcademyPacks:', this.bestAcademyPacks);
-    console.log('otherCreatorsPacks:', this.otherCreatorsPacks);
     console.log('couponPacks:', this.couponPacks);
    }
 
   retryLoading() {
     this.loadCouponPacksFromAPI();
   }
-
-  organizePacksByCreator() {
-    // Séparer les packs BEST Academy
-    this.bestAcademyPacks = this.couponPacks.filter(pack => pack.isBestAcademy);
-    
-    // Grouper les autres créateurs
-    const otherPacks = this.couponPacks.filter(pack => !pack.isBestAcademy);
-    const creatorsMap = new Map<string, CouponPackWithOwner[]>();
-    
-    otherPacks.forEach(pack => {
-      if (!creatorsMap.has(pack.ownerId)) {
-        creatorsMap.set(pack.ownerId, []);
-      }
-      creatorsMap.get(pack.ownerId)!.push(pack);
-    });
-    
-    // Convertir en tableau pour le template
-    this.otherCreatorsPacks = Array.from(creatorsMap.entries()).map(([creatorId, packs]) => ({
-      creatorId,
-      creatorName: packs[0].ownerName,
-      packs
-    }));
-  }
-
- 
 
   async showPaymentMethods(pack: CouponPackWithOwner) {
     const actionSheet = await this.actionSheetController.create({
@@ -211,8 +128,7 @@ export class BuyCouponModalComponent implements OnInit {
   }
 
   async processPayment(pack: CouponPackWithOwner, paymentMethod: string) {
-       if (this.isProcessingPayment || this.currentUser.id == pack.ownerId) return;
-
+       if (this.isProcessingPayment) return;
 
     // Vérifier si l'utilisateur a assez de coins
     const currentBalance = this.walletService.getBalance();
