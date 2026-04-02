@@ -11,6 +11,7 @@ import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { NgIf, NgFor } from '@angular/common';
 import { CreationService } from 'src/services/Service_content/creation-service';
+import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
 
 @Component({
   selector: 'app-side-actions',
@@ -173,7 +174,8 @@ private async buildActions() {
             postId: post.id,
             userId: this.CurrentUserProfile?.id,
             challengeId: post.challengeId,
-            usageRule: this.CurrentChallenge[post.challengeId]?.vote_rule 
+            usageRule: this.CurrentChallenge[post.challengeId]?.vote_rule, 
+            mode: CouponModalMode.VOTE,
           }
         });
     

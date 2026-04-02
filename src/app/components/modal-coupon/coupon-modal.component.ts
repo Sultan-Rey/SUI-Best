@@ -1,4 +1,4 @@
-import { Component, Input, ViewChild, ElementRef, AfterViewInit, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, ViewChild, ElementRef, AfterViewInit, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { FormsModule } from '@angular/forms';
@@ -7,8 +7,8 @@ import { addIcons } from 'ionicons';
 import { Coupon } from '../../../models/Coupon';
 import { Auth } from '../../../services/AUTH/auth';
 import { WalletService } from '../../../services/Service_wallet/wallet-service';
-import { switchMap, map, catchError, filter } from 'rxjs/operators';
-import { forkJoin, take, of, tap, Observable } from 'rxjs';
+import { switchMap, map, catchError, filter, takeUntil } from 'rxjs/operators';
+import { forkJoin, take, of, tap, Observable, Subject } from 'rxjs';
 import { VoteService } from 'src/services/Service_vote/vote-service';
 import { VoteRule } from 'src/models/Challenge';
 
@@ -36,8 +36,9 @@ import { Vote, VoteStatusResponse } from 'src/models/Vote';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { BuyCouponModalComponent } from '../modal-buy-coupon/buy-coupon-modal.component';
 import { ModalQRscannerComponent } from '../modal-qrscanner/modal-qrscanner.component';
-
-// Interface pour les coupons
+import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
+import { IncomeService } from 'src/services/service_income/income-service';
+import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 
 @Component({
   selector: 'app-coupon-modal',
@@ -46,7 +47,7 @@ import { ModalQRscannerComponent } from '../modal-qrscanner/modal-qrscanner.comp
   templateUrl: './coupon-modal.component.html',
   styleUrls: ['./coupon-modal.component.scss']
 })
-export class CouponModalComponent implements OnInit {
+export class CouponModalComponent implements OnInit, OnDestroy {
   @Input() artistName: string = 'Artiste';
   @Input() artistAvatar: string = 'assets/avatar-default.png';
   @Input() challengeName: string = 'Challenge';
@@ -54,6 +55,7 @@ export class CouponModalComponent implements OnInit {
   @Input() userId: string = '';
   @Input() challengeId: string = '';
   @Input() usageRule: VoteRule = VoteRule.UNLIMITED_VOTES;
+  @Input() mode: CouponModalMode = CouponModalMode.VOTE;
   @ViewChild('slideButton') slideButton!: ElementRef;
   @ViewChild('slideTrack') slideTrack!: ElementRef;
 
@@ -105,9 +107,12 @@ export class CouponModalComponent implements OnInit {
   private _isLoadingMore = false;
   private _hasMoreCoupons = true;
 
+  private destroy$ = new Subject<void>();
+
   constructor(private modalController: ModalController,
     private walletService: WalletService,
     private voteService: VoteService,
+    private incomeService: IncomeService,
     private challengeService: ChallengeService,
     private toastController: ToastController,
     private cdr: ChangeDetectorRef,
@@ -138,19 +143,35 @@ export class CouponModalComponent implements OnInit {
     this.burnCoupon = false;
     this.selectedCoupon = null;
     this.isBurnable = false;
-    const theChallenge = await this.challengeService.getChallengeById(this.challengeId).toPromise();
-    if(!theChallenge?.coupon_required){
-      this.selectedCoupon = {
-        id: 'default'+Date.now().toString(),
-        name: 'Aucun requis',
-        usageValue: 1,
-        description: 'Coupon non requis pour ce challenge',
-        type: 'standard',
-        expiresAt: new Date(Date.now())
+    
+    if (this.mode === CouponModalMode.VOTE) {
+      // Mode VOTE : vérifier si le challenge nécessite un coupon
+      const theChallenge = await this.challengeService.getChallengeById(this.challengeId).toPromise();
+      if(!theChallenge?.coupon_required){
+        this.selectedCoupon = {
+          id: 'default'+Date.now().toString(),
+          name: 'Aucun requis',
+          usageValue: 1,
+          description: 'Coupon non requis pour ce challenge',
+          type: 'standard',
+          expiresAt: new Date(Date.now())
+        }
+      }else{
+        this.loadAvailableCoupons();
       }
-    }else{
-    this.loadAvailableCoupons();
+    } else {
+      // Mode MANAGEMENT : charger tous les coupons disponibles
+      this.loadAvailableCoupons();
     }
+  }
+
+  // Getters pour le template
+  get isVoteMode(): boolean {
+    return this.mode === CouponModalMode.VOTE;
+  }
+
+  get isManagementMode(): boolean {
+    return this.mode === CouponModalMode.MANAGEMENT;
   }
 
   // Getters pour le template
@@ -173,9 +194,11 @@ export class CouponModalComponent implements OnInit {
     this.walletService.wallet$.pipe(
       filter(wallet => wallet !== null), // Attendre que le wallet soit non null
       take(1), // Prendre seulement le premier wallet non null
+      takeUntil(this.destroy$), // Nettoyer à la destruction
       switchMap(wallet => {  
         return this.walletService.getUserCoupons();
-      })
+      }),
+      takeUntil(this.destroy$) // Nettoyer à la destruction
     ).subscribe({
       next: (allCoupons: Coupon[]) => {
         this.allCoupons = allCoupons; // Stocker tous les coupons
@@ -308,6 +331,7 @@ export class CouponModalComponent implements OnInit {
 
     // Chaîner les opérations pour assurer l'atomicité
     this.walletService.decrementUserCouponUsage(this.selectedCoupon.id, usageValue).pipe(
+  takeUntil(this.destroy$), // Nettoyer à la destruction
   tap(() => {
     // Mettre à jour la liste des coupons après l'utilisation
     this.loadAvailableCoupons();
@@ -328,6 +352,7 @@ export class CouponModalComponent implements OnInit {
       voteData,
       this.usageRule
     ).pipe(
+      takeUntil(this.destroy$), // Nettoyer à la destruction
       tap(() => this.selectedCoupon = null)
     )
   )
@@ -400,6 +425,11 @@ export class CouponModalComponent implements OnInit {
 
   //#region  GET ND SET Coupons
   selectCoupon(coupon: Coupon): void {
+    if (this.isManagementMode) {
+      // En mode MANAGEMENT, on ne sélectionne pas de coupon pour le vote
+      return;
+    }
+    
     this.selectedCoupon = coupon;
     this.voteConfirmed = false;
     this.slidePosition = 0;
@@ -454,24 +484,60 @@ export class CouponModalComponent implements OnInit {
     this.handleCouponOption(optionId);
   }
 
-  handleCouponOption(optionId: string) {
+  async handleCouponOption(optionId: string) {
     if (optionId === 'buy') {
-      this.modalController.dismiss().then(()=>{
-      this.modalController.create({
-        component: BuyCouponModalComponent,
-        initialBreakpoint: 0.75,
-        breakpoints: [0, 0.75, 1],
-        handle: true
-      }).then((modal)=> modal.present())
-    });
+        // En mode VOTE, on ferme la modale avant d'ouvrir l'achat
+        this.modalController.dismiss().then(()=>{
+          this.modalController.create({
+            component: BuyCouponModalComponent,
+            initialBreakpoint: 0.75,
+            breakpoints: [0, 0.75, 1],
+            handle: true
+          }).then((modal)=> modal.present())
+        });
+      
       return;
-    }else if(optionId =="scan"){
-      this.modalController.dismiss().then(()=>{
-      this.modalController.create({
-        component: ModalQRscannerComponent,
-        handle: true
-      }).then((modal)=> modal.present())
-    });
+    } else if(optionId =="scan"){
+        // En mode MANAGEMENT, on ouvre directement le scanner sans fermer
+       const modalScan = await this.modalController.create({
+          component: ModalQRscannerComponent,
+          handle: true
+        });
+
+        await modalScan.present();
+         const { data } = await modalScan.onDidDismiss();
+    
+    if (data && data?.result) {
+      const coupon = await this.incomeService.getCouponByCode(data.result).toPromise();
+      if(!coupon){
+        const toast = await this.toastController.create({
+        message: 'Coupon invalide ou expiré',
+        duration: 2000,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+        return;
+      }
+      
+      // Ajouter le coupon au wallet
+      this.walletService.addCoupons(coupon).subscribe(()=>{
+          this.walletService.reloadWallet();
+      });
+      
+
+      this.cdr.detectChanges();
+      
+      const toast = await this.toastController.create({
+        message: 'nouveau coupon ajouté avec succès',
+        duration: 2000,
+        position: 'bottom',
+        color: 'success'
+      });
+      await toast.present();
+    }
+
+      
       return;
     }
   }
@@ -498,4 +564,8 @@ export class CouponModalComponent implements OnInit {
 
 
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

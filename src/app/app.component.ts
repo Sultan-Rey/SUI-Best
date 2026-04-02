@@ -6,6 +6,13 @@ import { LottieComponent } from 'ngx-lottie';
 import { MediaCacheService } from 'src/services/Cache/media-cache-service';
 import { FCMService } from '../services/FCM/fcmservice';
 import { Platform } from '@ionic/angular';
+import { Router } from '@angular/router';
+import { App } from '@capacitor/app';
+
+// Interface pour l'événement de deep link
+interface AppUrlOpenEvent {
+  url: string;
+}
 
 @Component({
   selector: 'app-root',
@@ -17,7 +24,8 @@ export class AppComponent {
     public animService: AnimationService, 
     private mediaCache: MediaCacheService,
     private fcmService: FCMService,
-    private platform: Platform
+    private platform: Platform,
+    private router: Router
   ) {
     mediaCache.configure({
       maxBytes:     500 * 1024 * 1024,  // 500 MB total
@@ -28,6 +36,9 @@ export class AppComponent {
   async ngOnInit() {
     // Initialiser FCM quand la plateforme est prête
     await this.platform.ready();
+    
+    // Configurer l'écoute des deep links
+    this.setupDeepLinks();
     
     // Initialiser les Push Notifications
     const fcmInitialized = await this.fcmService.initializeFCM();
@@ -40,6 +51,27 @@ export class AppComponent {
     } else {
       console.log('FCM non disponible sur cette plateforme');
     }
+  }
+
+  setupDeepLinks() {
+    // Écouter les deep links quand l'application est ouverte
+    App.addListener('appUrlOpen', (event: AppUrlOpenEvent) => {
+      console.log('Deep link reçu:', event.url);
+      
+      // Extraire l'URL et naviguer vers la page correspondante
+      if (event.url) {
+        // Nettoyer l'URL pour ne garder que le chemin
+        const url = new URL(event.url);
+        const path = url.pathname + url.search + url.hash;
+        
+        // Naviguer vers la route correspondante
+        this.router.navigateByUrl(path).catch(err => {
+          console.error('Erreur de navigation deep link:', err);
+          // En cas d'erreur, rediriger vers la page d'accueil
+          this.router.navigate(['/home']);
+        });
+      }
+    });
   }
 
   onAnimationCreated(animationItem: any) {

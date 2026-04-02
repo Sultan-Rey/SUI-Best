@@ -3,13 +3,14 @@ import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
 import { Pack, PaymentMethod } from '../../interfaces/income.interfaces';
+import { Coupon } from 'src/models/Coupon';
 
 @Injectable({
   providedIn: 'root',
 })
 export class IncomeService {
   private readonly PACKS_RESOURCE = 'packs';
-  
+   private readonly COUPON_RESOURCE = 'coupons';
   constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   // ============================================
@@ -54,6 +55,17 @@ export class IncomeService {
   updatePack(packId: string, updates: Partial<Pack>): Observable<Pack> {
     return this.api.patch<Pack>(this.PACKS_RESOURCE, packId, updates);
   }
+
+  // ============================================
+  // COUPONS API METHODS
+  // ============================================
+  getCouponByCode(code:string): Observable<Coupon> {
+    return this.api.getById<Coupon>(this.COUPON_RESOURCE,code, {cache:false});
+  }
+
+  deleteCoupon(id: string): Observable<void> {
+      return this.api.delete(this.COUPON_RESOURCE, id);
+    }
 
   // ============================================
   // STATIC DATA (fallback si API indisponible)

@@ -423,8 +423,14 @@ async openDateActionSheet() {
 
     const { data } = await modal.onWillDismiss();
     
-    if (data && data.success && data.result) {
+    if (data && data.result) {
       this.registrationData.QR_proof = data.result;
+      if(this.registrationData.QR_proof!==''){
+        const name = data.result.name;
+        const id = data.result.id
+      this.registrationData.school.name = name;
+      this.registrationData.school.id = id
+      }
       this.studentProofName = 'QR Code scanné ✓';
     }
   }

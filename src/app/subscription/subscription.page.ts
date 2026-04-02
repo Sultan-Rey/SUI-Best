@@ -390,7 +390,7 @@ this.registrationData.myPlan = {
 
         header: 'Succès',
 
-        message: signupResponse.message || 'Votre compte a été créé avec succès ! Veuillez vérifier votre email pour activer votre compte.',
+        message: signupResponse.message || 'Votre compte a été créé avec succès ! Veuillez vérifier votre email pour activer votre compte. Vous serez redirigé automatiquement vers la page de connexion dans 5 secondes.',
 
         buttons: [{
 
@@ -409,6 +409,14 @@ this.registrationData.myPlan = {
       });
 
       await successAlert.present();
+
+      // Redirection automatique après 5 secondes
+
+      setTimeout(async () => {
+
+        await this.router.navigate(['/login']);
+
+      }, 5000);
       
       // Notifier l'inscription réussie
 

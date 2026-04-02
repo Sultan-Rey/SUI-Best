@@ -9,7 +9,7 @@
       <img [src]="(artistAvatar | mediaUrl | async)" class="artist-avatar-mini" alt="Artist">
       <div class="artist-info-mini">
         <h3 class="artist-name-mini">{{ artistName }}</h3>
-        <p class="challenge-badge-mini">🎯 {{ challengeName }}</p>
+        <p class="challenge-badge-mini"> {{ challengeName }}</p>
       </div>
     </div>
   </div>
@@ -18,8 +18,10 @@
   <div class="modal-content">
     <!-- Titre et Sous-titre -->
     <div class="modal-intro">
-      <h2 class="modal-title">Votez avec un coupon</h2>
-      <p class="modal-subtitle">Sélectionnez un coupon pour voter</p>
+      <h2 class="modal-title" *ngIf="isVoteMode">Votez avec un coupon</h2>
+      <h2 class="modal-title" *ngIf="isManagementMode">Mes coupons</h2>
+      <p class="modal-subtitle" *ngIf="isVoteMode">Sélectionnez un coupon pour voter</p>
+      <p class="modal-subtitle" *ngIf="isManagementMode">Gérez vos coupons et obtenez-en plus</p>
     </div>
 
     <!-- Slider de Coupons -->
@@ -205,8 +207,8 @@
 </ng-template>
     </div>
 
-    <!-- Vote Summary -->
-    <div class="vote-summary-card" *ngIf="selectedCoupon">
+    <!-- Vote Summary (uniquement en mode VOTE) -->
+    <div class="vote-summary-card" *ngIf="selectedCoupon && isVoteMode">
       <div class="summary-item">
         <span class="summary-label">Coupon</span>
         <span class="summary-value">{{ selectedCoupon.name }}</span>
@@ -221,27 +223,27 @@
       </div>
     </div>
 
-    <!-- Après la section Vote Summary -->
-<div class="burn-coupon-container" *ngIf="selectedCoupon && isBurnable">
-  <ion-item class="burn-coupon-item" lines="none">
-    <ion-icon name="flame" slot="start" color="warning"></ion-icon>
-    <ion-label>Brûler le coupon</ion-label>
-    <ion-toggle slot="end"
-      [(ngModel)]="burnCoupon"
-      color="warning">
-    </ion-toggle>
-  </ion-item>
-</div>
+    <!-- Option brûler le coupon (uniquement en mode VOTE) -->
+    <div class="burn-coupon-container" *ngIf="selectedCoupon && isBurnable && isVoteMode">
+      <ion-item class="burn-coupon-item" lines="none">
+        <ion-icon name="flame" slot="start" color="warning"></ion-icon>
+        <ion-label>Brûler le coupon</ion-label>
+        <ion-toggle slot="end"
+          [(ngModel)]="burnCoupon"
+          color="warning">
+        </ion-toggle>
+      </ion-item>
+    </div>
 
     <!-- Info footer -->
-    <div class="info-hint" *ngIf="!selectedCoupon">
+    <div class="info-hint" *ngIf="!selectedCoupon && isVoteMode">
       <ion-icon name="information-circle-outline"></ion-icon>
       <p>Sélectionnez un coupon pour continuer</p>
     </div>
   </div>
 
-  <!-- Slide to Vote avec effet Liquid Glass -->
-  <div class="slide-section-fixed" *ngIf="selectedCoupon">
+  <!-- Slide to Vote avec effet Liquid Glass (uniquement en mode VOTE) -->
+  <div class="slide-section-fixed" *ngIf="selectedCoupon && isVoteMode">
     <div  class="slide-wrapper">
       <div class="slide-track-glass" #slideTrack>
         <!-- Effet liquid glass background -->

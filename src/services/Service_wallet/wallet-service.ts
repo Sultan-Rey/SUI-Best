@@ -7,8 +7,7 @@ import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre Api
 import { IncomeService } from '../service_income/income-service';
 import { Pack, CouponTypeInfo, CouponValidation } from '../../interfaces/income.interfaces';
 import { Auth } from '../AUTH/auth';
-// Import de l'environnement pour récupérer l'adminUID
-import { environment } from '../../environments/environment';
+
   
 // Interface locale pour compatibilité
 export interface UserBalance {
@@ -268,8 +267,29 @@ export class WalletService {
   /**
    * Ajoute des coupons
    */
-  addCoupons(amount: number): Observable<Wallet> {
-    return this.updateBalance(0, amount);
+  addCoupons(coupon: Coupon): Observable<Wallet> {
+      const currentWallet = this.walletSubject.value as Wallet;
+    // Mettre à jour le wallet avec les nouveaux coupons
+    if(!currentWallet?.balance){
+      (currentWallet as Wallet).balance = {
+        coins: 0,
+        coupons: 0
+      }
+    }
+
+    const currentCoupons = Array.isArray(currentWallet.coupons) ? currentWallet.coupons : [];
+    const updatedWallet = {
+      ...currentWallet,
+      coupons: [...currentCoupons, coupon],
+      balance: {
+        coins: currentWallet.balance.coins,
+        coupons: currentWallet.balance.coupons + 1
+        
+      }
+    };
+    
+    // Mettre à jour le wallet via l'API
+    return this.updateWallet(updatedWallet);
   }
 
   /**

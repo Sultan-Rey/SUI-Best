@@ -127,7 +127,7 @@
   </div>
 
   <!-- Floating Action Button -->
-  <ion-fab vertical="bottom" horizontal="start" slot="fixed">
+  <ion-fab vertical="bottom" horizontal="start" slot="fixed" *ngIf="CurrentUserProfile.type === 'admin' || CurrentUserProfile.type === 'creator' ">
     <ion-fab-button (click)="createChallenge()" aria-label="Create new challenge">
       <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
     </ion-fab-button>

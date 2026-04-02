@@ -1,5 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
-import { environment } from 'src/environments/environment';
+import { environment } from 'src/environments/environment.prod';
 import {
   HttpClient, HttpEvent, HttpHeaders, HttpParams, HttpErrorResponse
 } from '@angular/common/http';
@@ -184,7 +184,7 @@ export class ApiJSON {
 
   private async loadPersistentCacheToMemory(): Promise<void> {
     const stats = await this.persistentCache.getStats();
-    console.log(`📦 Cache persistant chargé: ${stats.size} éléments`);
+    //console.log(`📦 Cache persistant chargé: ${stats.size} éléments`);
   }
 
   async clearCache(resource?: string): Promise<void> {

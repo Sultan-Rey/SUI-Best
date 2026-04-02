@@ -14,12 +14,18 @@
         </ion-buttons>
 
         <!-- XP chip — visible sur home uniquement, sans bouton retour -->
-        <ion-chip class="xp-chip"
+        <ion-badge color="warning"
                   *ngIf="isHomePage() && !goBackTarget"
                   (click)="openRewardModal()">
           <ion-icon name="sparkles-outline"></ion-icon>
           <ion-label>{{userXp | shortNumber}} • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
-        </ion-chip>
+        </ion-badge>
+         <ion-badge color="light"
+                  *ngIf="isHomePage() && !goBackTarget"
+                  (click)="openCouponModal()">
+          <ion-icon name="ticket-outline"></ion-icon>
+          <ion-label>{{userBalance.coupons| shortNumber}}  coupons</ion-label>
+        </ion-badge>
 
       </div>
 

@@ -1,11 +1,13 @@
 import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import {  Router, ActivatedRoute } from '@angular/router';
-import { IonHeader, IonChip, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, IonModal, IonButton } from "@ionic/angular/standalone";
+import { IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, IonModal, IonButton, IonBadge } from "@ionic/angular/standalone";
 import { Observable, shareReplay, Subject, takeUntil } from 'rxjs';
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { addIcons } from 'ionicons';
-import { checkmark } from 'ionicons/icons';
+import { checkmark, ticketOutline } from 'ionicons/icons';
 import { Auth } from 'src/services/AUTH/auth';
+import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
+import { CouponModalComponent } from '../modal-coupon/coupon-modal.component';
 import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { RewardService } from 'src/services/Rewards/reward-service';
 import { DailyRewards } from 'src/services/Rewards/daily-rewards';
@@ -22,7 +24,7 @@ import { Segment } from 'src/models/Segment';
   templateUrl: './header-component.component.html',
   styleUrls: ['./header-component.component.scss'],
   providers: [ModalController],
-  imports: [IonButton, IonModal, NgClass,NgIf, NgFor, IonHeader, IonChip, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, LottieComponent, ShortNumberPipe, CurrencyPipe]
+  imports: [IonBadge, IonButton, IonModal, NgClass,NgIf, NgFor, IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, LottieComponent, ShortNumberPipe, CurrencyPipe]
 })
 export class HeaderComponentComponent  implements OnInit {
   public environmentInjector = inject(EnvironmentInjector);
@@ -74,7 +76,7 @@ export class HeaderComponentComponent  implements OnInit {
    }
 
   ngOnInit() {
-    addIcons({checkmark});
+    addIcons({checkmark, ticketOutline});
      this.balance$ = this.walletService.balance$;
       this.balance$.subscribe(balance => {
         const previousCoins = this.userBalance.coins || 0;
@@ -162,6 +164,27 @@ export class HeaderComponentComponent  implements OnInit {
     await this.rewardModal.present();
   }
 
+  async openCouponModal(){
+    const modal = await this.modalController.create({
+      component: CouponModalComponent,
+      cssClass: 'coupon-management-modal',
+      breakpoints: [0, 0.8, 1],
+      initialBreakpoint: 0.8,
+      backdropDismiss: true,
+      componentProps: {
+        mode: CouponModalMode.MANAGEMENT,
+        artistName: 'Best Academy',
+        challengeName: 'Gestion des coupons'
+      }
+    });
+    
+    await modal.present();
+    
+    modal.onDidDismiss().then((data) => {
+      // Recharger le wallet après la gestion des coupons
+      this.walletService.reloadWallet();
+    });
+  }
   // Méthode pour gérer le retour
   handleGoBack(): void {
     this.goBack.emit({ target: this.goBackTarget as Segment });

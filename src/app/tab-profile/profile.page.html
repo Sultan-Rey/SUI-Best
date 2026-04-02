@@ -132,7 +132,7 @@
   <!-- ═══════════════════════════════════════════════
        REWARD PROGRESS PILL  (always visible)
   ════════════════════════════════════════════════ -->
-   <div class="xp-pill-wrapper" (click)="openLevelReward()">
+   <div class="xp-pill-wrapper" (click)="openLevelReward()" *ngIf="isOwnProfile">
     <div class="xp-pill">
  
       <!-- Fill dynamique = progression vers le niveau suivant -->
@@ -179,7 +179,7 @@
           <span class="awards-header-title">awards</span>
           <span class="awards-total-count">{{pastAwards.length + 1}} total</span>
         </div>
-        <button class="awards-see-all-btn" (click)="OpenAwards()">Voir tous</button>
+        <button class="awards-see-all-btn" *ngIf="isOwnProfile" (click)="OpenAwards()">Voir tous</button>
       </div>
 
       <!-- ── Hexagon badges row ── -->

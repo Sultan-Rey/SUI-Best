@@ -66,5 +66,20 @@
 	<!-- Permissions pour iOS 13+ -->
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Best Academy utilise les notifications pour vous informer des messages, défis et récompenses.</string>
+	
+	<!-- Configuration des URL schemes pour les deep links -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>bestacademy</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>bestacademy</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+	</array>
 </dict>
 </plist>

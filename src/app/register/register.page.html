@@ -74,7 +74,7 @@
 </ion-item>
 
 <!-- Modal de sélection de date -->
-<ion-modal [isOpen]="isDatePickerOpen" (didDismiss)="isDatePickerOpen = false" initialBreakpoint="0.6" [breakpoints]="[0, 0.6, 1]">
+<ion-modal [isOpen]="isDatePickerOpen" (didDismiss)="isDatePickerOpen = false" initialBreakpoint="0.7" [breakpoints]="[0, 0.7, 1]">
   <ng-template>
     <ion-header>
       <ion-toolbar>
@@ -169,7 +169,7 @@
     <ion-card-title>Code scanné</ion-card-title>
   </ion-card-header>
   <ion-card-content>
-    <p class="ion-text-wrap">{{ registrationData.QR_proof }}</p>
+    <p class="ion-text-wrap">{{ registrationData.school.name }}</p>
     <ion-button 
       expand="block" 
       color="danger" 
