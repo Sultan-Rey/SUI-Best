@@ -13,6 +13,7 @@ import { cardOutline, logoPaypal, cashOutline, chevronBack, chevronForward, clos
 import { addIcons } from 'ionicons';
 import { firstValueFrom } from 'rxjs';
 import { Browser } from '@capacitor/browser';
+import { ModalPaymentComponent } from '../modal-payment/modal-payment.component';
 
 @Component({
   selector: 'app-buy-coin-modal',
@@ -54,11 +55,8 @@ export class BuyCoinModalComponent implements OnInit {
     private paymentService: PaymentService
   ) {
     addIcons({closeOutline,sparklesOutline,refreshOutline,chevronBackOutline,chevronForwardOutline,chevronBack,chevronForward,close,alertCircle,refresh,cubeOutline,cardOutline,logoPaypal,cashOutline});
-    const returnUrl = localStorage.getItem('moncash_return_url');
-if (returnUrl) {
-  this.router.navigateByUrl(returnUrl);
-  localStorage.removeItem('moncash_return_url'); // Nettoyer après utilisation
-}
+ 
+
   }
 
   ngOnInit() {
@@ -125,7 +123,16 @@ if (returnUrl) {
 
   async purchasePack(pack: Pack) {
     if (this.isProcessingPayment) return;
-
+    //  const modal = await this.modalController.create({
+    //       component: ModalPaymentComponent,
+    //       cssClass: 'auto-height',
+    //       componentProps:{OrderAmount: pack.price},
+    //       initialBreakpoint: 0.90,
+    //       breakpoints: [0, 0.90, 1],
+    //       handle: true
+    //     });
+        
+    //     await modal.present();
     await this.showPaymentMethods(pack);
   }
 
@@ -134,7 +141,7 @@ if (returnUrl) {
       header: 'Méthode de Paiement',
       buttons: [
         {
-          text: 'Gpay',
+          text: 'Carte Bancaire (in-app)',
           icon: 'card-outline',
           handler: () => this.processPayment(pack, 'gpay')
         },
@@ -178,8 +185,10 @@ if (returnUrl) {
 
       if (paymentMethod === 'moncash') {
         await this.processMonCashPayment(pack, loading);
-      } else {
-        await this.processOtherPayment(pack, paymentMethod, loading);
+      } else if(paymentMethod == 'paypal') {
+        await this.processPaypalPayment(pack, loading);
+      }else{
+        
       }
     } catch (error) {
       await this.handlePaymentError(error, loading);
@@ -238,56 +247,47 @@ if (returnUrl) {
     }
   }
 
+  private async processPaypalPayment(pack: Pack, loading: HTMLIonLoadingElement): Promise<void> {
+  try {
+    this.paymentStatus = 'processing';
+    this.paymentMessage = 'Connexion à PayPal...';
 
-
-
-  private async verifyMonCashPayment(orderId: string, pack: Pack): Promise<void> {
-    const loading = await this.loadingController.create({
-      message: 'Vérification du paiement...',
+    await loading.dismiss();
+    loading = await this.loadingController.create({
+      message: this.paymentMessage,
       spinner: 'circles',
+      duration: 10000,
       backdropDismiss: false
     });
     await loading.present();
 
-    try {
-      this.paymentStatus = 'processing';
-      this.paymentMessage = 'Vérification du paiement MonCash...';
-      
-      await loading.dismiss();
-      loading.message = this.paymentMessage;
-      await loading.present();
+    const paymentResponse = await firstValueFrom(
+      this.paymentService.createPaypalOrder(pack.price)
+    );
 
-      const updatedWallet = await firstValueFrom(
-        this.walletService.purchasePackCoins(pack, 'coins', 'moncash')
-      );
-      
-      if (updatedWallet) {
-        this.paymentStatus = 'success';
-        this.paymentMessage = `✅ ${pack.amount} coins ajoutés à votre compte!`;
-        await loading.dismiss();
-        
-        const successLoading = await this.loadingController.create({
-          message: this.paymentMessage,
-          spinner: 'circles',
-          backdropDismiss: false,
-          duration: 2000
-        });
-        await successLoading.present();
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        this.showToast(`Achat de ${pack.amount} coins réussi!`, 'success');
-        this.modalController.dismiss({ success: true, pack, wallet: updatedWallet });
-      } else {
-        throw new Error('Purchase failed - no wallet returned');
-      }
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      throw error;
-    } finally {
-      await loading.dismiss();
-    }
+    this.paymentMessage = 'Redirection vers PayPal...';
+    await loading.dismiss();
+    console.log("reponse PayPal : ", paymentResponse);
+
+    // Ouvrir la page PayPal avec Capacitor Browser
+    await Browser.open({
+      url: paymentResponse.approvalUrl,
+      windowName: '_self',
+      presentationStyle: 'popover'
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+  } catch (error) {
+    console.error('PayPal payment error:', error);
+    throw error;
   }
+}
+
+
+
+
+ 
 
   private async processOtherPayment(pack: Pack, paymentMethod: string, loading: HTMLIonLoadingElement): Promise<void> {
       await new Promise(resolve => setTimeout(resolve, 800));

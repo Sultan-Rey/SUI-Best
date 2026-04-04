@@ -1,0 +1,125 @@
+.burger-overlay {
+  display: none; // Cacher l'overlay car le menu est maintenant fixe
+}
+
+.burger-menu {
+  position: fixed;
+  top: 60px; // Position juste sous l'header
+  left: 0; // Toujours visible
+  width: 25%;
+  height: calc(100vh - 60px); // Hauteur restante sous l'header
+  background: var(--ion-background-color);
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  transform: translateX(0); // Toujours visible
+
+  // Optionnel : animation pour réduire/étendre
+  &.collapsed {
+    transform: translateX(-240px); // Garder seulement 40px visibles
+  }
+
+  // Pour les écrans mobiles
+  @media (max-width: 768px) {
+    transform: translateX(-100%); // Cacher sur mobile par défaut
+    
+    &.open {
+      transform: translateX(0); // Montrer quand ouvert
+    }
+  }
+
+  .menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--ion-color-light);
+
+    h3 {
+      margin: 0;
+      color: var(--ion-text-color);
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--ion-text-color);
+      cursor: pointer;
+    }
+  }
+
+  .menu-items {
+    padding: 10px 0;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: var(--ion-color-light);
+    }
+
+    // Style pour l'item actif
+    &.active {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+
+      .item-icon svg {
+        stroke: var(--ion-color-primary-contrast);
+      }
+
+      .item-label {
+        color: var(--ion-color-primary-contrast);
+        font-weight: 600;
+      }
+    }
+
+    .item-icon {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+
+      svg {
+        width: 24px;
+        height: 24px;
+        stroke: var(--ion-text-color);
+      }
+
+      .star {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        font-size: 12px;
+      }
+
+      .badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: var(--ion-color-danger);
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    .item-label {
+      color: var(--ion-text-color);
+      font-weight: 500;
+    }
+  }
+}

@@ -1192,9 +1192,11 @@
 // ==========================================
 @media (min-width: 768px) {
   .modal-wrapper {
-    max-width: 480px;
+    max-width: 600px;
+    width: 90%;
     margin: 0 auto;
-    max-height: 85vh;
+    max-height: 90vh;
+    border-radius: 12px;
   }
 
   .coupon-ticket {

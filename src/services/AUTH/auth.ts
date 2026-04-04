@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, delay, map, tap, throwError, of, firstValueFrom } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON } from '../API/api-json';
 import { User, UserProfile } from '../../models/User'
 import * as bcrypt from 'bcryptjs';
 import { ProfileService } from '../Service_profile/profile-service';
@@ -315,7 +315,80 @@ private recordFailedAttempt(email: string): void {
 
     console.warn(`Failed login attempt for ${email}. Attempt ${attempt.attempts}/${this.MAX_ATTEMPTS}`);
   }
-  
+
+  /* ======================
+     PASSWORD RESET
+     ====================== */
+
+  reset(email: string): Observable<any> {
+    // Validation de base
+    if (!email) {
+      return throwError(() => new Error('MISSING_EMAIL'));
+    }
+
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return throwError(() => new Error('INVALID_EMAIL'));
+    }
+
+    // Préparer les données pour le backend
+    const payload = {
+      email: email.toLowerCase().trim()
+    };
+
+    // Utiliser la route de reset de mot de passe
+    return this.api.post<any>('auth/reset', payload).pipe(
+      map((response: any) => {
+        // Retourner la réponse du backend
+        return {
+          success: true,
+          message: response.message || 'Email de réinitialisation envoyé avec succès'
+        };
+      }),
+      catchError((error: Error) => {
+        console.error('Password reset error:', error.message);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  confirmReset(token: string, password: string): Observable<any> {
+    // Validation de base
+    if (!token) {
+      return throwError(() => new Error('MISSING_TOKEN'));
+    }
+
+    if (!password) {
+      return throwError(() => new Error('MISSING_PASSWORD'));
+    }
+
+    // Validation du mot de passe
+    if (password.length < 8) {
+      return throwError(() => new Error('PASSWORD_TOO_SHORT'));
+    }
+
+    // Préparer les données pour le backend
+    const payload = {
+      token: token.trim(),
+      password: password
+    };
+
+    // Utiliser la route de confirmation de reset de mot de passe
+    return this.api.post<any>('auth/reset/confirm', payload).pipe(
+      map((response: any) => {
+        // Retourner la réponse du backend
+        return {
+          success: true,
+          message: response.message || 'Mot de passe réinitialisé avec succès'
+        };
+      }),
+      catchError((error: Error) => {
+        console.error('Password reset confirmation error:', error.message);
+        return throwError(() => error);
+      })
+    );
+  }
 
   /* ======================
      SESSION MANAGEMENT (Mobile Native)

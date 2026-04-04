@@ -1,7 +1,7 @@
-<app-header-component></app-header-component>
+<app-header-component (currentSubscriptionStatus)="getSubscriptionStatus($event)" ></app-header-component>
 <ion-content [fullscreen]="true" class="exclusive-content">
-
-  <!-- HEADER -->
+<div class="exclusive-wrapper">
+ <!-- HEADER -->
   <div class="ex-header">
     <h1 class="ex-title">Exclusifs</h1>
     <p class="ex-subtitle">Contenus premium de vos artistes et createur</p>
@@ -21,7 +21,7 @@
   </div>
 
   <!-- PREMIUM BANNER -->
-  <div class="premium-banner">
+  <div class="premium-banner" *ngIf="subscriptionStatus ==='expired'">
     <div class="premium-header">
       <span class="premium-label">Premium</span>
       <span class="premium-gem">💎</span>
@@ -217,4 +217,6 @@
     </div>
   </div>
 
+</div>
+ 
 </ion-content>

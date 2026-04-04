@@ -42,6 +42,7 @@ export interface UserProfile {
   userInfo: UserInfo,
   type:  'fan'| 'artist'| 'admin' | 'creator';
   isVerified: boolean;
+  allowed_exclusive?:boolean;
   isFollowing?: boolean;
   myFollows: string[];
   myFans?:string[];

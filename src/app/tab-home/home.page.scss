@@ -52,6 +52,18 @@
   --padding-bottom: 0;
   --padding-start: 0;
   --padding-end: 0;
+  padding-left: 280px; // Laisser de la place pour le menu fixe
+  transition: padding-left 0.3s ease;
+  
+  // Quand le menu est réduit
+  &.menu-collapsed {
+    padding-left: 40px;
+  }
+  
+  // Pour les écrans mobiles
+  @media (max-width: 768px) {
+    padding-left: 0; // Pas de marge sur mobile
+  }
 }
 
 // PAS de spacer - le contenu commence en haut
@@ -62,7 +74,8 @@
 
 .views-container {
   display: flex;
-  width: 200%;
+  width: 100%;
+  margin-left: 25%;
   min-height: 100vh;
   transform: translateX(0);
   transition: transform 0.4s var(--transition-smooth);
@@ -70,10 +83,20 @@
   &.show-followed {
     transform: translateX(-50%);
   }
+  
+  // Pour les écrans mobiles - réinitialiser les valeurs
+  @media (max-width: 768px) {
+ 
+    margin-left: 0;
+    
+    &.show-followed {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 .view-panel {
-  width: 50%;
+  width: 75%;
   flex-shrink: 0;
   
   &::-webkit-scrollbar {
@@ -82,8 +105,7 @@
   
   // Spécifique pour le panel challenge - 90% de hauteur
   &.challenge-panel {
-    height: 90vh;
-    max-height: 90vh;
+  
     overflow: hidden;
   }
 

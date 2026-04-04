@@ -2,7 +2,7 @@ import { Component, Input, ViewChild, ElementRef, AfterViewInit, OnInit, ChangeD
 import { CommonModule } from '@angular/common';
 import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController, AlertController, ToastController } from '@ionic/angular';
+import { IonicModule, ModalController, AlertController, ToastController, Platform } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { Coupon } from '../../../models/Coupon';
 import { Auth } from '../../../services/AUTH/auth';
@@ -116,6 +116,7 @@ export class CouponModalComponent implements OnInit, OnDestroy {
     private challengeService: ChallengeService,
     private toastController: ToastController,
     private cdr: ChangeDetectorRef,
+    private platform: Platform
   ) {
     addIcons({
       ticketOutline,
@@ -498,6 +499,20 @@ export class CouponModalComponent implements OnInit, OnDestroy {
       
       return;
     } else if(optionId =="scan"){
+        // Vérifier si on est sur mobile avant d'ouvrir le scanner
+        const isMobile = this.platform.is('ios') || this.platform.is('android');
+        
+        if (!isMobile) {
+          const toast = await this.toastController.create({
+            message: 'Le scanner QR n\'est disponible que sur mobile',
+            duration: 3000,
+            position: 'top',
+            color: 'warning'
+          });
+          await toast.present();
+          return;
+        }
+
         // En mode MANAGEMENT, on ouvre directement le scanner sans fermer
        const modalScan = await this.modalController.create({
           component: ModalQRscannerComponent,

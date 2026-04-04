@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON } from '../API/api-json';
 import { Vote } from '../../models/Vote';
 import { Challenge, VoteRule } from '../../models/Challenge';
 import { Content } from 'src/models/Content';

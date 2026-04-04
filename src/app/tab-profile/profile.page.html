@@ -4,7 +4,9 @@
 
 
 <ion-content [fullscreen]="false" class="profile-content">
-  <!-- Desktop Header (hidden on mobile) -->
+  
+  <div class="profile-wrapper">
+<!-- Desktop Header (hidden on mobile) -->
   <div class="desktop-header">
     <div class="desktop-header-container">
       <div class="cover-container">
@@ -38,7 +40,7 @@
         </div>
 
         <div class="action-buttons-desktop">
-          <ion-button class="follow-btn-desktop" (click)="toggleFollow()">Suivre</ion-button>
+          <ion-button class="follow-btn-desktop" (click)="toggleFollow()" *ngIf="!isOwnProfile">Suivre</ion-button>
           <ion-button fill="outline" class="setting-btn-desktop" (click)="presentMoreOptions()">Parametres</ion-button>
         </div>
       </div>
@@ -67,7 +69,7 @@
         </div>
         
         <div class="action-buttons-mobile">
-          <ion-button class="follow-btn-mobile" (click)="toggleFollow()" >Suivre</ion-button>
+          <ion-button class="follow-btn-mobile" (click)="toggleFollow()"  *ngIf="!isOwnProfile">Suivre</ion-button>
           <ion-button class="message-btn-mobile" (click)="presentMoreOptions()">
             <ion-icon name="settings-outline"></ion-icon>
           </ion-button>
@@ -262,4 +264,6 @@
     </ng-template>
   </div>
 
+  </div>
+  
 </ion-content>

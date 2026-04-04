@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError, forkJoin } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
-import { ApiJSON, FilterResult } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON, FilterResult } from '../API/api-json';
 import { Challenge } from '../../models/Challenge';
 
 @Injectable({

@@ -12,6 +12,7 @@ interface NavItem {
   iconPath: string;
   badge?: number;
   star?: boolean;
+  visible?:boolean;
 }
 
 @Component({
@@ -94,6 +95,13 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
       const publicationItem = this.navItems.find(item => item.page === 'publier');
       if (publicationItem) {
       publicationItem.star = value && value == true ? value : undefined;
+    }
+  }
+
+    @Input() set canPublish(value: boolean) {
+    const publicationItem = this.navItems.find(item => item.page === 'publier');
+    if (publicationItem) {
+      publicationItem.visible = value ? true : undefined;
     }
   }
 

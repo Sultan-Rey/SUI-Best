@@ -54,9 +54,14 @@ export const routes: Routes = [
     loadComponent: () => import( './tab-profile/profile.page').then(m => m.ProfilePage)
   },
   {
+    path: 'password-reset:id',
+    loadComponent: () => import('./password-reset/password-reset.page').then( m => m.PasswordResetPage)
+  },
+  {
     path: '**',
     redirectTo: 'home'
   }
+
   
   
  

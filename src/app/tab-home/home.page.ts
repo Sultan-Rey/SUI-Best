@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { NgIf, NgSwitch, NgSwitchCase, AsyncPipe } from '@angular/common';
-import {IonContent, IonFooter, IonButton, IonIcon, ToastController } from '@ionic/angular/standalone';
+import {IonButton, IonIcon, IonContent, ToastController, IonFooter } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   search, cloudOffline,
@@ -24,6 +24,7 @@ import { MessageService } from 'src/services/Service_message/message-service';
 import { Segment } from 'src/models/Segment';
 import { MediaUrlPipe } from "../utils/pipes/mediaUrlPipe/media-url-pipe";
 import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
+import { Platform } from '@ionic/angular';
 
 @Component({
   selector: 'app-home',
@@ -31,7 +32,7 @@ import { NotificationManagerService } from 'src/services/Notification/notificati
   styleUrls: ['home.page.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [IonFooter, 
     NgIf,
     NgSwitchCase,
     AsyncPipe,
@@ -67,6 +68,9 @@ export class HomePage implements OnInit {
   showBannerAd = false;
   hasContent = false;
   private bannerDisplayProbability = 0.3; // 30% de chance d'afficher la bannière
+  
+  // Propriété pour détecter si on est sur mobile
+  isMobile: boolean = true;
   
   @ViewChild('contentRef', { read: ElementRef }) contentRef!: ElementRef;
 
@@ -162,7 +166,8 @@ export class HomePage implements OnInit {
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
     private toastController: ToastController,
-    private notificationManager: NotificationManagerService
+    private notificationManager: NotificationManagerService,
+    private platform: Platform
   ) {
     this.currentUserProfile.stats = {} as {
       posts: 0;
@@ -175,6 +180,9 @@ export class HomePage implements OnInit {
   }
 
   ngOnInit() {
+    // Détecter la plateforme
+    this.detectPlatform();
+    
     this.setupConnectionListeners();
     this.setupAuthSubscription();
     this.setupSwipeGesture();
@@ -184,6 +192,28 @@ export class HomePage implements OnInit {
     setTimeout(() => {
       this.checkBannerDisplay();
     }, 1000);
+  }
+
+  /**
+   * Détecte si l'application est sur mobile ou desktop
+   */
+  detectPlatform() {
+    this.isMobile = this.platform.is('ios') || this.platform.is('android');
+  }
+
+  /**
+   * Retourne l'index du segment actif pour le menu burger
+   */
+  getActiveSegmentIndex(): number {
+    // Mapping des segments vers les indices du menu burger
+    const segmentMapping: { [key: string]: number } = {
+      'challenge': 0,
+      'discovery': 1, 
+      'followed': 2,
+      'message': 3,
+      'upload': 4
+    };
+    return segmentMapping[this.selectedSegment] || 0;
   }
 
   private unreadMessagesCount(): void{
@@ -317,9 +347,7 @@ private setupSwipeGesture(): void {
     this.cdr.markForCheck();
   }
 
-  openSearch() {
-   this.router.navigate(['/search']);
-  }
+ 
 
   openNotifications() {
      this.router.navigate(['/notification']);

@@ -1,7 +1,15 @@
 <!-- Header natif HTML - pas de balises Ionic --
 ... (inchangé) -->
 
-<app-header-component [goBackTarget]="goBackTarget" (goBack)="onGoBack($event)"></app-header-component>
+<app-header-component 
+  [goBackTarget]="goBackTarget" 
+  (goBack)="onGoBack($event)"
+  [UserCanPublish] = "currentUserProfile.type!=='fan'"
+  [UserIsVerified]="currentUserProfile.isVerified"
+  [countUnreadMessages]="countUnreadMessages"
+  [activeSegmentIndex]="getActiveSegmentIndex()"
+  (navigationChange)="onNavigationChange($event)">
+</app-header-component>
 
 <!-- Contenu Ionic simplifié -->
 <ion-content [fullscreen]="false" class="home-content" #contentRef>
@@ -73,7 +81,7 @@
 </ion-content>
 
 <!-- Floating Avatar Button -->
-<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id">
+<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id && isMobile">
   <!-- Affiche même offline pour accès au profil cached -->
   <img 
   [src]="currentUserProfile.avatar | mediaUrl | async" 
@@ -86,10 +94,11 @@
   <div class="avatar-dot"></div>
 </div>
 
-<ion-footer>
+<ion-footer *ngIf="isMobile">
   <app-bottom-navigation
     (activeItemChange)="onNavigationChange($event)"
     [theme]="'dark'"
+    [canPublish] = "currentUserProfile.type!=='fan'"
     [allowedToExclusive] = "currentUserProfile.isVerified"
     [unreadCount]="countUnreadMessages">
   </app-bottom-navigation>

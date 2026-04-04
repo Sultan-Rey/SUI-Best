@@ -18,6 +18,14 @@
 // ─────────────────────────────────────────────
 // Ion-content override
 // ─────────────────────────────────────────────
+.exclusive-wrapper{
+  width: 75%;
+  margin-left: 25%;
+   @media (max-width: 768px) {
+    width: 100%;
+    margin-left: 0;
+   }
+}
 
 .exclusive-content {
   --background: var(--bg);

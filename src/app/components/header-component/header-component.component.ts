@@ -1,10 +1,10 @@
 import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import {  Router, ActivatedRoute } from '@angular/router';
-import { IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, IonModal, IonButton, IonBadge } from "@ionic/angular/standalone";
+import { IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, IonModal, IonButton, IonBadge, IonAvatar } from "@ionic/angular/standalone";
 import { Observable, shareReplay, Subject, takeUntil } from 'rxjs';
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { addIcons } from 'ionicons';
-import { checkmark, ticketOutline } from 'ionicons/icons';
+import { checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search } from 'ionicons/icons';
 import { Auth } from 'src/services/AUTH/auth';
 import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
 import { CouponModalComponent } from '../modal-coupon/coupon-modal.component';
@@ -13,18 +13,21 @@ import { RewardService } from 'src/services/Rewards/reward-service';
 import { DailyRewards } from 'src/services/Rewards/daily-rewards';
 import { AnimationService } from 'src/services/Animation/animation-service';
 import { BuyCoinModalComponent } from '../modal-buy-coin/buy-coin-modal.component';
-import { ModalController, ToastController, AnimationController} from '@ionic/angular';
+import { ModalController, ToastController, AnimationController, Platform } from '@ionic/angular';
 import { UserBalance, WalletService } from 'src/services/Service_wallet/wallet-service';
 import { LottieComponent } from 'ngx-lottie';
 import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, AsyncPipe } from '@angular/common';
+import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { Segment } from 'src/models/Segment';
+import { MenuBurgerComponent } from "../menu-burger/menu-burger.component";
+import { SearchPage } from 'src/app/search/search.page';
 @Component({
   selector: 'app-header-component',
   templateUrl: './header-component.component.html',
   styleUrls: ['./header-component.component.scss'],
   providers: [ModalController],
-  imports: [IonBadge, IonButton, IonModal, NgClass,NgIf, NgFor, IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, LottieComponent, ShortNumberPipe, CurrencyPipe]
+  imports: [AsyncPipe, MediaUrlPipe, IonAvatar, IonBadge, IonButton, IonModal, NgClass, NgIf, NgFor, IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, LottieComponent, ShortNumberPipe, CurrencyPipe, MenuBurgerComponent]
 })
 export class HeaderComponentComponent  implements OnInit {
   public environmentInjector = inject(EnvironmentInjector);
@@ -34,16 +37,32 @@ export class HeaderComponentComponent  implements OnInit {
     userBalance: UserBalance = { coins: 0, coupons: 0 };
     userXp!: number;
     userLvl!:number;
+    userAvatar!: string;
+    userId!:string;
    subscriptionStatus: 'active' | 'expiring' | 'expired' | 'inactive' = 'inactive';
+   
+   // Détection de plateforme
+   isMobile: boolean = true;
+   
    // Animation Lottie pour les coins
    showCoinAnimation: boolean = false;
    
    // Propriétés pour gérer le retour
    @Input() goBackTarget: Segment | undefined;
    @Output() goBack = new EventEmitter<{ target: Segment }>();
+   
+   //Propriétés pour la navigation du menu
+   @Input()     UserIsVerified!: boolean; 
+   @Input()     countUnreadMessages!: number;
+   @Input()     activeSegmentIndex: number = 0;
+   @Input()     UserCanPublish!: boolean;
+   @Output() navigationChange = new EventEmitter<any>();
 
    // ViewChild pour le modal de récompenses
    @ViewChild('rewardModal') rewardModal!: IonModal;
+
+   // Envoyer le status de la subscription 
+  @Output() currentSubscriptionStatus = new EventEmitter<string>();
 
    // Propriétés pour les récompenses quotidiennes
    recompensesQuotidiennes: Record<string, any> = {};
@@ -61,8 +80,10 @@ export class HeaderComponentComponent  implements OnInit {
       private animationCtrl: AnimationController,
      private modalController: ModalController, 
       private toastController: ToastController,
-     private walletService: WalletService
+     private walletService: WalletService,
+     private platform: Platform
   ) {
+     this.detectPlatform();
      // 1. S'abonner aux changements d'authentification
       this.authService.currentUser$
         .pipe(takeUntil(this.destroy$))
@@ -71,13 +92,18 @@ export class HeaderComponentComponent  implements OnInit {
             this.checkSubscriptionStatus();
           } else {
             this.subscriptionStatus = 'inactive';
+            this.currentSubscriptionStatus.emit(this.subscriptionStatus);
           }
         });
    }
 
   ngOnInit() {
-    addIcons({checkmark, ticketOutline});
-     this.balance$ = this.walletService.balance$;
+    addIcons({checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search});
+    
+    // Détecter la plateforme
+   
+    
+    this.balance$ = this.walletService.balance$;
       this.balance$.subscribe(balance => {
         const previousCoins = this.userBalance.coins || 0;
         
@@ -94,6 +120,50 @@ export class HeaderComponentComponent  implements OnInit {
       this.initialiserRecompenses();
     }
 
+  /**
+   * Détecte si l'application est sur mobile ou desktop
+   */
+  detectPlatform() {
+    this.platform.ready().then(() => {
+      // Vérifier si c'est une plateforme mobile (iOS, Android) ou web/desktop
+      this.isMobile = this.platform.is('ios') || this.platform.is('android');
+      
+      console.log('Plateforme détectée:', this.isMobile ? 'Mobile' : 'Desktop/Web');
+    });
+  }
+
+  isBurgerMenuOpen: boolean = true;
+  isMenuCollapsed: boolean = false;
+ 
+toggleBurgerMenu() {
+  this.isBurgerMenuOpen = !this.isBurgerMenuOpen;
+ // this.cdr.markForCheck();
+}
+
+toggleMenuCollapse() {
+  this.isMenuCollapsed = !this.isMenuCollapsed;
+}
+ 
+closeBurgerMenu() {
+  this.isBurgerMenuOpen = false;
+  //this.cdr.markForCheck();
+}
+
+onMenuNavigationChange(item: any) {
+  // Fermer le menu
+  this.closeBurgerMenu();
+  
+  // Remonter l'événement vers home
+  this.navigationChange.emit(item);
+}
+
+onImageAvatarError(event: any) {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.onerror = null;
+    imgElement.src = 'assets/avatar-default.png';
+    imgElement.classList.add('is-default');
+  }
+  
      enterAnimation = (baseEl: HTMLElement) => {
         const root = baseEl.shadowRoot;
     
@@ -191,10 +261,13 @@ export class HeaderComponentComponent  implements OnInit {
     
   }
 
-  openSearch() {
-   this.router.navigate(['/search']);
-  }
+ 
 
+goToProfile() {
+    if (this.userId!== null && this.userId!=='') {
+      this.router.navigate(['/profile', this.userId]);
+    }
+  }
 
   navigateTo(destination: string) {
   this.router.navigate([destination]);
@@ -231,6 +304,8 @@ isHomePage(): boolean {
     if (user?.userInfo.memberShip) {
       this.userXp = user.xpPercent;
       this.userLvl = user.level;
+      this.userAvatar = user.avatar;
+      this.userId = user.id;
       const endDate = new Date(user.userInfo.memberShip.date);
       const today = new Date();
       
@@ -244,6 +319,7 @@ isHomePage(): boolean {
     } else {
       this.subscriptionStatus = 'inactive';
     }
+       this.currentSubscriptionStatus.emit(this.subscriptionStatus);
   } catch (error) {
     console.error('Erreur lors de la vérification de l\'abonnement:', error);
     this.subscriptionStatus = 'inactive';

@@ -1,4 +1,4 @@
-<ion-header class="top-bar">
+<ion-header class="top-bar" *ngIf="isMobile">
 
   <div class="stats-container">
 
@@ -18,7 +18,7 @@
                   *ngIf="isHomePage() && !goBackTarget"
                   (click)="openRewardModal()">
           <ion-icon name="sparkles-outline"></ion-icon>
-          <ion-label>{{userXp | shortNumber}} • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
+          <ion-label>{{userXp | shortNumber}}XP • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
         </ion-badge>
          <ion-badge color="light"
                   *ngIf="isHomePage() && !goBackTarget"
@@ -87,6 +87,140 @@
 
 </ion-header>
 
+<ion-header class="top-bar header2" *ngIf="!isMobile">
+ 
+  <div class="stats-container">
+ 
+    <!-- ══════════════════════════════════════════════════════
+         ZONE GAUCHE : back button OU xp/coupon chips
+    ═══════════════════════════════════════════════════════ -->
+    <div class="header-zone left-zone">
+<!--  
+      <ion-buttons slot="start" >
+        <ion-button  (click)="toggleMenuCollapse()">
+          <ion-icon [name]="isMenuCollapsed ? 'chevron-forward' : 'chevron-back'"></ion-icon>
+        </ion-button>
+      </ion-buttons> -->
+ 
+      <ng-container >
+        <ion-badge color="warning" (click)="openRewardModal()">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <ion-label>{{userXp | shortNumber}}XP • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
+        </ion-badge>
+        <ion-badge color="light" (click)="openCouponModal()">
+          <ion-icon name="ticket-outline"></ion-icon>
+          <ion-label>{{userBalance.coupons | shortNumber}} coupons</ion-label>
+        </ion-badge>
+      </ng-container>
+ 
+    </div>
+ 
+    <!-- ══════════════════════════════════════════════════════
+         ZONE CENTRE : searchbar + coins (desktop seulement)
+    ═══════════════════════════════════════════════════════ -->
+    <div class="header-zone center-zone">
+ 
+      <div class="desktop-searchbar"   (click)="navigateTo('/search')">
+        <ion-icon name="search"></ion-icon>
+        <span class="searchbar-placeholder">Search…</span>
+        <kbd class="searchbar-kbd">⌘K</kbd>
+      </div>
+ 
+      <div class="desktop-coin-balance">
+        <div class="coin-balance">
+          <ion-img src="assets/icon/coin-collecting.png"></ion-img>
+          <span [class]="'coin-amount' + (showCoinAnimation ? ' animating' : '')">
+            {{ userBalance.coins | shortNumber | currency }}
+          </span>
+          <span class="coin-label">coins</span>
+          <div class="coin-lottie-overlay" *ngIf="showCoinAnimation">
+            <ng-lottie
+              [options]="{ path: 'lottie/coin-bust.json', autoplay: true, loop: false }"
+              (animationCreated)="onCoinAnimationCreated($event)">
+            </ng-lottie>
+          </div>
+        </div>
+        <button class="coin-add-btn" (click)="buyCoins()">
+          <ion-icon name="add-circle"></ion-icon>
+        </button>
+      </div>
+ 
+    </div>
+ 
+    <!-- ══════════════════════════════════════════════════════
+         ZONE DROITE : trophy / crown / search (mobile) / avatar (desktop)
+    ═══════════════════════════════════════════════════════ -->
+    <div class="header-zone right-zone">
+      <div class="action-buttons">
+ 
+        <button class="action-button"
+                [class.active]="isTabActive('/ranking')"
+                (click)="navigateTo('/ranking')">
+          <ion-icon name="trophy"></ion-icon>
+        </button>
+ 
+        <button class="action-button"
+                [class.active]="isTabActive('/exclusive')"
+                (click)="navigateTo('/exclusive')">
+          <div class="led-indicator" [ngClass]="getSubscriptionStatus()"></div>
+          <ion-img class="header-icon" src="assets/icon/crown.png"></ion-img>
+        </button>
+ 
+        <!-- Search button — mobile uniquement -->
+        <button class="action-button mobile-only"
+                [class.active]="isTabActive('/search')"
+                (click)="navigateTo('/search')">
+          <ion-icon name="search" class="action-icon"></ion-icon>
+        </button>
+ 
+        <!-- Avatar — desktop uniquement -->
+        <div class="avatar-separator desktop-only"></div>
+        <button class="avatar-button desktop-only"
+                [class.active]="isTabActive('/profile')"
+                (click)="goToProfile()">
+          <ion-avatar class="header-avatar">
+            <img [src]="userAvatar  | mediaUrl | async" alt="Profile" (error)="onImageAvatarError($event)" />
+          </ion-avatar>
+        </button>
+ 
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <!-- Ligne 2 — mobile uniquement : solde coins -->
+  <div class="header-row-balance">
+    <div class="coin-balance">
+      <ion-img src="assets/icon/coin-collecting.png"></ion-img>
+      <span [class]="'coin-amount' + (showCoinAnimation ? ' animating' : '')">
+        {{ userBalance.coins | shortNumber | currency }}
+      </span>
+      <span class="coin-label">coins</span>
+      <div class="coin-lottie-overlay" *ngIf="showCoinAnimation">
+        <ng-lottie
+          [options]="{ path: 'lottie/coin-bust.json', autoplay: true, loop: false }"
+          (animationCreated)="onCoinAnimationCreated($event)">
+        </ng-lottie>
+      </div>
+    </div>
+    <button class="coin-add-btn" (click)="buyCoins()">
+      <ion-icon name="add-circle"></ion-icon>
+    </button>
+  </div>
+ 
+</ion-header>
+
+<app-menu-burger
+  [isOpen]="isBurgerMenuOpen"
+  [isCollapsed]="isMenuCollapsed"
+  [theme]="'dark'"
+  [canPublish] = "UserCanPublish"
+  [activeItemIndex]="activeSegmentIndex"
+  [allowedToExclusive]="UserIsVerified"
+  [unreadCount]="countUnreadMessages"
+  (activeItemChange)="onMenuNavigationChange($event)"
+  (closeMenu)="closeBurgerMenu()">
+</app-menu-burger>
 
 <!-- ── Modal récompenses quotidiennes ──────────────────────────────────────── -->
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON } from '../API/api-json';
 import { Pack, PaymentMethod } from '../../interfaces/income.interfaces';
 import { Coupon } from 'src/models/Coupon';
 

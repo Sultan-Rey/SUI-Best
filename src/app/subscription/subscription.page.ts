@@ -70,8 +70,6 @@ import { Auth } from 'src/services/AUTH/auth';
 
 import { environment } from 'src/environments/environment.prod';
 
-import { FirebaseService } from 'src/services/API/firebase/firebase-service';
-
 import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
 
 
@@ -144,7 +142,6 @@ export class SubscriptionPage implements OnInit {
 
   private auth = inject(Auth);
 
-  private firebaseService = inject(FirebaseService);
 
   private notificationManager = inject(NotificationManagerService);
 

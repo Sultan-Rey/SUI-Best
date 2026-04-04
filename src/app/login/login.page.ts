@@ -23,7 +23,6 @@ import {
   IonInput,
  
   IonContent, IonLoading, IonImg } from '@ionic/angular/standalone';
-import { FirebaseService } from 'src/services/API/firebase/firebase-service';
 import { Auth } from 'src/services/AUTH/auth';
 @Component({
   selector: 'app-login',
@@ -170,8 +169,92 @@ async loginWithEmail(): Promise<void> {
     // Implémentez la connexion Facebook
   }
 
-  navigateToForgotPassword() {
-    this.router.navigate(['/forgot-password']);
+  async navigateToForgotPassword() {
+    const alert = await this.alertController.create({
+      header: 'Réinitialiser le mot de passe',
+      message: 'Entrez votre adresse email pour recevoir un lien de réinitialisation.',
+      inputs: [
+        {
+          name: 'email',
+          type: 'email',
+          placeholder: 'Adresse email',
+          attributes: {
+            autocapitalize: 'none',
+            autocomplete: 'email',
+            inputmode: 'email'
+          }
+        }
+      ],
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel',
+          cssClass: 'secondary'
+        },
+        {
+          text: 'Envoyer',
+          handler: async (data) => {
+            if (!data.email || !data.email.trim()) {
+              const errorAlert = await this.alertController.create({
+                header: 'Erreur',
+                message: 'Veuillez entrer une adresse email valide.',
+                buttons: ['OK']
+              });
+              await errorAlert.present();
+              return false;
+            }
+
+            // Validation basique de l'email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(data.email.trim())) {
+              const errorAlert = await this.alertController.create({
+                header: 'Erreur',
+                message: 'Veuillez entrer une adresse email au format valide.',
+                buttons: ['OK']
+              });
+              await errorAlert.present();
+              return false;
+            }
+
+            // Afficher un loading pendant l'appel API
+            const loading = await this.loadingController.create({
+              message: 'Envoi en cours...'
+            });
+            await loading.present();
+
+            try {
+              // Appeler la méthode reset du service Auth
+              await this.auth.reset(data.email.trim()).toPromise();
+              
+              await loading.dismiss();
+              
+              const successAlert = await this.alertController.create({
+                header: 'Succès',
+                message: 'Un email de réinitialisation a été envoyé à votre adresse email.',
+                buttons: ['OK']
+              });
+              await successAlert.present();
+              
+              return true;
+              
+            } catch (error: any) {
+              await loading.dismiss();
+              
+              const errorAlert = await this.alertController.create({
+                header: 'Erreur',
+                message: error.message || 'Une erreur est survenue lors de l\'envoi de l\'email de réinitialisation.',
+                buttons: ['OK']
+              });
+              await errorAlert.present();
+              
+              return false;
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
 
   navigateToRegister() {

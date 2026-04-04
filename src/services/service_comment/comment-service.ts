@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
 import { map, catchError, switchMap, tap, take } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON } from '../API/api-json';
 import { Comment } from '../../models/Comment';
 import { Content } from 'src/models/Content';
 

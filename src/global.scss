@@ -67,3 +67,21 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+/* Styles pour Desktop uniquement */
+@media (min-width: 768px) {
+  ion-modal {
+    /* Définit la taille de la modale sur desktop */
+    --width: 600px;
+    
+    /* Optionnel : arrondis et bordures */
+    --border-radius: 12px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+    
+    /* Centre la modale proprement */
+    &::part(content) {
+      position: relative;
+      border: 1px solid var(--ion-color-step-150, #e0e0e0);
+    }
+  }
+}

@@ -32,6 +32,15 @@ $text-tertiary: #6b7280;
   }
 }
 
+.profile-wrapper{
+  width: 75%;
+  margin-left: 25%;
+   @media (max-width: 768px) {
+    width: 100%;
+    margin-left: 0;
+   }
+}
+
 // Header styling
 .header-title {
   display: flex;

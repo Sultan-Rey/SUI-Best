@@ -71,6 +71,7 @@ import {
   qrCodeOutline,
   heart,
   create,
+  trashOutline,
 } from 'ionicons/icons';
 import { 
   IonHeader, 
@@ -201,6 +202,7 @@ export class RegisterPage implements OnInit {
     'female': female,
     'location-outline': locationOutline,
     'call-outline': callOutline,
+    'trash-outline': trashOutline,
     'transgender': transgender,
     'chevron-back': chevronBack,
     'arrow-forward': arrowForward,
@@ -423,11 +425,12 @@ async openDateActionSheet() {
 
     const { data } = await modal.onWillDismiss();
     
-    if (data && data.result) {
+    if (data && data.success) {
+
       this.registrationData.QR_proof = data.result;
-      if(this.registrationData.QR_proof!==''){
+      if(this.registrationData.QR_proof && data.result.name){
         const name = data.result.name;
-        const id = data.result.id
+        const id = data.result.id;
       this.registrationData.school.name = name;
       this.registrationData.school.id = id
       }

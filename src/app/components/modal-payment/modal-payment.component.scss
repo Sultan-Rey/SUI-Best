@@ -1,0 +1,112 @@
+:host {
+  --ion-background-color: #ffffff;
+}
+
+ion-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.5px;
+}
+
+.section-label {
+  font-size: 0.85rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.payment-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payment-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+
+  &:hover { background: #f1f3f5; }
+
+  &.active {
+    background: #ffffff;
+    border-color: #000;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+
+    .radio-check {
+      border-color: #000;
+      &::after { transform: scale(1); }
+    }
+  }
+
+  .icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-right: 16px;
+
+    &.card-bg { background: #eef2ff; color: #4f46e5; }
+    &.moncash-bg { background: #fff4e5; ion-img { width: 30px; } }
+    &.paypal-bg { background: #e0f2fe; color: #0369a1; }
+  }
+
+  .method-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .title { font-weight: 600; font-size: 1rem; color: #1a1a1a; }
+    .subtitle { font-size: 0.8rem; color: #6b7280; }
+  }
+
+  .radio-check {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: #000;
+      border-radius: 50%;
+      transform: scale(0);
+      transition: transform 0.2s ease;
+    }
+  }
+}
+
+.action-area {
+  margin-top: 30px;
+  animation: fadeIn 0.4s ease;
+}
+
+.main-pay-btn {
+  --background: #000;
+  --color: #fff;
+  --border-radius: 14px;
+  --padding-top: 18px;
+  --padding-bottom: 18px;
+  font-weight: 600;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -459,3 +459,563 @@
     }
   }
 }
+
+
+//===========================================
+//  DESKTOP VERSION
+//===========================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HEADER — Layout adaptatif
+//
+// Mobile  (<1024px) : 2 lignes (inchangé)
+//   Ligne 1 : [back | xp-chip | coupon]  ·····  [trophy | crown | search]
+//   Ligne 2 : [coin icon + solde + label]  ·····  [+]
+//
+// Desktop (≥1024px) : 1 ligne 3 zones équilibrées
+//   GAUCHE  [back | xp-chip | coupon]
+//   CENTRE  [searchbar ── coin + solde + +]
+//   DROITE  [trophy | crown | ─── avatar]
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Variables locales ────────────────────────────────────────────────────────
+
+:host {
+
+  --header-bg-desktop:   #5857575f;
+  --header-border:       rgba(0, 0, 0, 0.08);
+  --btn-bg:              rgba(0, 0, 0, 0.12);
+  --btn-bg-hover:        rgba(0, 0, 0, 0.20);
+  --btn-active-bg:       #d1c7a5;
+  --coin-label-bg:       #fff3cd;
+  --coin-label-color:    #7c6000;
+  --searchbar-bg:        rgba(117, 114, 114, 0.699);
+  --searchbar-border:    rgba(0, 0, 0, 0.12);
+  --searchbar-hover-bg:  rgba(0, 0, 0, 0.09);
+}
+
+// ─── ion-header : fond explicite sur toutes tailles ──────────────────────────
+
+.top-bar {
+  --background: var(--header-bg);
+  background:   var(--header-bg) !important;
+
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
+
+  @media screen and (min-width: 1024px) {
+    --background: var(--header-bg-desktop);
+    background:   var(--header-bg-desktop) !important;
+    border-bottom: 1px solid var(--header-border);
+    box-shadow: 0 1px 0 var(--header-border);
+  }
+}
+
+// ─── Utilitaires visibilité ────────────────────────────────────────────────────
+
+.mobile-only  { @media screen and (min-width: 1024px) { display: none !important; } }
+.desktop-only { display: none !important; @media screen and (min-width: 1024px) { display: flex !important; } }
+
+// ─── Conteneur principal ──────────────────────────────────────────────────────
+
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px 0;
+
+  @media screen and (min-width: 375px)  { padding: 7px 14px 0; }
+  @media screen and (min-width: 390px)  { padding: 7px 16px 0; }
+  @media screen and (min-width: 415px)  { padding: 8px 18px 0; }
+  @media screen and (min-width: 768px)  { padding: 10px 20px 0; }
+
+  @media screen and (min-width: 1024px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+    gap: 16px;
+  }
+
+  @media screen and (min-width: 1366px) { padding: 0 48px; height: 64px; gap: 20px; }
+  @media screen and (min-width: 1920px) { padding: 0 64px; height: 72px; gap: 24px; }
+}
+
+// ─── Zones 3-colonnes desktop ────────────────────────────────────────────────
+
+.header-zone {
+  display: flex;
+  align-items: center;
+
+  @media screen and (min-width: 1024px) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+.left-zone {
+  // Mobile : première ligne gauche, height identique à l'original
+  height: 26px;
+  gap: 6px;
+
+  @media screen and (min-width: 375px) { gap: 8px; }
+  @media screen and (min-width: 768px) { height: 32px; gap: 10px; }
+
+  @media screen and (min-width: 1024px) {
+    height: auto;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+}
+
+.center-zone {
+  // Mobile : invisible (le contenu y est masqué, la zone n'existe pas visuellement)
+  display: none;
+
+  @media screen and (min-width: 1024px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 2 1 0; // zone centrale plus large que les deux autres
+  }
+
+  @media screen and (min-width: 1366px) { gap: 16px; }
+}
+
+.right-zone {
+  // Mobile : première ligne droite
+  @media screen and (max-width: 1023px) {
+    // intégré dans .action-buttons via flex spacing (justify-content: flex-end)
+  }
+
+  @media screen and (min-width: 1024px) {
+    justify-content: flex-end;
+  }
+}
+
+// ─── Searchbar desktop ────────────────────────────────────────────────────────
+
+.desktop-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 10px;
+  background: var(--searchbar-bg);
+  border: 1px solid var(--searchbar-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  min-width: 180px;
+  max-width: 360px;
+  flex: 1 1 auto;
+
+  ion-icon {
+    font-size: 15px;
+    color: rgba(0, 0, 0, 0.40);
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: var(--searchbar-hover-bg);
+    border-color: rgba(0, 0, 0, 0.22);
+  }
+
+  @media screen and (min-width: 1366px) { height: 38px; min-width: 220px; max-width: 420px; }
+  @media screen and (min-width: 1920px) { height: 40px; max-width: 500px; }
+}
+
+.searchbar-placeholder {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.38);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+
+  @media screen and (min-width: 1366px) { font-size: 14px; }
+}
+
+.searchbar-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.70);
+  font-size: 11px;
+  font-family: system-ui, sans-serif;
+  color: rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// ─── Solde coins desktop ──────────────────────────────────────────────────────
+
+.desktop-coin-balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  .coin-balance { flex: 0 0 auto; }
+}
+
+// ─── Ligne 2 : solde coins — mobile uniquement ────────────────────────────────
+
+.header-row-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+  padding: 5px 0 8px;
+  border-top: 0.5px solid var(--header-border);
+
+  @media screen and (min-width: 375px)  { padding-bottom: 9px; }
+  @media screen and (min-width: 415px)  { padding-bottom: 10px; }
+  @media screen and (min-width: 768px)  { margin-top: 7px; padding-top: 7px; padding-bottom: 12px; }
+
+  @media screen and (min-width: 1024px) { display: none; }
+}
+
+// ─── coin-balance (partagé) ───────────────────────────────────────────────────
+
+.coin-balance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  position: relative;
+
+  @media screen and (min-width: 768px) { gap: 8px; }
+  @media screen and (min-width: 1024px) { flex: 0 0 auto; }
+
+  ion-img {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    @media screen and (min-width: 390px)  { width: 20px; height: 20px; }
+    @media screen and (min-width: 768px)  { width: 24px; height: 24px; }
+    @media screen and (min-width: 1024px) { width: 20px; height: 20px; }
+  }
+
+  .coin-amount {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ion-text-color, #000);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+
+    @media screen and (min-width: 390px)  { font-size: 14px; }
+    @media screen and (min-width: 768px)  { font-size: 16px; }
+    @media screen and (min-width: 1024px) { font-size: 14px; }
+
+    &.animating { animation: coinCountPulse 0.6s ease; }
+  }
+
+  .coin-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--coin-label-color);
+    background: var(--coin-label-bg);
+    border-radius: 4px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+
+    @media screen and (min-width: 390px) { font-size: 11px; }
+    @media screen and (min-width: 768px) { font-size: 12px; padding: 2px 8px; }
+  }
+}
+
+// ─── Bouton + coins ───────────────────────────────────────────────────────────
+
+.coin-add-btn {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, background 0.2s ease;
+
+  ion-icon { font-size: 20px; }
+
+  @media screen and (min-width: 390px)  { width: 26px; height: 26px; }
+  @media screen and (min-width: 768px)  { width: 32px; height: 32px; ion-icon { font-size: 24px; } }
+  @media screen and (min-width: 1024px) { width: 26px; height: 26px; ion-icon { font-size: 20px; } }
+
+  &:active { transform: scale(0.88); background: rgba(0, 0, 0, 0.06); }
+}
+
+// ─── Action buttons ───────────────────────────────────────────────────────────
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  @media screen and (min-width: 375px)  { gap: 12px; }
+  @media screen and (min-width: 390px)  { gap: 14px; }
+  @media screen and (min-width: 768px)  { gap: 18px; }
+  @media screen and (min-width: 1024px) { gap: 8px; }
+}
+
+.action-button {
+  width: 28px; height: 28px; min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--btn-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 50%;
+  position: relative;
+  transition: transform 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  @media screen and (min-width: 375px)  { width: 30px; height: 30px; min-width: 30px; }
+  @media screen and (min-width: 390px)  { width: 32px; height: 32px; min-width: 32px; }
+  @media screen and (min-width: 415px)  { width: 34px; height: 34px; min-width: 34px; }
+  @media screen and (min-width: 768px)  { width: 40px; height: 40px; min-width: 40px; }
+  @media screen and (min-width: 1024px) { width: 36px; height: 36px; min-width: 36px; background: transparent; }
+  @media screen and (min-width: 1366px) { width: 38px; height: 38px; min-width: 38px; }
+
+  ion-icon {
+    font-size: 18px;
+    color: #fff;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+
+    @media screen and (min-width: 390px)  { font-size: 20px; }
+    @media screen and (min-width: 768px)  { font-size: 22px; }
+    @media screen and (min-width: 1024px) { font-size: 20px; color: rgba(0, 0, 0, 0.55); filter: none; }
+  }
+
+  .header-icon {
+    width: 18px; height: 18px;
+    @media screen and (min-width: 390px)  { width: 20px; height: 20px; }
+    @media screen and (min-width: 768px)  { width: 24px; height: 24px; }
+    @media screen and (min-width: 1024px) { width: 20px; height: 20px; }
+  }
+
+  &:hover {
+    background: var(--btn-bg-hover);
+    @media screen and (min-width: 1024px) { background: rgba(0, 0, 0, 0.06); }
+  }
+
+  &.active {
+    background: var(--btn-active-bg);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(255, 179, 0, 0.35);
+
+    ion-icon {
+      color: #fff;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    }
+
+    @media screen and (min-width: 1024px) {
+      ion-icon { color: #fff; }
+    }
+  }
+}
+
+// ─── Séparateur avant avatar ──────────────────────────────────────────────────
+
+.avatar-separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+// ─── Bouton avatar ────────────────────────────────────────────────────────────
+
+.avatar-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover { opacity: 0.82; transform: scale(1.04); }
+  &:active { transform: scale(0.96); }
+}
+
+.header-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  display: block;
+  transition: border-color 0.15s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .active & {
+    border-color: #ffb300;
+    box-shadow: 0 0 0 3px rgba(255, 179, 0, 0.22);
+  }
+
+  @media screen and (min-width: 1366px) { width: 36px; height: 36px; }
+}
+
+// ─── LED indicateur abonnement ────────────────────────────────────────────────
+
+.led-indicator {
+  position: absolute;
+  top: 1px; right: 1px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--ion-color-light);
+
+  @media screen and (min-width: 768px)  { width: 8px; height: 8px; }
+  @media screen and (min-width: 1024px) { width: 8px; height: 8px; }
+
+  &.active   { background-color: #2dd36f; }
+  &.expiring { background-color: #ffc409; }
+  &.expired,
+  &.inactive { background-color: #eb445a; }
+}
+
+// ─── left-group (back button area sur mobile) ─────────────────────────────────
+
+.left-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+
+  @media screen and (min-width: 375px) { gap: 8px; }
+  @media screen and (min-width: 768px) { gap: 10px; }
+  @media screen and (min-width: 1024px) { flex: 0 0 auto; gap: 12px; }
+}
+
+// ─── Lottie overlay ───────────────────────────────────────────────────────────
+
+.coin-lottie-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+// ─── Animations ───────────────────────────────────────────────────────────────
+
+@keyframes coinCountPulse {
+  0%   { transform: scale(1);    color: inherit; }
+  50%  { transform: scale(1.25); color: #ffd700; }
+  100% { transform: scale(1);    color: inherit; }
+}
+
+// ─── XP / Coupon badges ───────────────────────────────────────────────────────
+
+ion-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  cursor: pointer;
+
+  ion-icon { font-size: 12px; }
+
+  @media screen and (min-width: 390px)  { height: 26px; font-size: 12px; padding: 0 10px; }
+  @media screen and (min-width: 768px)  { height: 30px; font-size: 13px; padding: 0 12px; ion-icon { font-size: 14px; } }
+  @media screen and (min-width: 1024px) { height: 28px; font-size: 12px; padding: 0 10px; }
+}
+
+// ─── Modal Récompense (inchangée) ─────────────────────────────────────────────
+
+#reward-modal {
+  --width: 90%;
+  --height: fit-content;
+  --border-radius: 16px;
+  --background: transparent;
+
+  @media screen and (max-width: 389px)  { --width: 96%; }
+  @media screen and (min-width: 768px)  { --width: 80%; --max-width: 500px; }
+  @media screen and (min-width: 1024px) { --width: 70%; --max-width: 550px; }
+  @media screen and (min-width: 1366px) { --width: 60%; --max-width: 600px; }
+
+  .modal-wrapper { overflow: hidden; border-radius: 20px; background: white; }
+
+  .reward-header {
+    background: linear-gradient(135deg, #ffcc33 0%, #ffb300 100%);
+    height: 220px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+
+    @media screen and (min-width: 768px)  { height: 250px; }
+    @media screen and (min-width: 1024px) { height: 280px; }
+    @media screen and (min-width: 1366px) { height: 320px; }
+
+    .star-background { position: absolute; width: 100%; height: 100%;
+      .bg-star-icon { position: absolute; color: rgba(255,255,255,0.2);
+        &.s1 { font-size: 150px; top: -20px; left: -20px; transform: rotate(-15deg); }
+        &.s2 { font-size: 120px; bottom: -10px; right: -20px; transform: rotate(20deg); }
+      }
+    }
+
+    .main-reward { z-index: 2;
+      .star-container { position: relative; display: flex; align-items: center; justify-content: center;
+        .main-star { font-size: 160px; color: white; }
+        .points-text { position: absolute; font-size: 2.8rem; font-weight: 900; color: #ff9800; margin-top: 5px; }
+      }
+    }
+  }
+
+  .reward-body {
+    background: #f0f0f0; padding: 24px; text-align: center;
+
+    @media screen and (min-width: 768px)  { padding: 28px; }
+    @media screen and (min-width: 1024px) { padding: 32px; }
+    @media screen and (min-width: 1366px) { padding: 36px; }
+
+    h2 { font-weight: 800; font-size: 1.5rem; margin: 20px 0 8px; color: #000; }
+    p  { color: #666; margin-bottom: 25px; font-size: 1.1rem; }
+
+    .claim-button {
+      --background: #000; --color: #fff; --border-radius: 12px;
+      --padding-top: 18px; --padding-bottom: 18px;
+      font-weight: bold; text-transform: lowercase; font-size: 1.1rem; margin: 0;
+    }
+  }
+
+  .progress-tracker {
+    display: flex; align-items: center; justify-content: space-between; padding: 0 5px;
+
+    .line { flex-grow: 1; height: 4px; background: #000; }
+
+    .step {
+      width: 50px; height: 28px;
+      border: 2px solid #000; border-radius: 20px; background: #1a1818;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; font-weight: bold; z-index: 2;
+
+      &.completed { background: #000; color: white; width: 35px; }
+    }
+  }
+}

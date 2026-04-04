@@ -2,7 +2,7 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { Observable, of, EMPTY, throwError, BehaviorSubject, from } from 'rxjs';
 import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError, expand, reduce, takeWhile, scan, filter } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON } from '../API/api-json';
 import { UserProfile } from '../../models/User';
 import { User } from 'firebase/auth';
 import { options } from 'ionicons/icons';

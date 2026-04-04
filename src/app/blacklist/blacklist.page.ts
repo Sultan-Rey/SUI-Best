@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel, IonAvatar, IonButton, IonIcon, IonLoading, IonAlert } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel, IonAvatar, IonButton, IonIcon, IonLoading, IonAlert, IonButtons, IonBackButton } from '@ionic/angular/standalone';
 import { ProfileService } from '../../services/Service_profile/profile-service';
 import { UserProfile } from '../../models/User';
 import { ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { personRemoveOutline, personOutline } from 'ionicons/icons';
+import { personRemoveOutline, personOutline, arrowBack } from 'ionicons/icons';
 
 @Component({
   selector: 'app-blacklist',
@@ -14,7 +14,7 @@ import { personRemoveOutline, personOutline } from 'ionicons/icons';
   styleUrls: ['./blacklist.page.scss'],
   standalone: true,
   providers: [ProfileService],
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel, IonAvatar, IonButton, IonIcon, IonLoading, IonAlert, CommonModule, FormsModule]
+  imports: [IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel, IonAvatar, IonButton, IonIcon, IonLoading, IonAlert, CommonModule, FormsModule]
 })
 export class BlacklistPage implements OnInit {
   blacklistedProfiles: UserProfile[] = [];
@@ -40,7 +40,7 @@ export class BlacklistPage implements OnInit {
     private profileService: ProfileService,
     private route: ActivatedRoute
   ) {
-    addIcons({personOutline,personRemoveOutline});
+    addIcons({arrowBack,personOutline,personRemoveOutline});
   }
 
   ngOnInit() {

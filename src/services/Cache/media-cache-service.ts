@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ApiJSON } from 'src/services/API/LOCAL/api-json';
+import { ApiJSON } from '../API/api-json';
 import { firstValueFrom } from 'rxjs';
  
 // ─── Config ───────────────────────────────────────────────────────────────────

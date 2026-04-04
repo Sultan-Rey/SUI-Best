@@ -1,6 +1,6 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { BehaviorSubject, catchError, forkJoin, map, Observable, of, switchMap, tap, throwError, filter } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/api-json';
 import { Content, ContentCategory, ContentSource, ContentStatus } from '../../models/Content';
 import { UserProfile } from '../../models/User';
 import { ProfileService } from '../Service_profile/profile-service';

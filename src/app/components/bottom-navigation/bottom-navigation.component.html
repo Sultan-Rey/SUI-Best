@@ -13,28 +13,30 @@
 
       <!-- Afficher seulement si pas en chargement -->
       <ng-container *ngIf="!isLoading">
-        <div
-          *ngFor="let item of navItems"
-          class="nav-item"
-          [class.captured]="isCapture(item)"
-          [class.near]="isNear(item)"
-          [attr.data-idx]="item.idx"
-        
-        >
-        <div class="item-inner"   (click)="onNavItemClick(item)">
-          <!-- Badge (optional) -->
-          <div class="badge-wrap">
-            <svg viewBox="0 0 24 24" fill="none"
-                 stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                 [innerHTML]="item.iconPath | safeHtml">
-            </svg>
-            <span class="star" *ngIf="item.star">{{ item.emoji }}</span>
-            <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
-          </div>
-          <span class="item-label">{{ item.label }}</span>
+  <ng-container *ngFor="let item of navItems">
+    
+    <div
+      *ngIf="item.visible !== false"
+      class="nav-item"
+      [class.captured]="isCapture(item)"
+      [class.near]="isNear(item)"
+      [attr.data-idx]="item.idx"
+    >
+      <div class="item-inner" (click)="onNavItemClick(item)">
+        <div class="badge-wrap">
+          <svg viewBox="0 0 24 24" fill="none"
+               stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+               [innerHTML]="item.iconPath | safeHtml">
+          </svg>
+          <span class="star" *ngIf="item.star">{{ item.emoji }}</span>
+          <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
         </div>
+        <span class="item-label">{{ item.label }}</span>
       </div>
-      </ng-container>
+    </div>
+
+  </ng-container>
+</ng-container>
 
     </div>
   </div>

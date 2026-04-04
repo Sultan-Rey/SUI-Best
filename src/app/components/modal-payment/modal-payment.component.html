@@ -1,0 +1,68 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Mode de paiement</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" color="medium">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="payment-container">
+    
+    <p class="section-label">Sélectionnez une option</p>
+
+    <div class="payment-card" 
+         [class.active]="selectedMethod === 'card'"
+         (click)="selectMethod('card')">
+      <div class="icon-wrapper card-bg">
+        <ion-icon name="card-outline"></ion-icon>
+      </div>
+      <div class="method-info">
+        <span class="title">Carte Bancaire</span>
+        <span class="subtitle">Débit ou Crédit (in-App payment)</span>
+      </div>
+      <div class="radio-check"></div>
+    </div>
+
+    <div class="payment-card" 
+         [class.active]="selectedMethod === 'moncash'"
+         (click)="selectMethod('moncash')">
+      <div class="icon-wrapper moncash-bg">
+        <ion-img src="assets/imgs/moncash-logo.png"></ion-img>
+      </div>
+      <div class="method-info">
+        <span class="title">MonCash</span>
+        <span class="subtitle">Paiement local en HTG</span>
+      </div>
+      <div class="radio-check"></div>
+    </div>
+
+    <div class="payment-card" 
+         [class.active]="selectedMethod === 'paypal'"
+         (click)="selectMethod('paypal')">
+      <div class="icon-wrapper paypal-bg">
+        <ion-icon name="logo-paypal"></ion-icon>
+      </div>
+      <div class="method-info">
+        <span class="title">PayPal</span>
+        <span class="subtitle">Paiement international Express</span>
+      </div>
+      <div class="radio-check"></div>
+    </div>
+
+    <div class="action-area" *ngIf="selectedMethod">
+      <div id="paypal-button-container" *ngIf="selectedMethod === 'paypal'"></div>
+      
+      <ion-button *ngIf="selectedMethod !== 'paypal'" 
+                  expand="block" 
+                  class="main-pay-btn"
+                  (click)="proceedToPayment()">
+        Continuer avec {{ selectedMethod === 'card' ? 'la carte' : 'MonCash' }}
+      </ion-button>
+    </div>
+
+  </div>
+</ion-content>

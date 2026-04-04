@@ -22,6 +22,7 @@ import { Observable, combineLatest, of } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
 import { ExclusiveService } from '../../services/Service_exclusive_content/exclusive-service';
 import { ExclusiveContent, ExclusiveContentType, Series } from '../../models/Content';
+import { Router } from '@angular/router';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -64,10 +65,12 @@ export class ExclusivePage implements OnInit {
   featuredItems$!: Observable<ExclusiveContent[]>;
   allContents$!: Observable<ExclusiveContent[]>;
   series$!: Observable<Series[]>;
-
+  public subscriptionStatus: string = '';
+  
   constructor(
     private toastCtrl: ToastController,
-    private exclusiveService: ExclusiveService
+    private exclusiveService: ExclusiveService,
+    private router: Router
   ) {
     addIcons({
       searchOutline,
@@ -85,6 +88,9 @@ export class ExclusivePage implements OnInit {
     this.loadData();
   }
 
+   getSubscriptionStatus(status: string) {
+  this.subscriptionStatus = status; // On stocke la valeur
+}
   // ── Data Loading ─────────────────────────────────────────────────────────────
 
   loadData(): void {
@@ -121,7 +127,7 @@ export class ExclusivePage implements OnInit {
   // ── Actions ─────────────────────────────────────────────────────────────────
 
   onSubscribe(): void {
-    this.showToast('Redirection vers l\'abonnement Premium…');
+    this.router.navigate(['/subscription']);
   }
 
   onContentTap(item: ExclusiveContent | Series): void {

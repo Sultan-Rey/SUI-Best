@@ -11,12 +11,11 @@
     </button>
     <button
       class="tab-button"
-      [disabled]="CurrentUserProfile.type!=='admin'"
+      [disabled]="CurrentUserProfile.type!=='admin' && !CurrentUserProfile.allowed_exclusive"
       [class.active]="activeTab === 'exclusivity'"
       (click)="setActiveTab('exclusivity')">
       <ion-icon name="star-outline"></ion-icon>
-      <span>Exclusifs <ion-icon *ngIf="CurrentUserProfile.type!=='admin'" name="lock-closed" class="lock-icon"></ion-icon></span>
-      
+      <span>Exclusifs <ion-icon *ngIf="CurrentUserProfile.type!=='admin' && !CurrentUserProfile.allowed_exclusive" name="lock-closed" class="lock-icon"></ion-icon></span>
     </button>
   </div>
 </ion-header>

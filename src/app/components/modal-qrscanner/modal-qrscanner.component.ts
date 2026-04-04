@@ -172,17 +172,31 @@ export class ModalQRscannerComponent implements OnInit {
     }
   }
 
-  private handleScanSuccess(decodedText: string) {
-    this.ngZone.run(() => {
-      this.scanResult = decodedText;
-      this.stopScan();
-      // Fermer le modal et retourner le résultat
-      this.modalController.dismiss({
-        success: true,
-        result: decodedText
-      });
+ private handleScanSuccess(decodedText: string) {
+  this.ngZone.run(() => {
+    this.scanResult = decodedText;
+    this.stopScan();
+
+    let finalResult: any = decodedText;
+
+    // Tentative de parsing automatique
+    try {
+      // Si le texte ressemble à du JSON (commence par { ), on tente le parse
+      if (decodedText.trim().startsWith('{')) {
+        finalResult = JSON.parse(decodedText);
+      }
+    } catch (e) {
+      console.warn("Le texte scanné n'est pas un JSON valide, renvoi tel quel.");
+      finalResult = decodedText;
+    }
+
+    // Fermer le modal et retourner le résultat (objet ou string)
+    this.modalController.dismiss({
+      success: true,
+      result: finalResult // Ici, 'result' sera un bel objet JS
     });
-  }
+  });
+}
 
   async stopScan() {
     try {

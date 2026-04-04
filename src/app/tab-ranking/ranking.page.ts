@@ -73,6 +73,7 @@ export class RankingPage implements OnInit, OnDestroy {
   selectedTab: 'votes' | 'dons' = 'votes';
   isLoading = true;
   challengeRankings: ChallengeRanking[] = [];
+
   allArtists: Artist[] = [];
   topArtists: Artist[] = [];
 
@@ -203,6 +204,7 @@ export class RankingPage implements OnInit, OnDestroy {
     this.loadRankingData();
     this.loadDonorsData();
   }
+
 
   // Méthode pour gérer le pull-to-refresh
   doRefresh(event: RefresherCustomEvent) {

@@ -1,7 +1,7 @@
 // src/app/services/user.service.ts
 import { Injectable } from '@angular/core';
 import { map, Observable, of, switchMap } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json'; // ✅ Migration vers notre ApiJSON unifié
+import { ApiJSON } from '../API/api-json';
 import { User } from '../../models/User';
 
 @Injectable({

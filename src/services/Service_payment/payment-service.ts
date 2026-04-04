@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/api-json';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -14,6 +14,19 @@ export interface PaymentResponse {
   orderId: string;
   amount: number;
   redirect_url: string;
+}
+
+// ─── Interfaces PayPal ────────────────────────────────────────────────────────
+
+export interface PaypalCreateResponse {
+  orderId: string;
+  approvalUrl: string;
+}
+
+export interface PaypalCaptureResponse {
+  id: string;
+  status: string;
+  [key: string]: any;
 }
 
 export interface PaymentVerificationRequest {
@@ -155,4 +168,35 @@ export class PaymentService {
 
     return this.createPayment(paymentRequest);
   }
+
+
+  // ─── PayPal ───────────────────────────────────────────────────────────────────
+
+  createPaypalOrder(amount: number, currency: string = 'USD'): Observable<PaypalCreateResponse> {
+    return this.api.post<PaypalCreateResponse>('payment/paypal-create', { amount, currency }).pipe(
+      catchError(error => {
+        console.error('Erreur création PayPal:', error);
+        return throwError(() => new Error('Impossible de créer le paiement PayPal'));
+      })
+    );
+  }
+
+  capturePaypalOrder(orderID: string): Observable<PaypalCaptureResponse> {
+    return this.api.post<PaypalCaptureResponse>('payment/paypal-capture', { orderID }).pipe(
+      catchError(error => {
+        console.error('Erreur capture PayPal:', error);
+        return throwError(() => new Error('Impossible de capturer le paiement PayPal'));
+      })
+    );
+  }
+
+  getPaypalStatus(orderId: string): Observable<any> {
+    return this.api.get<any>(`payment/paypal-status?order_id=${orderId}`).pipe(
+      catchError(error => {
+        console.error('Erreur statut PayPal:', error);
+        return throwError(() => new Error('Impossible de vérifier le statut PayPal'));
+      })
+    );
+  }
+  
 }

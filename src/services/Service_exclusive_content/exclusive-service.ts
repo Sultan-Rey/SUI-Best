@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
-import { ApiJSON } from '../API/LOCAL/api-json';
+import { ApiJSON } from '../API/api-json';
 import { ExclusiveContent, ExclusiveContentType, ExclusiveContentStatus, Series, Author, SeriesInfo, MediaInfo } from '../../models/Content';
 import { ProfileService } from '../Service_profile/profile-service';
 

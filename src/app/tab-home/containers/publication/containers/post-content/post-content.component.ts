@@ -249,8 +249,16 @@ export class PostContentComponent implements OnInit, OnDestroy {
   }
 
   canSubmit(): boolean {
-    return this.hasMedia && !!this.content.description?.trim();
+    return this.hasMedia && !!this.content.description?.trim() ;
   }
+
+  isAuthorized(): boolean {
+  // AUTORISÉ SI : est vérifié OU (si pas vérifié, alors possède un challenge)
+  if (this.CurrentUserProfile?.isVerified) {
+    return true; 
+  }
+  return !!this.selectedChallenge;
+}
 
   nextStep(): void {
     if (this.currentStep >= this.totalSteps) return;
@@ -268,6 +276,8 @@ export class PostContentComponent implements OnInit, OnDestroy {
     if (!this.hasMedia)                    { this.showError('Veuillez sélectionner un fichier'); return; }
     if (!this.content.description?.trim()) { this.showError('Veuillez ajouter un titre'); return; }
 
+    if(!this.isAuthorized()) {this.showError('Vous n\'avez choisit aucun défi pour ce post'); return;}
+    
     this.isUploading = true;
     this.cdr.markForCheck();
 
