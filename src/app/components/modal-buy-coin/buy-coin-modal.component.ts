@@ -123,17 +123,17 @@ export class BuyCoinModalComponent implements OnInit {
 
   async purchasePack(pack: Pack) {
     if (this.isProcessingPayment) return;
-    //  const modal = await this.modalController.create({
-    //       component: ModalPaymentComponent,
-    //       cssClass: 'auto-height',
-    //       componentProps:{OrderAmount: pack.price},
-    //       initialBreakpoint: 0.90,
-    //       breakpoints: [0, 0.90, 1],
-    //       handle: true
-    //     });
+     const modal = await this.modalController.create({
+          component: ModalPaymentComponent,
+          cssClass: 'auto-height',
+          componentProps:{OrderAmount: pack.price},
+          initialBreakpoint: 0.90,
+          breakpoints: [0, 0.90, 1],
+          handle: true
+        });
         
-    //     await modal.present();
-    await this.showPaymentMethods(pack);
+        await modal.present();
+    //await this.showPaymentMethods(pack);
   }
 
   async showPaymentMethods(pack: Pack) {

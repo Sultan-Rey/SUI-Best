@@ -63,7 +63,7 @@
             <div class="lock-icon-wrap">
               <ion-icon name="lock-closed-outline"></ion-icon>
             </div>
-            <span class="lock-price">{{ item.price }}€</span>
+            <span class="lock-price">{{ item.price }}HTG</span>
           </div>
           <div class="card-duration-badge" *ngIf="item.media?.duration">
             <ion-icon name="time-outline"></ion-icon>
@@ -157,7 +157,7 @@
             <div class="lock-circle">
               <ion-icon name="lock-closed-outline"></ion-icon>
             </div>
-            <span class="lock-big-price">{{ item.price }}€</span>
+            <span class="lock-big-price">{{ item.price }}HTG</span>
           </div>
           <div class="card-duration-badge top-right" *ngIf="item.media.duration">
             <ion-icon name="time-outline"></ion-icon>
@@ -180,7 +180,7 @@
           </div>
         </div>
         <button class="btn-buy-full" (click)="onBuy(item, $event)">
-          Acheter {{ item.price }}€
+          Acheter {{ item.price }}$
         </button>
       </ng-container>
 

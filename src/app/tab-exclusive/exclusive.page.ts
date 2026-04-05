@@ -6,6 +6,7 @@ import {
   IonContent,
   IonIcon,
   ToastController,
+  ModalController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -23,6 +24,7 @@ import { map, switchMap, catchError } from 'rxjs/operators';
 import { ExclusiveService } from '../../services/Service_exclusive_content/exclusive-service';
 import { ExclusiveContent, ExclusiveContentType, Series } from '../../models/Content';
 import { Router } from '@angular/router';
+import { ModalPaymentComponent } from '../components/modal-payment/modal-payment.component';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +48,7 @@ export interface FilterTab {
   templateUrl: 'exclusive.page.html',
   styleUrls: ['exclusive.page.scss'],
   standalone: true,
+  providers: [ModalController],
   imports: [CommonModule, FormsModule, IonContent, IonIcon, HeaderComponentComponent],
 })
 export class ExclusivePage implements OnInit {
@@ -69,6 +72,7 @@ export class ExclusivePage implements OnInit {
   
   constructor(
     private toastCtrl: ToastController,
+    private modalController: ModalController,
     private exclusiveService: ExclusiveService,
     private router: Router
   ) {
@@ -141,9 +145,18 @@ export class ExclusivePage implements OnInit {
     }
   }
 
-  onBuy(item: ExclusiveContent, event: Event): void {
+  async onBuy(item: ExclusiveContent, event: Event) {
     event.stopPropagation();
-    this.showToast(`Achat en cours : ${item.title} — ${item.price}€`);
+    const modal = await this.modalController.create({
+                  component: ModalPaymentComponent,
+                  cssClass: 'auto-height',
+                  componentProps:{OrderAmount: item.price},
+                  initialBreakpoint: 0.90,
+                  breakpoints: [0, 0.90, 1],
+                  handle: true
+                });
+                
+                await modal.present();
   }
 
   onWatch(item: ExclusiveContent, event: Event): void {

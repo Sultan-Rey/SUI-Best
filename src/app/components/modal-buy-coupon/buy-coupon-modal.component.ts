@@ -9,6 +9,7 @@ import { Pack } from '../../../interfaces/income.interfaces';
 import { cardOutline, logoPaypal, ticket, cashOutline, close, schoolOutline, businessOutline, flash, timeOutline, checkmarkCircle, ticketOutline, layersOutline, walletOutline, logoBitcoin, alertCircleOutline, refreshOutline, lockClosed } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
 import { Auth, AuthUser } from 'src/services/AUTH/auth';
+import { ModalPaymentComponent } from '../modal-payment/modal-payment.component';
 
 // Interface pour les packs avec informations du propriétaire
 interface CouponPackWithOwner extends Pack {
@@ -98,33 +99,45 @@ export class BuyCouponModalComponent implements OnInit {
   }
 
   async showPaymentMethods(pack: CouponPackWithOwner) {
-    const actionSheet = await this.actionSheetController.create({
-      header: 'Méthode de Paiement',
-      buttons: [
-        {
-          text: 'Gpay',
-          icon: 'card-outline',
-          handler: () => this.processPayment(pack, 'gpay')
-        },
-        {
-          text: 'PayPal',
-          icon: 'logo-paypal',
-          handler: () => this.processPayment(pack, 'paypal')
-        },
-        {
-          text: 'MonCash',
-          icon: 'cash-outline',
-          handler: () => this.processPayment(pack, 'moncash')
-        },
-        {
-          text: 'Annuler',
-          icon: 'close-outline',
-          role: 'cancel'
-        }
-      ]
-    });
+    // const actionSheet = await this.actionSheetController.create({
+    //   header: 'Méthode de Paiement',
+    //   buttons: [
+    //     {
+    //       text: 'Gpay',
+    //       icon: 'card-outline',
+    //       handler: () => this.processPayment(pack, 'gpay')
+    //     },
+    //     {
+    //       text: 'PayPal',
+    //       icon: 'logo-paypal',
+    //       handler: () => this.processPayment(pack, 'paypal')
+    //     },
+    //     {
+    //       text: 'MonCash',
+    //       icon: 'cash-outline',
+    //       handler: () => this.processPayment(pack, 'moncash')
+    //     },
+    //     {
+    //       text: 'Annuler',
+    //       icon: 'close-outline',
+    //       role: 'cancel'
+    //     }
+    //   ]
+    // });
 
-    await actionSheet.present();
+    // await actionSheet.present();
+
+     if (this.isProcessingPayment) return;
+         const modal = await this.modalController.create({
+              component: ModalPaymentComponent,
+              cssClass: 'auto-height',
+              componentProps:{OrderAmount: pack.price},
+              initialBreakpoint: 0.90,
+              breakpoints: [0, 0.90, 1],
+              handle: true
+            });
+            
+            await modal.present();
   }
 
   async processPayment(pack: CouponPackWithOwner, paymentMethod: string) {

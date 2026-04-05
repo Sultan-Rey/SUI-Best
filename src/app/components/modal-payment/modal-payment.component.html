@@ -54,14 +54,17 @@
     </div>
 
     <div class="action-area" *ngIf="selectedMethod">
-      <div id="paypal-button-container" *ngIf="selectedMethod === 'paypal'"></div>
+      <div *ngIf="paymentMessage !== '' && paymentMessage !==null">
+        <ion-badge color="dark"><p>{{paymentMessage}}</p></ion-badge>
+      </div>
       
-      <ion-button *ngIf="selectedMethod !== 'paypal'" 
+      <ion-button *ngIf="paymentMessage == '' || paymentMessage ==null"
                   expand="block" 
                   class="main-pay-btn"
                   (click)="proceedToPayment()">
-        Continuer avec {{ selectedMethod === 'card' ? 'la carte' : 'MonCash' }}
+        Continuer avec {{ selectedMethod === 'paypal' ? 'PayPal' : (selectedMethod === 'card' ? 'la carte' : 'MonCash') }}
       </ion-button>
+
     </div>
 
   </div>
