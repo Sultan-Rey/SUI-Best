@@ -25,6 +25,8 @@ import { Segment } from 'src/models/Segment';
 import { MediaUrlPipe } from "../utils/pipes/mediaUrlPipe/media-url-pipe";
 import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
 import { Platform } from '@ionic/angular';
+import { CreationService } from 'src/services/Service_content/creation-service';
+import { Content } from 'src/models/Content';
 
 @Component({
   selector: 'app-home',
@@ -68,6 +70,9 @@ export class HomePage implements OnInit {
   showBannerAd = false;
   hasContent = false;
   private bannerDisplayProbability = 0.3; // 30% de chance d'afficher la bannière
+  bannerAds: Content[] = [];
+  isLoadingBannerAds = true;
+  hasBannerAdsError = false;
   
   // Propriété pour détecter si on est sur mobile
   isMobile: boolean = true;
@@ -167,7 +172,8 @@ export class HomePage implements OnInit {
     private gestureCtrl: GestureController,
     private toastController: ToastController,
     private notificationManager: NotificationManagerService,
-    private platform: Platform
+    private platform: Platform,
+    private creationService: CreationService
   ) {
     this.currentUserProfile.stats = {} as {
       posts: 0;
@@ -187,6 +193,7 @@ export class HomePage implements OnInit {
     this.setupAuthSubscription();
     this.setupSwipeGesture();
     this.unreadMessagesCount();
+    this.loadBannerAds();
     
     // Initialiser la vérification de bannière après le chargement du profil
     setTimeout(() => {
@@ -241,6 +248,7 @@ export class HomePage implements OnInit {
       }
     });
   }
+
   private setupAuthSubscription(): void {
     this.authService.currentUser$.pipe(
       takeUntil(this.destroy$),
@@ -259,36 +267,36 @@ export class HomePage implements OnInit {
     });
   }
 
+  // Gérer le swipe entre les segments
+  private setupSwipeGesture(): void {
+    if (!this.contentRef) return;
 
-private setupSwipeGesture(): void {
-  if (!this.contentRef) return;
-
-  const gesture = this.gestureCtrl.create({
-    el: this.contentRef.nativeElement,
-    gestureName: 'swipe-tabs',
-    threshold: 15,
-    onEnd: (detail) => {
-      const deltaX = Math.abs(detail.deltaX);
-      const deltaY = Math.abs(detail.deltaY);
-      
-      if (deltaX > deltaY && deltaX > 50) {
-        if (detail.deltaX > 0) {
-          // Swipe right
-          if (this.selectedSegment === 'discovery') {
-            this.switchTab('followed');
-          }
-        } else {
-          // Swipe left
-          if (this.selectedSegment === 'followed') {
-            this.switchTab('discovery');
+    const gesture = this.gestureCtrl.create({
+      el: this.contentRef.nativeElement,
+      gestureName: 'swipe-tabs',
+      threshold: 15,
+      onEnd: (detail) => {
+        const deltaX = Math.abs(detail.deltaX);
+        const deltaY = Math.abs(detail.deltaY);
+        
+        if (deltaX > deltaY && deltaX > 50) {
+          if (detail.deltaX > 0) {
+            // Swipe right
+            if (this.selectedSegment === 'discovery') {
+              this.switchTab('followed');
+            }
+          } else {
+            // Swipe left
+            if (this.selectedSegment === 'followed') {
+              this.switchTab('discovery');
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  gesture.enable();
-}
+    gesture.enable();
+  }
 
   switchTab(tab: 'discovery' | 'followed') {
     if (this.selectedSegment === tab) return;
@@ -314,7 +322,10 @@ private setupSwipeGesture(): void {
     // Vérifier s'il y a du contenu (posts, follows, etc.)
     this.hasContent = this.checkForContent();
     
-    if (this.hasContent) {
+    // Vérifier s'il y a des publicités disponibles
+    const hasAvailableAds = this.bannerAds && this.bannerAds.length > 0 && !this.isLoadingBannerAds && !this.hasBannerAdsError;
+    
+    if (this.hasContent && hasAvailableAds) {
       // Affichage aléatoire basé sur la probabilité
       const random = Math.random();
       this.showBannerAd = random < this.bannerDisplayProbability;
@@ -341,16 +352,39 @@ private setupSwipeGesture(): void {
     }
   }
 
+  // Méthode pour charger les bannières publicitaires
+  loadBannerAds(): void {
+    this.isLoadingBannerAds = true;
+    this.hasBannerAdsError = false;
+
+    this.creationService.getBannerAdsContents(1, 10).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (ads) => {
+        this.bannerAds = ads;
+        this.isLoadingBannerAds = false;
+        this.checkBannerDisplay(); // Vérifier si on doit afficher la bannière après chargement
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des bannières:', error);
+        this.hasBannerAdsError = true;
+        this.isLoadingBannerAds = false;
+        this.bannerAds = [];
+        this.checkBannerDisplay(); // Mettre à jour l'affichage
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   // Méthode pour fermer la bannière manuellement
   closeBannerAd(): void {
     this.showBannerAd = false;
     this.cdr.markForCheck();
   }
 
- 
-
   openNotifications() {
-     this.router.navigate(['/notification']);
+    this.router.navigate(['/notification']);
   }
 
   goToProfile() {
@@ -377,21 +411,70 @@ private setupConnectionListeners() {
   window.addEventListener('online', () => {
     this.isOnline = true;
     this.cdr.markForCheck();
-    //console.log('🌐 Connexion rétablie');
+    console.log('Connexion rétablie - Rechargement automatique des données...');
+    this.refreshAllDataOnReconnect();
   });
   
   window.addEventListener('offline', () => {
     this.isOnline = false;
     this.cdr.markForCheck();
-   // console.log('📴 Hors ligne - utilisation du cache');
+    console.log('Hors ligne - utilisation du cache');
   });
 
   // Écouter les événements de connexion du service métier
   this.profileService.connectionError.subscribe((isConnected: boolean) => {
      this.isOnline = isConnected;
     this.cdr.markForCheck();
+    
+    // Si la connexion est rétablie via le service, recharger les données
+    if (isConnected) {
+      console.log('Service connexion rétablie - Rechargement automatique des données...');
+      this.refreshAllDataOnReconnect();
+    }
   });
   
+}
+
+/**
+ * Recharge automatiquement toutes les données quand la connexion est rétablie
+ */
+private async refreshAllDataOnReconnect() {
+  try {
+    // Afficher un toast pour informer l'utilisateur
+    const toast = await this.toastController.create({
+      message: 'Connexion rétablie - Rechargement des données...',
+      duration: 2000,
+      color: 'success',
+      position: 'top'
+    });
+    await toast.present();
+
+    // Recharger le profil utilisateur
+    if (this.currentUserProfile?.id) {
+      this.profileService.getProfileById(this.currentUserProfile.id).subscribe({
+        next: (profile) => {
+          this.currentUserProfile = profile as UserProfile;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Erreur lors du rechargement du profil:', error);
+        }
+      });
+    }
+
+    // Recharger les messages non lus
+    this.unreadMessagesCount();
+
+    // Recharger les bannières publicitaires
+    this.loadBannerAds();
+
+    // Notifier les composants enfants de se recharger
+    this.cdr.markForCheck();
+
+    console.log('Toutes les données ont été rechargées avec succès');
+  } catch (error) {
+    console.error('Erreur lors du rechargement automatique:', error);
+  }
 }
 
 async retryConnection(event?: Event) {

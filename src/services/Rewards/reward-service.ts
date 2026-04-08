@@ -243,6 +243,37 @@ export class RewardService {
     );
   }
 
+   /**
+   * Compte le nombre d'utilisateur ayant collecté cette récompense
+   * @param name nom de la recompense
+   * @param xp nombre de XP pour obtenir la recompense
+   * @returns Observable avec le nombre de récompenses collectables
+   */
+  getCollectedRewardsTotalCount(name: string, xp: number): Observable<number> {
+    return this.profileService.getProfiles().pipe(
+      map(profiles => {
+        if (!profiles) return 0;
+        
+        return profiles.filter(profile => {
+          if (!profile.level_rewards) return false;
+          
+          // Chercher la récompense spécifique dans les récompenses de l'utilisateur
+          const targetReward = profile.level_rewards.find(reward => 
+            reward.name === name && 
+            reward.xpRequired === xp
+          );
+          
+          // Vérifier si la récompense existe et a été collectée
+          return targetReward?.collected === true;
+        }).length;
+      }),
+      catchError(error => {
+        console.error('Erreur lors du comptage des récompenses collectées:', error);
+        return of(0);
+      })
+    );
+  }
+
   /**
    * Calcule la progression vers la prochaine récompense
    * @param userId ID de l'utilisateur

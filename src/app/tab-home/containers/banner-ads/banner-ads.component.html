@@ -1,4 +1,4 @@
-<div class="banner-ads-container" *ngIf="bannerAds.length > 0; else emptyState">
+<div class="banner-ads-container" *ngIf="bannerAds.length > 0">
   
   <!-- Bannière actuelle -->
   <div class="banner-wrapper" *ngIf="currentBanner">
@@ -38,20 +38,3 @@
   </div>
 </div>
 
-<!-- Empty states -->
-<ng-template #emptyState>
-  <div class="banner-empty" *ngIf="isLoading; else errorState">
-    <ion-spinner name="crescent"></ion-spinner>
-  </div>
-  
-  <ng-template #errorState>
-    <div class="banner-error" *ngIf="hasError">
-      <ion-icon name="alert-circle-outline"></ion-icon>
-      <p>Impossible de charger les publicités</p>
-      <button class="retry-btn" (click)="retry()">
-        <ion-icon name="refresh-outline"></ion-icon>
-        Réessayer
-      </button>
-    </div>
-  </ng-template>
-</ng-template>

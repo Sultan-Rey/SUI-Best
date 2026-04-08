@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { NgIf, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
+import { CameraService, MediaFile } from 'src/services/CAMERA/camera-service';
 import { addIcons } from 'ionicons';
 import * as bcrypt from 'bcryptjs';
 import { 
@@ -45,7 +46,7 @@ import {
   personCircleOutline,
   walletOutline,
   homeOutline,
-  compassOutline } from 'ionicons/icons';
+  compassOutline, cameraOutline } from 'ionicons/icons';
 import { 
   IonContent, 
   IonButton, 
@@ -68,6 +69,7 @@ import { getRewardsForUserType } from 'src/interfaces/levelReward.data';
 import { LevelRewardsComponent } from '../components/level-rewards-component/level-rewards-component.component';
 import { AwardsGalleryComponent } from '../components/awards-gallery/awards-gallery.component';
 import { RewardService } from 'src/services/Rewards/reward-service';
+import { LevelReward} from 'src/models/LevelReward';
 import { TransactionHistoryModalComponent } from '../components/modal-transaction-history/transaction-history-modal.component';
 
 @Component({
@@ -93,21 +95,8 @@ export class ProfilePage implements OnInit {
   userContents: Content[] = [];
   isLoadingContents = false;
   isLess: boolean = true;
-  pastAwards = [
-    {
-      name: 'Top Créateur',
-      image: 'https://images.unsplash.com/photo-1614028674026-a65e31bfd27c?w=200&h=200&fit=crop'
-    },
-    {
-      name: 'Beat Master',
-      image: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&h=200&fit=crop'
-    },
-    {
-      name: 'Viral Star',
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop'
-    }
-  ];
-
+  pastAwards!: LevelReward[];
+  reachedCount!:number;
   
 
   constructor(
@@ -122,7 +111,8 @@ export class ProfilePage implements OnInit {
     private alertController: AlertController,
     private toastController: ToastController,
     private actionSheetController: ActionSheetController,
-    private modalCtrl: ModalController) { 
+    private modalCtrl: ModalController,
+    private cameraService: CameraService) { 
     this.userProfile = {} as UserProfile;
     this.userProfile.myFollows = [];
     this.userProfile.stats = {} as {
@@ -133,16 +123,8 @@ export class ProfilePage implements OnInit {
     };
     this.userProfile.userInfo = {} as any;
     this.userProfile.userInfo.memberShip = {} as any;
-    addIcons({
-      shareSocialOutline, ellipsisVertical, addCircle, banOutline, flagOutline,
-      checkmarkCircle, logOutOutline, keyOutline, star, linkOutline, calendarOutline,
-      close, heart, warning, createOutline, settingsOutline, giftOutline, imagesOutline,
-      arrowForwardOutline, chevronForwardOutline, addOutline, checkmarkCircleOutline,
-      musicalNotesOutline, search, trophy, chevronBackOutline, ellipsisHorizontal,
-      checkmark, videocamOutline, eyeOutline, locationOutline, logoInstagram,
-      logoTwitter, logoYoutube, globeOutline, chatbubbleOutline, personCircleOutline,
-      homeOutline, compassOutline, eyeOffOutline, walletOutline
-    });
+    this.pastAwards = [];
+    addIcons({checkmark,cameraOutline,settingsOutline,locationOutline,linkOutline,giftOutline,chevronForwardOutline,eyeOutline,imagesOutline,shareSocialOutline,ellipsisVertical,addCircle,banOutline,flagOutline,checkmarkCircle,logOutOutline,keyOutline,star,calendarOutline,close,heart,warning,createOutline,arrowForwardOutline,addOutline,checkmarkCircleOutline,musicalNotesOutline,search,trophy,chevronBackOutline,ellipsisHorizontal,videocamOutline,logoInstagram,logoTwitter,logoYoutube,globeOutline,chatbubbleOutline,personCircleOutline,homeOutline,compassOutline,eyeOffOutline,walletOutline});
   }
 
   ngOnInit() {
@@ -231,12 +213,12 @@ export class ProfilePage implements OnInit {
       
       // Charger les informations XP une seule fois après le chargement du profil
       this.resolveNextXp();
-      
+      this.getCollectedReward();
       this.cdr.detectChanges();
       
     } catch (error) {
       console.error('Erreur lors du chargement du profil:', error);
-      this.router.navigate(['tabs/tabs/home']);
+      this.router.navigate(['/home']);
     } finally {
       this.isLoading = false;
     }
@@ -247,6 +229,23 @@ export class ProfilePage implements OnInit {
    * XP Management
    */
 
+  async getCollectedReward(){
+     if (!this.userProfile || !this.userProfile.id) {
+      console.error('Aucun profil utilisateur trouvé');
+      return;
+    }
+    try{
+      const rewards = await this.rewardService.getCollectedRewards(this.userProfile.id).toPromise();
+      this.pastAwards = rewards?.reverse() || [];
+      if(this.pastAwards.length > 0){
+        const reachedby = await this.rewardService.getCollectedRewardsTotalCount(this.pastAwards[0].name, this.userProfile.xpPercent).toPromise();
+        this.reachedCount = reachedby || 0;
+      }
+    }catch (error) {
+      console.error('Erreur lors de l\'ouverture des récompenses debloquer:', error);
+      await this.showToast('Erreur lors du chargement des récompenses debloquer', 'danger');
+    }
+  }
   async openLevelReward(){
     if (!this.userProfile || !this.userProfile.id) {
       console.error('Aucun profil utilisateur trouvé');
@@ -762,5 +761,137 @@ export class ProfilePage implements OnInit {
     }
   }
 
+
+  /**
+   * Sélectionne et upload une nouvelle image de couverture
+   */
+  async selectCoverImage() {
+    if (!this.isOwnProfile || !this.userProfile?.id) {
+      return;
+    }
+
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Changer la photo de couverture',
+      buttons: [
+        {
+          text: 'Prendre une photo',
+          icon: 'camera-outline',
+          handler: () => {
+            this.takeCoverPhoto();
+          }
+        },
+        {
+          text: 'Choisir depuis la galerie',
+          icon: 'images-outline',
+          handler: () => {
+            this.pickCoverFromGallery();
+          }
+        },
+        {
+          text: 'Annuler',
+          icon: 'close',
+          role: 'cancel'
+        }
+      ]
+    });
+
+    await actionSheet.present();
+  }
+
+  /**
+   * Prend une photo pour la couverture avec la caméra
+   */
+  private async takeCoverPhoto() {
+    try {
+      const loading = await this.loadingController.create({
+        message: 'Capture de la photo...',
+        cssClass: 'custom-loading'
+      });
+      await loading.present();
+
+      const mediaFile = await this.cameraService.takePhoto();
+      
+      if (mediaFile && mediaFile.file) {
+        await this.uploadCoverImage(mediaFile.file);
+      }
+      
+      await loading.dismiss();
+    } catch (error) {
+      console.error('Erreur lors de la capture de la photo:', error);
+      await this.showToast('Erreur lors de la capture de la photo', 'danger');
+    }
+  }
+
+  /**
+   * Choisi une image depuis la galerie pour la couverture
+   */
+  private async pickCoverFromGallery() {
+    try {
+      const loading = await this.loadingController.create({
+        message: 'Chargement de l\'image...',
+        cssClass: 'custom-loading'
+      });
+      await loading.present();
+
+      const mediaFile = await this.cameraService.pickSingle();
+      
+      if (mediaFile && mediaFile.file) {
+        await this.uploadCoverImage(mediaFile.file);
+      }
+      
+      await loading.dismiss();
+    } catch (error) {
+      console.error('Erreur lors de la sélection de l\'image:', error);
+      await this.showToast('Erreur lors de la sélection de l\'image', 'danger');
+    }
+  }
+
+  /**
+   * Upload la nouvelle image de couverture et met à jour le profil
+   */
+  private async uploadCoverImage(file: File) {
+    if (!this.userProfile?.id) {
+      return;
+    }
+
+    try {
+      const loading = await this.loadingController.create({
+        message: 'Upload en cours...',
+        cssClass: 'custom-loading'
+      });
+      await loading.present();
+
+      // Upload de l'image de couverture
+      this.profileService.uploadCoverImage(
+        this.userProfile.id,
+        file,
+        (progress) => {
+          loading.message = `Upload en cours... ${progress}%`;
+        }
+      ).subscribe({
+        next: async (result) => {
+          // Mettre à jour le profil avec la nouvelle URL de couverture
+          await this.profileService.updateProfile(this.userProfile.id, {
+            coverImg: result.url
+          }).toPromise();
+
+          // Mettre à jour l'affichage
+          this.userProfile.coverImg = result.url;
+          this.cdr.detectChanges();
+
+          await loading.dismiss();
+          await this.showToast('Photo de couverture mise à jour avec succès', 'success');
+        },
+        error: async (error) => {
+          console.error('Erreur lors de l\'upload de la couverture:', error);
+          await loading.dismiss();
+          await this.showToast('Erreur lors de la mise à jour de la photo de couverture', 'danger');
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'upload de la couverture:', error);
+      await this.showToast('Erreur lors de la mise à jour de la photo de couverture', 'danger');
+    }
+  }
 
 }

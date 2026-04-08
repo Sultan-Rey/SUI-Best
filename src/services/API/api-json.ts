@@ -79,7 +79,7 @@ export class ApiJSON {
     contents: 5 * 60 * 1000,       // 5 minutes pour les publications
     comments: 2 * 60 * 1000,    // 2 minutes pour les commentaires
     challenges: 10 * 60 * 1000,  // 10 minutes pour les challenges
-    media: 60 * 60 * 1000,      // 1 heure pour les médias
+    media: 30 * 60 * 1000,      // 30 minutes pour les médias
     default: 30 * 60 * 1000     // 30 minutes par défaut
   };
   

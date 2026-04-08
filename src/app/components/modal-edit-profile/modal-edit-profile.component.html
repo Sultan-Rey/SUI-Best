@@ -110,6 +110,31 @@
           </div>
         </div>
 
+          <!-- Display Name Premium -->
+        <div class="form-group" [class.has-error]="activityControl?.invalid && (activityControl?.dirty || activityControl?.touched)">
+          <ion-item lines="none" class="premium-item">
+            <div class="input-wrapper">
+              <ion-label class="premium-label">
+                Passion/Activité
+              </ion-label>
+              <ion-input
+                formControlName="activity"
+                placeholder="Partagé votre passion avec nous..."
+                class="premium-input"
+              ></ion-input>
+              <div class="input-border"></div>
+              <div class="char-counter">
+                <span>{{ activityControl?.value?.length || 0 }}</span>/70
+              </div>
+            </div>
+          </ion-item>
+          
+          <div class="error-message-premium" *ngIf="activityControl?.invalid && (activityControl?.dirty || activityControl?.touched)">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span *ngIf="activityControl?.errors?.['maxlength']">Maximum 70 caractères</span>
+          </div>
+        </div>
+        
         <!-- Bio Premium -->
         <div class="form-group" [class.has-error]="bioControl?.invalid && (bioControl?.dirty || bioControl?.touched)">
           <ion-item lines="none" class="premium-item">

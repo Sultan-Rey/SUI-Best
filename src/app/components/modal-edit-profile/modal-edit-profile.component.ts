@@ -25,6 +25,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { addIcons } from 'ionicons';
 import { camera, close, checkmark, closeOutline, checkmarkOutline, cameraOutline, createOutline, alertCircleOutline, mailOutline, informationCircleOutline } from 'ionicons/icons';
 import { CameraService } from 'src/services/CAMERA/camera-service';
+import { UserInfo } from 'firebase/auth';
 
 @Component({
   selector: 'app-modal-edit-profile',
@@ -77,6 +78,7 @@ export class ModalEditProfileComponent implements OnInit {
   private initializeForm() {
     this.editForm = this.formBuilder.group({
       displayName: [this.profile.displayName, [Validators.required, Validators.maxLength(50)]],
+      activity: [this.profile.userInfo.activity,[Validators.maxLength(70)] ],
       bio: [this.profile.userInfo.bio, [Validators.maxLength(500)]],
       contact: [this.profile.userInfo.email, [Validators.email]]
     });
@@ -102,13 +104,14 @@ async selectAvatar() {
 
     this.isSubmitting = true;
       const formValue = this.editForm.value;
-  
+      this.profile.userInfo.bio =formValue.bio;
+      this.profile.userInfo.email =formValue.contact;
+      this.profile.userInfo.activity =formValue.activity;
+
       let updatedProfile = {
         avatar: this.profile.avatar,
         displayName: formValue.displayName,
-        bio: formValue.bio,
-        contact: formValue.contact,
-        isAvatarChange: false
+        userInfo: this.profile.userInfo
       };
 
       // Vérifier si l'avatar a été modifié
@@ -163,6 +166,10 @@ async selectAvatar() {
 
   get displayNameControl() {
     return this.editForm.get('displayName');
+  }
+
+  get activityControl() {
+    return this.editForm.get('activity');
   }
 
   get bioControl() {

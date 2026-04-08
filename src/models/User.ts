@@ -75,6 +75,7 @@ export interface UserInfo{
 
   /* Personal */
   memberShip?: {date: string, plan: string};
+  activity?: string;
   bio: string;
   school: {id: string, name:string};
 

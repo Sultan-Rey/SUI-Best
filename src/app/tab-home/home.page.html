@@ -16,8 +16,12 @@
   <div class="content-spacer"></div>
   
   <!-- Section Bannières Publicitaires Superposée -->
-  <div class="floating-banner-ad" *ngIf="showBannerAd && hasContent">
-    <app-banner-ads></app-banner-ads>
+  <div class="floating-banner-ad" *ngIf="showBannerAd && hasContent && bannerAds.length > 0">
+    <app-banner-ads 
+      [bannerAds]="bannerAds" 
+      [isLoading]="isLoadingBannerAds" 
+      [hasError]="hasBannerAdsError">
+    </app-banner-ads>
     <button class="close-banner-btn" (click)="closeBannerAd()">
       <ion-icon name="close"></ion-icon>
     </button>

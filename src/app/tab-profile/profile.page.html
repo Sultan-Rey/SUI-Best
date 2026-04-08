@@ -9,17 +9,24 @@
 <!-- Desktop Header (hidden on mobile) -->
   <div class="desktop-header">
     <div class="desktop-header-container">
-      <div class="cover-container">
-        <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&h=400&fit=crop" 
+      <div class="cover-container" (click)="isOwnProfile && selectCoverImage()">
+        <img [src]="userProfile.coverImg| mediaUrl | async"  
              alt="Cover" 
              class="cover-image">
         <div class="cover-overlay"></div>
+        <!-- Edit overlay for own profile -->
+        <div class="cover-edit-overlay" *ngIf="isOwnProfile">
+          <ion-icon name="camera-outline" class="cover-edit-icon"></ion-icon>
+          <span class="cover-edit-text">Changer la photo de couverture</span>
+        </div>
       </div>
 
       <div class="profile-info-desktop">
         <div class="avatar-container">
           <div class="avatar-wrapper">
-            <img [src]="userProfile.avatar | mediaUrl | async" 
+            <img *ngIf="userProfile"
+                 [src]="userProfile.avatar | mediaUrl | async" 
+                 (error)="onImageAvatarError($event)"
                  alt="Profile" 
                  class="avatar-desktop">
             <div class="online-indicator">
@@ -33,15 +40,15 @@
             <h1>{{userProfile.displayName}}</h1>
             <span class="pro-badge-desktop">{{userProfile.type}}|{{userProfile.userInfo.memberShip?.plan}}</span>
           </div>
-          <p class="handle">@{{userProfile.username}} • Producteur Musical & Organisateur d'Événements</p>
+          <p class="handle">@{{userProfile.username}} • {{userProfile.userInfo.activity || 'Aucune activité/passion' }}</p>
           <p class="bio-desktop">
            {{userProfile.userInfo.bio || "Aucun bio pour le profile"}}
           </p>
         </div>
 
         <div class="action-buttons-desktop">
-          <ion-button class="follow-btn-desktop" (click)="toggleFollow()" *ngIf="!isOwnProfile">Suivre</ion-button>
-          <ion-button fill="outline" class="setting-btn-desktop" (click)="presentMoreOptions()">Parametres</ion-button>
+          <ion-button class="follow-btn-desktop" (click)="toggleFollow()" *ngIf="userProfile && !isOwnProfile">Suivre</ion-button>
+          <ion-button fill="outline" class="setting-btn-desktop" *ngIf="userProfile" (click)="presentMoreOptions()">Parametres</ion-button>
         </div>
       </div>
     </div>
@@ -50,11 +57,16 @@
   <!-- Mobile Profile Header -->
   <div class="mobile-profile-header">
     <!-- Cover -->
-    <div class="cover-mobile">
-      <img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=300&fit=crop" 
+    <div class="cover-mobile" (click)="isOwnProfile && selectCoverImage()">
+      <img [src]="userProfile.coverImg| mediaUrl | async" 
            alt="Cover" 
            class="cover-image-mobile">
       <div class="cover-gradient"></div>
+      <!-- Edit overlay for own profile -->
+      <div class="cover-edit-overlay" *ngIf="isOwnProfile">
+        <ion-icon name="camera-outline" class="cover-edit-icon"></ion-icon>
+        <span class="cover-edit-text">Changer la photo de couverture</span>
+      </div>
     </div>
 
     <!-- Profile Info Mobile -->
@@ -62,7 +74,9 @@
       <div class="profile-row">
         <div class="avatar-section">
           <div class="story-ring">
-            <img [src]="userProfile.avatar | mediaUrl | async" 
+            <img *ngIf="userProfile"
+                [src]="userProfile.avatar | mediaUrl | async"
+                (error)="onImageAvatarError($event)" 
                  alt="Profile" 
                  class="avatar-mobile">
           </div>
@@ -82,7 +96,7 @@
           <span class="pro-badge-mobile">{{userProfile.userInfo.memberShip?.plan}}</span>
         </div>
         
-        <p class="user-title">{{userProfile.type}} Producteur Musical & Organisateur</p>
+        <p class="user-title">{{userProfile.userInfo.activity || 'Aucune activité/passion'}}</p>
         
         <p class="user-bio">
          {{userProfile.userInfo.bio || 'Aucune biographie'}}
@@ -134,7 +148,7 @@
   <!-- ═══════════════════════════════════════════════
        REWARD PROGRESS PILL  (always visible)
   ════════════════════════════════════════════════ -->
-   <div class="xp-pill-wrapper" (click)="openLevelReward()" *ngIf="isOwnProfile">
+   <div class="xp-pill-wrapper" (click)="openLevelReward()" *ngIf="userProfile && isOwnProfile">
     <div class="xp-pill">
  
       <!-- Fill dynamique = progression vers le niveau suivant -->
@@ -172,7 +186,7 @@
   <!-- ═══════════════════════════════════════════════
        AWARDS CARD
   ════════════════════════════════════════════════ -->
-  <div class="awards-section">
+  <div class="awards-section" *ngIf="userProfile && pastAwards.length > 0">
     <div class="awards-card">
 
       <!-- ── Header ── -->
@@ -190,8 +204,8 @@
         <div class="award-hex-item award-hex-featured">
           <div class="award-hex-wrap">
             <img
-              src="https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=300&h=300&fit=crop"
-              alt="Rising Star"
+              [src]="pastAwards[0].image"
+              [alt]="pastAwards[0].name"
               class="award-hex-img" />
             <svg class="award-hex-svg" viewBox="0 0 100 115" preserveAspectRatio="none">
               <polygon points="50,2 98,27 98,88 50,113 2,88 2,27" fill="none" stroke="url(#hexGold)" stroke-width="2.5"/>
@@ -229,9 +243,9 @@
 
       <!-- ── Dark info banner ── -->
       <div class="award-info-banner">
-        <h3 class="award-banner-name">Rising Star</h3>
+        <h3 class="award-banner-name">{{pastAwards[0].name}}</h3>
         <p class="award-banner-reason">Reached Level {{userProfile.level || 1}}</p>
-        <p class="award-banner-meta">Achieved by 167,003 Labels</p>
+        <p class="award-banner-meta">Atteinte par {{reachedCount}} Utilisateurs</p>
       </div>
 
     </div>
@@ -240,12 +254,14 @@
   <!-- ═══════════════════════════════════════════════
        MES POSTS TAB
   ════════════════════════════════════════════════ -->
-  <div  class="posts-content">
+  <div  class="posts-content" >
    
 
     <div class="posts-grid" *ngIf="userContents && userContents.length > 0; else noPosts">
       <div class="post-thumb" *ngFor="let post of userContents" (click)="openContent(post)">
-        <img [src]="post.fileUrl | mediaUrl | async" [alt]="post.description" class="post-thumb-img" (error)="onImageContentError($event)" />
+        <img [src]="post.fileUrl | mediaUrl | async" 
+        (error)="onImageContentError($event)"
+        [alt]="post.description" class="post-thumb-img" (error)="onImageContentError($event)" />
         <div class="post-thumb-overlay">
           <ion-icon name="eye-outline"></ion-icon>
           <span>{{post.viewCount}}</span>

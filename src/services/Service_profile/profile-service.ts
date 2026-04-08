@@ -6,6 +6,7 @@ import { ApiJSON } from '../API/api-json';
 import { UserProfile } from '../../models/User';
 import { User } from 'firebase/auth';
 import { options } from 'ionicons/icons';
+import { HttpEventType } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -82,46 +83,49 @@ export class ProfileService {
   }
 
   updateProfileWithAvatar(
-    file: File,
-    userProfileId: string,
-    updatingData : {
-        avatar: string;
-        displayName: string,
-        bio: string,
-        contact: string,
-      },
-    progressCallback?: (progress: number) => void
-  ): Observable<UserProfile> {
-  
-   
-    return this.api.upload<{ file: { path: string } }>( 
-      file, 
-      'profiles',
-    ).pipe(
-      switchMap((event: any) => {
-    // Handle progress events
-    if (event.type) {
-      if (progressCallback && event.loaded !== undefined && event.total) {
-        const progress = Math.round((100 * event.loaded) / event.total);
-        progressCallback(progress);
+  file: File,
+  userProfileId: string,
+  updatingData: any,
+  progressCallback?: (progress: number) => void
+): Observable<UserProfile> {
+
+  return this.api.upload<any>(file, 'profiles').pipe(
+    switchMap((event: any) => {
+      
+      // 1. Gérer la progression
+      if (event.type === HttpEventType.UploadProgress) {
+        if (progressCallback && event.total) {
+          const progress = Math.round((100 * event.loaded) / event.total);
+          progressCallback(progress);
+        }
+        return EMPTY; // On continue d'attendre la réponse finale
       }
-      // Return an empty observable that doesn't emit any values
+
+      // 2. Attendre l'événement de type "Response" (Type 4)
+      if (event.type === HttpEventType.Response) {
+        const uploadResponse = event.body; // C'est ici qu'est votre JSON {path: "..."}
+        
+        console.log('Réponse finale reçue:', uploadResponse);
+
+        if (uploadResponse?.path) {
+          updatingData.avatar = uploadResponse.path;
+        } else {
+          throw new Error('Structure de réponse inattendue');
+        }
+
+        // 3. On passe enfin au patch
+        return this.api.patch<UserProfile>(this.resource, userProfileId, updatingData);
+      }
+
+      // Pour les autres types d'événements (Sent, Header, etc.), on ne fait rien
       return EMPTY;
-    }
-  
-    // Handle the final response
-    const uploadResponse = event.body || event;
-    updatingData.avatar = uploadResponse.file.path;
-    
-    // Return the API call that patch the profile
-    return this.api.patch<UserProfile>(this.resource, userProfileId, updatingData);
-  }),
-      catchError(error => {
-        console.error('Erreur lors de la mise a jour du profile:', error);
-        return throwError(() => error);
-      })
-    );
-  }
+    }),
+    catchError(error => {
+      console.error('Erreur lors de la mise à jour:', error);
+      return throwError(() => error);
+    })
+  );
+}
   /* =====================
      UPLOAD AVATAR
      ===================== */
@@ -195,6 +199,60 @@ export class ProfileService {
     });
   }
 
+
+  /* =====================
+     UPLOAD COVER IMAGE
+     ===================== */
+  uploadCoverImage(
+    profileId: string, 
+    coverImageFile: File, 
+    progressCallback?: (progress: number) => void
+  ): Observable<{ url: string }> {
+    // Utiliser la méthode upload de l'API avec gestion de progression
+    return this.api.upload<{ url: string }>( 
+      coverImageFile, 
+      'profiles',
+    ).pipe(
+      switchMap((event: any) => {
+        // Handle progress events
+        if (event.type) {
+          if (progressCallback && event.loaded !== undefined && event.total) {
+            const progress = Math.round((100 * event.loaded) / event.total);
+            progressCallback(progress);
+          }
+          // Return an empty observable that doesn't emit any values
+          return EMPTY;
+        }
+
+        // Handle final response
+        const uploadResponse = event.body || event;
+        return of(uploadResponse);
+      }),
+      catchError(error => {
+        console.error('Erreur lors de l\'upload de l\'image de couverture:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /* =====================
+     DELETE OLD COVER IMAGE
+     ===================== */
+  deleteOldCoverImage(oldCoverImageUrl: string): Observable<void> {
+    if (!oldCoverImageUrl || oldCoverImageUrl.includes('cover-default.png')) {
+      return of(void 0); // Ne rien faire si c'est l'image de couverture par défaut
+    }
+
+    // Pour l'instant, on loggue la demande de suppression
+    // La suppression de fichiers devra être implémentée côté backend avec un endpoint dédié
+    console.log('Demande de suppression d\'ancienne image de couverture:', oldCoverImageUrl);
+    
+    // TODO: Implémenter un endpoint dédié pour la suppression de fichiers
+    // return this.http.delete(`${this.api.BASE_URL}/upload/covers/${fileName}`);
+    
+    // Pour l'instant, on retourne un succès pour ne pas bloquer le flux
+    return of(void 0);
+  }
 
   /* =====================
      DELETE OLD AVATAR

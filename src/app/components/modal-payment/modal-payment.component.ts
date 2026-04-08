@@ -1,5 +1,5 @@
 import { Component, OnInit, AfterViewInit, Input } from '@angular/core';
-import { IonHeader, IonButton, IonToolbar, IonTitle, IonButtons, IonIcon, IonContent, IonImg, ToastController, LoadingController, IonBadge } from "@ionic/angular/standalone";
+import { IonHeader, IonButton, IonToolbar, IonTitle, IonButtons, IonIcon, IonContent, IonImg, ToastController, IonBadge } from "@ionic/angular/standalone";
 import { ModalController } from '@ionic/angular';
 import { NgIf } from '@angular/common';
 import { Browser } from '@capacitor/browser';
@@ -19,8 +19,7 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
   @Input() OrderAmount!: number;
   constructor(private modalCtrl: ModalController,
     private toastController: ToastController,
-    private paymentService: PaymentService,
-    private loadingController: LoadingController) { }
+    private paymentService: PaymentService) { }
 
   ngOnInit() { }
 
@@ -51,7 +50,7 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
 
     try {
       if (this.selectedMethod === 'card') {
-        console.log('Ouverture Stripe Checkout...');
+        this.showToast('Cette methode de paiement est indisponible pour l\'instant', "warning");
       } else if (this.selectedMethod === 'moncash') {
         this.paymentMessage = 'Connexion à MonCash...';
         const paymentResponse = await firstValueFrom(

@@ -31,11 +31,12 @@ import { Challenge, ParticipantType } from 'src/models/Challenge';
 import { UserProfile } from 'src/models/User';
 import { Router } from '@angular/router';
 import { CommentService } from 'src/services/service_comment/comment-service.js';
-import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize, count, take } from 'rxjs';
+import { catchError, filter, map, Observable, of, Subject, switchMap, takeUntil, tap, finalize, count, take, interval } from 'rxjs';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service.js';
 import { SideActionsComponent } from './components/side-actions/side-actions.component';
 import { ModalSelectPostComponent } from 'src/app/components/modal-select-post/modal-select-post.component.js';
 import { Segment } from 'src/models/Segment.js';
+import { FollowedViewPolling } from './followed-view-polling';
 
 @Component({
   selector: 'app-followed-view',
@@ -75,6 +76,7 @@ export class FollowedViewComponent implements OnInit, OnChanges, OnDestroy {
   private intersectionObserver?: IntersectionObserver;
 private snapRevealTimeout: any;
 private lastIndex = -1;
+private polling?: FollowedViewPolling;
   //#endregion
 
   //#region Public Properties
@@ -160,6 +162,7 @@ private lastIndex = -1;
         //console.log('currentUserProfile dans ngOnInit:', this.currentUserProfile);
         this.setupNewContentSubscription();
         this.loadInitialFeed().subscribe();
+        this.setupPolling();
       }
     }
   }
@@ -175,6 +178,7 @@ private lastIndex = -1;
        // console.log('Initialisation du contenu après mise à jour du profil');
         this.setupNewContentSubscription();
         this.loadInitialFeed().subscribe();
+        this.setupPolling();
       }
     }
   }
@@ -187,6 +191,9 @@ private lastIndex = -1;
     if (this.postsContainer?.nativeElement) {
       this.postsContainer.nativeElement.removeEventListener('scroll', this.onScroll);
     }
+    
+    // Arrêter le polling
+    this.polling?.stop();
     
     this.cleanup();
   }
@@ -570,7 +577,6 @@ private triggerSnapReveal(postEl: HTMLElement) {
   async loadFeed(event?: any) {
     if (this.isLoading) return;
     this.isLoading = true;
-    console.log("Launched");
     try {
       const newPosts = await this.creationService.getFollowedFeedContents(this.currentUserProfile, this.currentPage, this.PAGE_SIZE).toPromise();
       if (!newPosts) return;
@@ -905,4 +911,70 @@ showAccount(userId:string){
           console.error('Erreur lors de l\'abonnement:', error);
         }
       }
+
+  /**
+   * Configuration du polling simple pour les mises à jour
+   */
+  private setupPolling(): void {
+    if (!this.currentUserProfile?.id || this.challengeName) {
+      return;
+    }
+
+    this.polling = new FollowedViewPolling(
+      async () => {
+        await this.checkForNewPosts();
+      },
+      30000, // 30s minimum
+      100000  // 1m maximum
+    );
+
+    // Démarrer après 45s
+    setTimeout(() => {
+      this.polling?.start();
+    }, 45000);
+  }
+
+  /**
+   * Vérifie s'il y a de nouveaux posts
+   */
+  private async checkForNewPosts(): Promise<void> {
+    if (!this.currentUserProfile?.id || this.isLoading || this.challengeName) {
+      return;
+    }
+
+    try {
+      // Récupérer uniquement les 2 posts les plus récents
+      const latestPosts = await this.creationService.getFollowedFeedContents(
+        this.currentUserProfile, 
+        1, 
+        2
+      ).toPromise();
+
+      if (!latestPosts || latestPosts.length === 0) {
+        return;
+      }
+
+      // Vérifier si ces posts sont déjà dans notre feed
+      const newPosts = latestPosts.filter(post => 
+        !this.posts.some(existingPost => existingPost.id === post.id)
+      );
+
+      if (newPosts.length > 0) {
+        console.log(`\ud83d\udc95 ${newPosts.length} nouveau(x) post(s) détecté(s)`);
+        
+        // Ajouter les nouveaux posts au début du feed
+        this.posts = [...newPosts.reverse(), ...this.posts];
+        this.cdr.markForCheck();
+
+        // Notification discrète
+        this.showToast(
+          `${newPosts.length} nouveau(x) post(s) disponible(s)`, 
+          'success'
+        );
+      }
+    } catch (error) {
+      console.error('Erreur lors du polling:', error);
+    }
+  }
+
 }

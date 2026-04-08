@@ -233,7 +233,7 @@ export class CreationService {
       options: {
         page,
         per_page: limit,
-        sort: { createdAt: 'desc' },
+        sort: { created_at: 'desc' },
         include_meta: true,
       }
     }).pipe(

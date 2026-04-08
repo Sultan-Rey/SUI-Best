@@ -1,34 +1,36 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonImg, IonIcon, IonSpinner } from '@ionic/angular/standalone';
-import { CreationService } from 'src/services/Service_content/creation-service';
-import { Content, ContentCategory } from 'src/models/Content';
+import { Content } from 'src/models/Content';
 import { MediaUrlPipe } from '../../../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { addIcons } from 'ionicons';
 import { close, refreshOutline, chevronBack, chevronForward, alertCircleOutline } from 'ionicons/icons';
-import { Subject, takeUntil, interval } from 'rxjs';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-banner-ads',
   templateUrl: './banner-ads.component.html',
   styleUrls: ['./banner-ads.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonImg, IonIcon, IonSpinner, MediaUrlPipe]
+  imports: [CommonModule, IonImg, IonIcon, MediaUrlPipe]
 })
-export class BannerAdsComponent implements OnInit, OnDestroy {
-  bannerAds: Content[] = [];
-  isLoading = true;
-  hasError = false;
+export class BannerAdsComponent implements OnDestroy {
+  @Input() bannerAds: Content[] = [];
+  @Input() isLoading = false;
+  @Input() hasError = false;
   currentIndex = 0;
   private destroy$ = new Subject<void>();
   private slideInterval: any;
 
-  constructor(private creationService: CreationService) {
+  constructor() {
     addIcons({ close, refreshOutline, chevronBack, chevronForward, alertCircleOutline });
   }
 
-  ngOnInit() {
-    this.loadBannerAds();
+  ngOnChanges() {
+    // Démarrer le auto-slide quand les publicités sont chargées
+    if (!this.isLoading && !this.hasError && this.bannerAds.length > 0) {
+      this.startAutoSlide();
+    }
   }
 
   ngOnDestroy() {
@@ -39,25 +41,6 @@ export class BannerAdsComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadBannerAds() {
-    this.isLoading = true;
-    this.hasError = false;
-
-    this.creationService.getBannerAdsContents(1, 10).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (ads) => {
-        this.bannerAds = ads;
-        this.isLoading = false;
-        this.startAutoSlide();
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des bannières:', error);
-        this.hasError = true;
-        this.isLoading = false;
-      }
-    });
-  }
 
   startAutoSlide() {
     if (this.bannerAds.length <= 1) return;
@@ -95,9 +78,6 @@ export class BannerAdsComponent implements OnInit, OnDestroy {
     }
   }
 
-  retry() {
-    this.loadBannerAds();
-  }
 
   get currentBanner(): Content | null {
     return this.bannerAds[this.currentIndex] || null;

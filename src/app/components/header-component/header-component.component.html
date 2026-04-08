@@ -18,7 +18,7 @@
                   *ngIf="isHomePage() && !goBackTarget"
                   (click)="openRewardModal()">
           <ion-icon name="sparkles-outline"></ion-icon>
-          <ion-label>{{userXp | shortNumber}}XP • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
+          <ion-label>{{userXp | shortNumber}}<small>xp</small> • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
         </ion-badge>
          <ion-badge color="light"
                   *ngIf="isHomePage() && !goBackTarget"
@@ -105,7 +105,7 @@
       <ng-container >
         <ion-badge color="warning" (click)="openRewardModal()">
           <ion-icon name="sparkles-outline"></ion-icon>
-          <ion-label>{{userXp | shortNumber}}XP • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
+          <ion-label>{{userXp | shortNumber}}<small>xp</small> • <ion-text color="primary">Lvl {{userLvl}}</ion-text></ion-label>
         </ion-badge>
         <ion-badge color="light" (click)="openCouponModal()">
           <ion-icon name="ticket-outline"></ion-icon>
