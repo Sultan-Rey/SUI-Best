@@ -381,39 +381,13 @@ this.registrationData.myPlan = {
 
       } else {
 
-         // Afficher le message de succès
-
-      const successAlert = await this.alertController.create({
-
-        header: 'Succès',
-
-        message: signupResponse.message || 'Votre compte a été créé avec succès ! Veuillez vérifier votre email pour activer votre compte. Vous serez redirigé automatiquement vers la page de connexion dans 5 secondes.',
-
-        buttons: [{
-
-          text: 'Se connecter',
-
-          handler: async () => {
-
-            // Rediriger vers la page de connexion
-
-            await this.router.navigate(['/login']);
-
-          }
-
-        }]
-
+         // Rediriger vers la page default avec account-success et les extras
+      await this.router.navigate(['/default/account-success'], {
+        state: {
+          name: this.registrationData.name,
+          email: this.registrationData.email
+        }
       });
-
-      await successAlert.present();
-
-      // Redirection automatique après 5 secondes
-
-      setTimeout(async () => {
-
-        await this.router.navigate(['/login']);
-
-      }, 5000);
       
       // Notifier l'inscription réussie
 

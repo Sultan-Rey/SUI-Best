@@ -60,9 +60,15 @@ export class AppComponent {
       
       // Extraire l'URL et naviguer vers la page correspondante
       if (event.url) {
-        // Nettoyer l'URL pour ne garder que le chemin
-        const url = new URL(event.url);
-        const path = url.pathname + url.search + url.hash;
+        // Gérer les schémas custom comme bestacademy://
+        let path = event.url;
+        
+        // Remplacer le schéma custom par un chemin relatif
+        if (path.startsWith('bestacademy://')) {
+          path = path.replace('bestacademy://', '/');
+        }
+        
+        console.log('Path extrait:', path);
         
         // Naviguer vers la route correspondante
         this.router.navigateByUrl(path).catch(err => {

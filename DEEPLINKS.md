@@ -19,6 +19,7 @@ Les deep links sont maintenant configurés pour votre application Best Academy.
 
 ### Routes avec paramètres :
 - `bestacademy://profile/123` - Profil utilisateur (remplacer 123 par l'ID utilisateur)
+- `bestacademy://password-reset/TOKEN` - Réinitialisation du mot de passe (remplacer TOKEN par le token de réinitialisation)
 
 ## Comment tester
 

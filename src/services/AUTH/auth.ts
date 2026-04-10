@@ -317,6 +317,59 @@ private recordFailedAttempt(email: string): void {
   }
 
   /* ======================
+     PLATFORM DETECTION
+     ====================== */
+
+  private detectPlatform(): { type: string; info: any } {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    const isTablet = /ipad|android(?!.*mobile)/i.test(userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+    const isAndroid = /android/i.test(userAgent);
+    
+    // Détection si c'est l'app mobile (Ionic/Capacitor)
+    const isApp = this.isCapacitorApp();
+    
+    let platformType: string;
+    let deviceInfo: any = {
+      userAgent: navigator.userAgent,
+      isMobile: isMobile,
+      isTablet: isTablet,
+      isIOS: isIOS,
+      isAndroid: isAndroid
+    };
+    
+    if (isApp && isMobile) {
+      platformType = 'mobile_app';
+      deviceInfo.appVersion = this.getAppVersion();
+    } else if (isMobile) {
+      platformType = 'mobile_web';
+      deviceInfo.browser = this.getBrowserInfo();
+    } else {
+      platformType = 'desktop';
+      deviceInfo.browser = this.getBrowserInfo();
+    }
+    
+    return {
+      type: platformType,
+      info: deviceInfo
+    };
+  }
+
+  private isCapacitorApp(): boolean {
+    // Vérifie si l'app tourne dans Capacitor/Ionic
+    return !!(window as any).Capacitor || !!(window as any).cordova;
+  }
+
+  private getAppVersion(): string {
+    try {
+      return (window as any).Capacitor?.getPlatform() || 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  /* ======================
      PASSWORD RESET
      ====================== */
 
@@ -332,9 +385,14 @@ private recordFailedAttempt(email: string): void {
       return throwError(() => new Error('INVALID_EMAIL'));
     }
 
+    // Détection de la plateforme
+    const platform = this.detectPlatform();
+    
     // Préparer les données pour le backend
     const payload = {
-      email: email.toLowerCase().trim()
+      email: email.toLowerCase().trim(),
+      platform: platform.type,        // 'web', 'mobile_app', 'mobile_web', 'desktop'
+      device_info: platform.info       // informations supplémentaires
     };
 
     // Utiliser la route de reset de mot de passe
@@ -389,7 +447,36 @@ private recordFailedAttempt(email: string): void {
       })
     );
   }
+   /* ======================
+     VERIFICATION MAIL
+     ====================== */
+  resend(email:string): Observable<any>{
+     if (!email) {
+      return throwError(() => new Error('MISSING_EMAIL'));
+    }
 
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return throwError(() => new Error('INVALID_EMAIL'));
+    }
+    const payload = {
+      email: email.toLowerCase().trim()
+    };
+     return this.api.post<any>('auth/resend', payload).pipe(
+      map((response: any) => {
+        // Retourner la réponse du backend
+        return {
+          success: true,
+          message: response.message || 'Email de réinitialisation envoyé avec succès'
+        };
+      }),
+      catchError((error: Error) => {
+        console.error('Password reset error:', error.message);
+        return throwError(() => error);
+      })
+    );
+  }
   /* ======================
      SESSION MANAGEMENT (Mobile Native)
      ====================== */

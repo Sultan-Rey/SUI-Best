@@ -1,0 +1,75 @@
+// Default page styles
+ion-card {
+  margin: 16px;
+  border-radius: 12px;
+  
+  ion-card-header {
+    ion-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      
+      ion-icon {
+        font-size: 1.5rem;
+      }
+    }
+  }
+  
+  ion-card-content {
+    p {
+      margin: 12px 0;
+      line-height: 1.5;
+      
+      ion-icon {
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+    }
+    
+    ul {
+      margin: 12px 0;
+      padding-left: 20px;
+      
+      li {
+        margin: 8px 0;
+        
+        strong {
+          color: var(--ion-color-primary);
+        }
+      }
+    }
+    
+    ion-button {
+      margin-top: 16px;
+      
+      &[fill="outline"] {
+        margin-top: 12px;
+        margin-bottom: 8px;
+        
+        &:disabled {
+          opacity: 0.6;
+        }
+        
+        span[slot="start"] {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+}
+
+// Success state styling
+ion-card-header ion-card-title {
+  color: var(--ion-color-dark);
+}
+
+// Icon styling
+ion-icon[color="success"] {
+  color: var(--ion-color-success);
+}
+
+ion-icon[color="primary"] {
+  color: var(--ion-color-primary);
+}
