@@ -435,6 +435,11 @@ private recordFailedAttempt(email: string): void {
     // Utiliser la route de confirmation de reset de mot de passe
     return this.api.post<any>('auth/reset/confirm', payload).pipe(
       map((response: any) => {
+        // Vérifier si le backend a retourné un succès
+        if (response.success === false) {
+          throw new Error(response.message || 'Échec de la réinitialisation du mot de passe');
+        }
+        
         // Retourner la réponse du backend
         return {
           success: true,

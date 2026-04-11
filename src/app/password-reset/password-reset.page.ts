@@ -157,25 +157,33 @@ export class PasswordResetPage implements OnInit {
     this.errorMessage = '';
 
     try {
-      await this.auth.confirmReset(this.token, this.newPassword).toPromise();
+      const response = await this.auth.confirmReset(this.token, this.newPassword).toPromise();
       
-      this.resetSuccess = true;
-      
-      // Afficher une alerte de succès
-      const alert = await this.alertController.create({
-        header: 'Succès',
-        message: 'Votre mot de passe a été réinitialisé avec succès. Vous allez être redirigé vers la page de connexion.',
-        buttons: ['OK']
-      });
-      await alert.present();
+      // Vérifier explicitement le succès de la réponse
+      if (response && response.success) {
+        this.resetSuccess = true;
+        
+        // Afficher une alerte de succès
+        const alert = await this.alertController.create({
+          header: 'Succès',
+          message: response.message || 'Votre mot de passe a été réinitialisé avec succès. Vous allez être redirigé vers la page de connexion.',
+          buttons: ['OK']
+        });
+        await alert.present();
 
-      // Redirection automatique après 2 secondes
-      setTimeout(() => {
-        this.router.navigate(['/login']);
-      }, 2000);
+        // Redirection automatique après 2 secondes
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 2000);
+      } else {
+        // Si le backend retourne success: false
+        this.errorMessage = response?.message || 'La réinitialisation du mot de passe a échoué';
+      }
 
     } catch (error: any) {
-      this.errorMessage = error.message || 'Une erreur est survenue lors de la réinitialisation du mot de passe';
+      // Gérer les erreurs réseau ou autres erreurs techniques
+      console.error('Password reset error:', error);
+      this.errorMessage = error.message || 'Une erreur technique est survenue. Veuillez réessayer plus tard.';
     } finally {
       this.isLoading = false;
     }
