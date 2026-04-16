@@ -1,9 +1,10 @@
 import { Injectable, EventEmitter } from '@angular/core';
-import { BehaviorSubject, catchError, forkJoin, map, Observable, of, switchMap, tap, throwError, filter } from 'rxjs';
+import { BehaviorSubject, catchError, forkJoin, map, take, Subscription, shareReplay, lastValueFrom, Observable, of, switchMap, tap, throwError, filter, concatMap, EMPTY, from } from 'rxjs';
 import { ApiJSON } from '../API/api-json';
 import { Content, ContentCategory, ContentSource, ContentStatus } from '../../models/Content';
 import { UserProfile } from '../../models/User';
 import { ProfileService } from '../Service_profile/profile-service';
+import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class CreationService {
@@ -17,11 +18,13 @@ export class CreationService {
   private discoveryFeedSubject = new BehaviorSubject<Content[]>([]);
   private followedFeedSubject  = new BehaviorSubject<Content[]>([]);
   private bannerAdsSubject    = new BehaviorSubject<Content[]>([]);
+  private postAdsSubject    = new BehaviorSubject<Content[]>([]);
 
   newContent$    = this.newContentSubject.asObservable();
   discoveryFeed$ = this.discoveryFeedSubject.asObservable();
   followedFeed$  = this.followedFeedSubject.asObservable();
   bannerAds$    = this.bannerAdsSubject.asObservable();
+  postAds$    = this.postAdsSubject.asObservable();
 
   constructor(
     private api: ApiJSON,
@@ -32,60 +35,292 @@ export class CreationService {
   // ==============================================================
   //  UPLOAD + CRÉATION
   // ==============================================================
-
+ 
   /**
-   * Uploade un fichier média puis crée l'entrée Content en base.
-   * Le fichier est stocké dans /storage/contents/ via MediaController.
+   * Orchestre l'upload complet : Miniature (si vidéo) PUIS Vidéo par chunks
+   * CORRIGÉ : Plus de double souscription !
    */
-  createContentWithFile(
-    file: File,
-    metadata: {
-      userId: string;
-      description?: string;
-      isPublic: boolean;
-      allowDownloads: boolean;
-      allowComments: boolean;
-      commentIds: string[];
-      likedIds: string[];
-      status: ContentStatus;
-      category: ContentCategory;
-      challengeId?: string;
-      cadrage: 'default' | 'fit';
-      source: ContentSource;
-    }
-  ): Observable<Content> {
-
-    return this.api.upload<{ path: string; url: string; mime: string; size: number }>(
-      file,
-      'contents'  // → stocké dans /storage/contents/
-    ).pipe(
-      // L'upload retourne des HttpEvents — on attend le dernier (HttpResponse)
-      switchMap((event: any) => {
-        if (!event?.body) return of(null); // ignorer les events de progression
-        const res = event.body;
-
-        const contentData: Omit<Content, 'id'> = {
+  createVideoWithThumbnail(
+    file: File, 
+    thumbnailBlob: Blob, 
+    metadata: any
+  ): Observable<{ progress: number; content?: Content; step?: string }> {
+    
+    const thumbFile = new File([thumbnailBlob], `thumb_${Date.now()}.webp`, { type: 'image/webp' });
+ 
+    // ✅ CORRECTION : uploadThumbnail retourne déjà un Observable, pas besoin de from()
+    return this.uploadThumbnail(thumbFile).pipe(
+      // Émettre la progression du thumbnail (0-5%)
+      map(thumbResponse => ({
+        progress: 5,
+        step: 'thumbnail-uploaded',
+        thumbnailUrl: thumbResponse,
+        content: undefined
+      })),
+      
+      // Une fois le thumbnail uploadé, on passe à la vidéo
+      switchMap(thumbResult => {
+        const updatedMetadata = {
           ...metadata,
-          fileUrl:      res.path,           // chemin relatif pour /download?path=
-          mimeType:     file.type,
-          fileSize:     file.size,
-          challengeId:  metadata.challengeId ?? '',
-          created_at:    new Date().toISOString(),
-          tags:         this.extractTags(metadata.description ?? ''),
+          thumbnailUrl: thumbResult.thumbnailUrl
         };
-
-        return this.api.create<Content>(this.RESOURCE, contentData);
+ 
+        // Upload de la vidéo avec progression (5-100%)
+        return this.createContentWithFile(file, updatedMetadata).pipe(
+          map(val => ({
+            progress: Math.round(5 + (val.progress * 0.95)),
+            content: val.content ? {
+              ...val.content,
+              thumbnailUrl: thumbResult.thumbnailUrl
+            } : undefined,
+            step: val.content ? 'completed' : 'uploading-video'
+          }))
+        );
       }),
-      // Filtrer les null (events de progression)
-      switchMap(result => result ? of(result) : of(null as any)),
-      tap(content => { if (content) this.newContentSubject.next(content); }),
+      
+      // ✅ CRITIQUE : shareReplay pour éviter les uploads multiples
+      shareReplay(1),
+      
       catchError(err => {
-        console.error('[CreationService] createContentWithFile:', err);
+        console.error('[ContentService] Video with thumbnail upload error:', err);
         return throwError(() => err);
       })
     );
   }
+ 
+  /**
+   * Upload par chunks avec gestion de progression optimisée
+   * CORRIGÉ : Ne crée le Content qu'UNE SEULE FOIS après le dernier chunk
+   */
+  createContentWithFile(
+    file: File, 
+    metadata: any
+  ): Observable<{ progress: number; content?: Content }> {
+ 
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2 Mo
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const uuid = crypto.randomUUID();
+    
+    const chunkIndices = Array.from({ length: totalChunks }, (_, i) => i);
+ 
+    // Variable pour stocker le dernier response.path
+    let finalPath: string | null = null;
+ 
+    return from(chunkIndices).pipe(
+      concatMap(index => {
+        const start = index * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+ 
+        return this.api.uploadChunk<any>(chunk, {
+          index,
+          total: totalChunks,
+          uuid,
+          filename: file.name
+        }, 'contents').pipe(
+          // ✅ CORRECTION : Filtrer UNIQUEMENT les Response (pas les UploadProgress)
+          filter(event => event.type === HttpEventType.Response),
+          map(event => {
+            const body = (event as HttpResponse<any>).body;
+            
+            // Stocker le path si disponible
+            if (body?.path) {
+              finalPath = body.path;
+            }
+ 
+            const globalProgress = Math.round(((index + 1) / totalChunks) * 100);
+            
+            return { 
+              progress: globalProgress,
+              isLastChunk: index === totalChunks - 1,
+              path: finalPath
+            };
+          })
+        );
+      }),
+      
+      // ✅ CORRECTION : switchMap appelé UNE SEULE FOIS après le dernier chunk
+      switchMap((status: any) => {
+        // Si ce n'est pas le dernier chunk, juste émettre la progression
+        if (!status.isLastChunk) {
+          return of({ progress: status.progress, content: undefined });
+        }
+ 
+        // ✅ Dernier chunk : créer le Content
+        if (!status.path) {
+          return throwError(() => new Error('Upload failed: no file path returned'));
+        }
+ 
+        const contentData = {
+          ...metadata,
+          fileUrl: status.path,
+          mimeType: file.type,
+          fileSize: file.size,
+          created_at: new Date().toISOString(),
+        };
+ 
+        console.log('[ContentService] Creating content with data:', contentData);
+ 
+        return this.api.create<Content>(this.RESOURCE, contentData).pipe(
+          map(content => {
+            this.newContentSubject.next(content);
+            console.log('[ContentService] Content created successfully:', content.id);
+            return { progress: 100, content };
+          })
+        );
+      }),
+      
+      // ✅ CRITIQUE : shareReplay pour éviter les uploads multiples
+      shareReplay(1),
+      
+      catchError(err => {
+        console.error('[ContentService] Chunked upload error:', err);
+        return throwError(() => err);
+      })
+    );
+  }
+ 
+  /**
+   * Upload de thumbnail simplifié
+   * CORRIGÉ : Retourne directement l'URL sans callbacks
+   */
+  uploadThumbnail(file: File): Observable<string> {
+    return this.api.upload<any>(file, 'contents/thumbnails').pipe(
+      filter(event => event.type === HttpEventType.Response),
+          map(event => {
+            const body = (event as HttpResponse<any>).body;
+            
+            // Stocker le path si disponible
+            if (body?.path) {
+            return body.path;
+            }
+        
+        return EMPTY;
+      }),
+      take(1),
+      catchError(error => {
+        console.error('[ContentService] Thumbnail upload error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+   /**
+     * Upload optimiste : thumbnail + vidéo SANS métadonnées ni création de Content
+     * Retourne juste les URLs quand elles sont prêtes
+     */
+    uploadVideoFilesOnly(
+      file: File, 
+      thumbnailBlob: Blob
+    ): Observable<{ progress: number; thumbnailUrl?: string; videoUrl?: string }> {
+      
+      const thumbFile = new File([thumbnailBlob], `thumb_${Date.now()}.webp`, { type: 'image/webp' });
+  
+      // 1. Upload du thumbnail (0-10%)
+      return this.uploadThumbnail(thumbFile).pipe(
+        map(thumbResponse => ({
+          progress: 10,
+          thumbnailUrl: thumbResponse,
+          videoUrl: undefined
+        })),
+        // 2. Upload de la vidéo (10-100%)
+        switchMap(thumbResult => {
+          return this.uploadVideoFileOnly(file).pipe(
+            map(videoResult => ({
+              progress: Math.round(10 + (videoResult.progress * 0.9)),
+              thumbnailUrl: thumbResult.thumbnailUrl,
+              videoUrl: videoResult.videoUrl
+            }))
+          );
+        })
+      );
+    }
 
+   /**
+     * Upload vidéo seule SANS création de Content
+     */
+    private uploadVideoFileOnly(file: File): Observable<{ progress: number; videoUrl?: string }> {
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2 Mo
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uuid = crypto.randomUUID();
+      const chunkIndices = Array.from({ length: totalChunks }, (_, i) => i);
+  
+      let finalPath: string | null = null;
+  
+      return from(chunkIndices).pipe(
+        concatMap(index => {
+          const start = index * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+  
+          return this.api.uploadChunk<any>(chunk, {
+            index,
+            total: totalChunks,
+            uuid,
+            filename: file.name
+          }).pipe(
+              filter(event => event.type === HttpEventType.Response),
+              map(event => {
+              const body = (event as HttpResponse<any>).body;
+              if (body?.path) {
+                finalPath = event.body.path;
+      
+              }
+            
+              const globalProgress = Math.round(((index + 1) / totalChunks) * 100);
+              
+              return { 
+                progress: globalProgress, 
+                videoUrl: undefined 
+              };
+            })
+          );
+        }),
+        concatMap(status => {
+          if (status.progress < 100) {
+            return of(status);
+          }
+  
+          // Dernier chunk : retourner l'URL finale
+          if (!finalPath) {
+            return throwError(() => new Error('Upload failed: no file path returned'));
+          }
+  
+          return of({
+            progress: 100,
+            videoUrl: finalPath
+          });
+        })
+      );
+    }
+
+  /**
+   * Création du Content avec les URLs déjà uploadées
+   */
+  createContentWithUploadedFiles(
+    thumbnailUrl: string,
+    videoUrl: string,
+    metadata: any
+  ): Observable<Content> {
+    
+    const contentData = {
+      ...metadata,
+      fileUrl: videoUrl,
+      thumbnailUrl: thumbnailUrl,
+      mimeType: 'video/mp4',
+      created_at: new Date().toISOString(),
+    };
+
+    //console.log('[ContentService] Creating content with uploaded files:', contentData);
+
+    return this.api.create<Content>(this.RESOURCE, contentData).pipe(
+      tap(content => {
+        this.newContentSubject.next(content);
+      })
+    );
+  }
+
+
+ 
   // ==============================================================
   //  CRUD
   // ==============================================================
@@ -158,7 +393,7 @@ export class CreationService {
     const followedIds = [...(currentUserProfile.myFollows ?? []), currentUserProfile.id];
 
     return this.api.filter<Content>(this.RESOURCE, {
-      filters: { status: ContentStatus.PUBLISHED, isPublic: true },
+      filters: { status: ContentStatus.PUBLISHED, isPublic: true, category:ContentCategory.POST },
       options: {
         page,
         per_page: limit * 2, // Récupérer plus pour compenser le filtrage
@@ -168,7 +403,6 @@ export class CreationService {
     }).pipe(
       map(result => result.data
         .filter(c => followedIds.includes(c.userId))
-        .filter(c => c.category === ContentCategory.POST || c.category === ContentCategory.ADS_POST)
         .slice(0, limit) // Limiter au nombre demandé
       ),
       tap(contents => {
@@ -221,7 +455,7 @@ export class CreationService {
   }
 
   /**
-   * Feed "Bannières Publicitaires" — contenus publicitaires de type bannière,
+   * Feed "Post Publicitaires" — contenus publicitaires de type Post,
    * triés par date décroissante.
    */
   getBannerAdsContents(
@@ -245,6 +479,36 @@ export class CreationService {
       }),
       catchError(err => {
         console.error('[CreationService] getBannerAdsContents:', err);
+        return of([]);
+      })
+    );
+  }
+
+   /**
+   * Feed "Bannières Publicitaires" — contenus publicitaires de type bannière,
+   * triés par date décroissante.
+   */
+  getPostAdsContents(
+    page = 1,
+    limit = 10
+  ): Observable<Content[]> {
+    return this.api.filter<Content>(this.RESOURCE, {
+      filters: { status: ContentStatus.PUBLISHED, category: ContentCategory.ADS_POST, isPublic: true },
+      options: {
+        page,
+        per_page: limit,
+        sort: { created_at: 'desc' },
+        include_meta: true,
+      }
+    }).pipe(
+      map(result => result.data),
+      tap(contents => {
+        page === 1
+          ? this.postAdsSubject.next(contents)
+          : this.postAdsSubject.next([...this.postAdsSubject.value, ...contents]);
+      }),
+      catchError(err => {
+        console.error('[CreationService] getPostAdsContents:', err);
         return of([]);
       })
     );

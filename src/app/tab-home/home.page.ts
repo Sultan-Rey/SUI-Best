@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { NgIf, NgSwitch, NgSwitchCase, AsyncPipe } from '@angular/common';
 import {IonButton, IonIcon, IonContent, ToastController, IonFooter } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -12,7 +12,7 @@ import { DiscoveryViewComponent } from "./containers/discovery-panel/discovery-v
 import { FollowedViewComponent } from "./containers/followed-panel/followed-view.component";
 import { MessagesComponent } from './containers/messages/messages.component';
 import { GestureController } from '@ionic/angular';
-import { switchMap, filter, takeUntil, Subject } from 'rxjs';
+import { switchMap, filter, takeUntil, Subject, interval } from 'rxjs';
 import { Auth } from 'src/services/AUTH/auth';
 import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import { BottomNavigationComponent } from '../components/bottom-navigation/bottom-navigation.component';
@@ -54,7 +54,7 @@ import { Content } from 'src/models/Content';
   ]
 })
 
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, OnDestroy {
   selectedSegment!:Segment;
   activeNavItem: any = null;
   countUnreadMessages!: number;
@@ -70,13 +70,17 @@ export class HomePage implements OnInit {
   showBannerAd = false;
   hasContent = false;
   private bannerDisplayProbability = 0.3; // 30% de chance d'afficher la bannière
+  private adsLoadProbability = 0.5; // 50% de chance de charger les bannières vs les posts
   bannerAds: Content[] = [];
   isLoadingBannerAds = true;
   hasBannerAdsError = false;
   
+  // Propriété pour l'intervalle de vérification des bannières
+  private bannerInterval: any;
+  
   // Propriété pour détecter si on est sur mobile
   isMobile: boolean = true;
-  
+  isMobileWeb: boolean = true;
   @ViewChild('contentRef', { read: ElementRef }) contentRef!: ElementRef;
 
   onNavigationChange(item: any) {
@@ -193,11 +197,26 @@ export class HomePage implements OnInit {
     this.setupAuthSubscription();
     this.setupSwipeGesture();
     this.unreadMessagesCount();
-    this.loadBannerAds();
+    
+    // Charger les publicités avec probabilité : soit bannières soit posts
+    const shouldLoadBannerAds = Math.random() < this.adsLoadProbability;
+    if (shouldLoadBannerAds) {
+      this.loadBannerAds();
+      //console.log('[HomePage] Loading banner ads');
+    } else {
+      this.loadPostAds();
+     // console.log('[HomePage] Loading post ads');
+    }
     
     // Initialiser la vérification de bannière après le chargement du profil
     setTimeout(() => {
       this.checkBannerDisplay();
+      // Démarrer la vérification toutes les 5 minutes (300000 ms)
+      this.bannerInterval = interval(300000).pipe(
+        takeUntil(this.destroy$)
+      ).subscribe(() => {
+        this.checkBannerDisplay();
+      });
     }, 1000);
   }
 
@@ -206,6 +225,7 @@ export class HomePage implements OnInit {
    */
   detectPlatform() {
     this.isMobile = this.platform.is('ios') || this.platform.is('android');
+    this.isMobileWeb = this.platform.is('desktop') || this.platform.is('ipad') || this.platform.is('mobileweb')
   }
 
   /**
@@ -263,6 +283,8 @@ export class HomePage implements OnInit {
         this.selectedSegment = this.currentUserProfile.myFollows.length > 5 ? 'followed' : 'discovery';
         // unreadMessagesCount() déjà appelé dans ngOnInit - pas besoin de dupliquer
         this.cdr.markForCheck();
+      }else{
+        this.isOnline = false;
       }
     });
   }
@@ -377,6 +399,29 @@ export class HomePage implements OnInit {
     });
   }
 
+  loadPostAds(): void {
+    this.isLoadingBannerAds = true;
+    this.hasBannerAdsError = false;
+
+    this.creationService.getPostAdsContents(1, 10).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (ads) => {
+        this.bannerAds = ads;
+        this.isLoadingBannerAds = false;
+        this.checkBannerDisplay(); // Vérifier si on doit afficher la bannière après chargement
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des bannières:', error);
+        this.hasBannerAdsError = true;
+        this.isLoadingBannerAds = false;
+        this.bannerAds = [];
+        this.checkBannerDisplay(); // Mettre à jour l'affichage
+        this.cdr.markForCheck();
+      }
+    });
+  }
   // Méthode pour fermer la bannière manuellement
   closeBannerAd(): void {
     this.showBannerAd = false;
@@ -468,6 +513,9 @@ private async refreshAllDataOnReconnect() {
     // Recharger les bannières publicitaires
     this.loadBannerAds();
 
+    // Recharger les bannières publicitaires
+    this.loadPostAds();
+
     // Notifier les composants enfants de se recharger
     this.cdr.markForCheck();
 
@@ -504,5 +552,10 @@ async retryConnection(event?: Event) {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    
+    // Nettoyer l'intervalle de vérification des bannières
+    if (this.bannerInterval) {
+      this.bannerInterval.unsubscribe();
+    }
   }
 }

@@ -228,27 +228,37 @@ export class ExclusiveService {
   /**
    * Crée un nouveau contenu exclusif
    */
-  createExclusiveContent(contentData: Omit<ExclusiveContent, 'id' | 'created_at' | 'updatedAt'>): Observable<ExclusiveContent> {
-    const content: Omit<ExclusiveContent, 'id' | 'created_at' | 'updatedAt'> = {
-      ...contentData
-    };
+ createExclusiveContent(contentData: Omit<ExclusiveContent, 'id' | 'created_at' | 'updated_at'>): Observable<ExclusiveContent> {
+  const seriesId = contentData.series?.seriesId;
 
-    return this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, content).pipe(
-      switchMap(newContent => {
-        // Si c'est un épisode de série, mettre à jour la série
-        if (newContent.series?.seriesId) {
-          return this.updateSeriesEpisodes(newContent.series.seriesId).pipe(
-            map(() => newContent)
+  // Si c'est une série, on vérifie d'abord son existence
+  if (seriesId) {
+    return this.getSeriesById(seriesId).pipe(
+      switchMap(existingSeries => {
+        if (!existingSeries) {
+          // LA SÉRIE N'EXISTE PAS : ON LA CRÉE
+          return this.createSeries({
+            title: contentData.series?.seriesTitle || 'Nouvelle Série',
+            description: contentData.description,
+            author: contentData.author,
+            thumbnail: (contentData.media.thumbnail as any), // Cast nécessaire selon votre erreur précédente
+            type: contentData.type as 'masterclass' | 'behind' | 'series',
+            totalEpisodes: contentData.series?.totalEpisodes || 1
+          }).pipe(
+            switchMap(() => this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentData))
           );
         }
-        return of(newContent);
+        // LA SÉRIE EXISTE : ON CRÉE JUSTE L'ÉPISODE
+        return this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentData);
       }),
-      catchError(err => {
-        console.error('[ExclusiveService] createExclusiveContent:', err);
-        return throwError(() => err);
-      })
+      // Enfin, on met à jour les compteurs de la série (épisodes, IDs, etc.)
+      switchMap(newContent => this.updateSeriesEpisodes(seriesId).pipe(map(() => newContent)))
     );
   }
+
+  // Cas standard (vidéo simple)
+  return this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentData);
+}
 
   /**
    * Met à jour un contenu exclusif

@@ -5,18 +5,18 @@ import { ModalController } from '@ionic/angular';
 import { CameraService, MediaFile } from 'src/services/CAMERA/camera-service';
 import { addIcons } from 'ionicons';
 import * as bcrypt from 'bcryptjs';
-import { 
-  shareSocialOutline, 
-  ellipsisVertical, 
+import {
+  shareSocialOutline,
+  ellipsisVertical,
   addCircle,
   banOutline,
   flagOutline,
-  checkmarkCircle, 
+  checkmarkCircle,
   logOutOutline,
   keyOutline,
-  star, 
-  linkOutline, 
-  calendarOutline, 
+  star,
+  linkOutline,
+  calendarOutline,
   close,
   heart,
   warning,
@@ -46,11 +46,14 @@ import {
   personCircleOutline,
   walletOutline,
   homeOutline,
-  compassOutline, cameraOutline } from 'ionicons/icons';
-import { 
-  IonContent, 
-  IonButton, 
-  IonIcon } from '@ionic/angular/standalone';
+  compassOutline, cameraOutline, wifiOutline, refreshOutline
+} from 'ionicons/icons';
+import {
+  IonImg,
+  IonContent,
+  IonButton,
+  IonIcon, IonSpinner
+} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { UserProfile } from 'src/models/User.js';
@@ -69,7 +72,7 @@ import { getRewardsForUserType } from 'src/interfaces/levelReward.data';
 import { LevelRewardsComponent } from '../components/level-rewards-component/level-rewards-component.component';
 import { AwardsGalleryComponent } from '../components/awards-gallery/awards-gallery.component';
 import { RewardService } from 'src/services/Rewards/reward-service';
-import { LevelReward} from 'src/models/LevelReward';
+import { LevelReward } from 'src/models/LevelReward';
 import { TransactionHistoryModalComponent } from '../components/modal-transaction-history/transaction-history-modal.component';
 
 @Component({
@@ -78,32 +81,33 @@ import { TransactionHistoryModalComponent } from '../components/modal-transactio
   styleUrls: ['./profile.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [ NgIf,  
-    IonContent,  IonButton, 
-    IonIcon, HeaderComponentComponent,
+  imports: [IonSpinner, NgIf,
+    IonContent, IonButton,
+    IonIcon, HeaderComponentComponent, IonImg,
     CommonModule, FormsModule, MediaUrlPipe, ShortNumberPipe
-  ] 
+  ]
 })
 export class ProfilePage implements OnInit {
 
   // Définition des propriétés
   isOwnProfile: boolean = false;
-  isLoading : boolean = false;
-  userProfile!: UserProfile; 
+  isLoading: boolean = false;
+  isChangingCover: boolean = false;
+  userProfile!: UserProfile;
   currentUserId: string | null = null;
   isBlocked: boolean = false;
   userContents: Content[] = [];
   isLoadingContents = false;
   isLess: boolean = true;
   pastAwards!: LevelReward[];
-  reachedCount!:number;
-  
+  reachedCount!: number;
+
 
   constructor(
-     private cdr: ChangeDetectorRef, 
+    private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
     private router: Router,
-    private profileService : ProfileService,
+    private profileService: ProfileService,
     private userService: UserService,
     private authservice: Auth,
     private rewardService: RewardService,
@@ -112,7 +116,7 @@ export class ProfilePage implements OnInit {
     private toastController: ToastController,
     private actionSheetController: ActionSheetController,
     private modalCtrl: ModalController,
-    private cameraService: CameraService) { 
+    private cameraService: CameraService) {
     this.userProfile = {} as UserProfile;
     this.userProfile.myFollows = [];
     this.userProfile.stats = {} as {
@@ -124,14 +128,14 @@ export class ProfilePage implements OnInit {
     this.userProfile.userInfo = {} as any;
     this.userProfile.userInfo.memberShip = {} as any;
     this.pastAwards = [];
-    addIcons({checkmark,cameraOutline,settingsOutline,locationOutline,linkOutline,giftOutline,chevronForwardOutline,eyeOutline,imagesOutline,shareSocialOutline,ellipsisVertical,addCircle,banOutline,flagOutline,checkmarkCircle,logOutOutline,keyOutline,star,calendarOutline,close,heart,warning,createOutline,arrowForwardOutline,addOutline,checkmarkCircleOutline,musicalNotesOutline,search,trophy,chevronBackOutline,ellipsisHorizontal,videocamOutline,logoInstagram,logoTwitter,logoYoutube,globeOutline,chatbubbleOutline,personCircleOutline,homeOutline,compassOutline,eyeOffOutline,walletOutline});
+    addIcons({ cameraOutline, checkmark, settingsOutline, locationOutline, linkOutline, giftOutline, chevronForwardOutline, eyeOutline, imagesOutline, wifiOutline, refreshOutline, shareSocialOutline, ellipsisVertical, addCircle, banOutline, flagOutline, checkmarkCircle, logOutOutline, keyOutline, star, calendarOutline, close, heart, warning, createOutline, arrowForwardOutline, addOutline, checkmarkCircleOutline, musicalNotesOutline, search, trophy, chevronBackOutline, ellipsisHorizontal, videocamOutline, logoInstagram, logoTwitter, logoYoutube, globeOutline, chatbubbleOutline, personCircleOutline, homeOutline, compassOutline, eyeOffOutline, walletOutline });
   }
 
   ngOnInit() {
     const currentUser = this.authservice.getCurrentUser();
     this.currentUserId = currentUser?.id?.toString() || null;
     const param_id = this.route.snapshot.paramMap.get('id');
-    
+
     if (param_id) {
       this.isOwnProfile = false;
       this.loadUserProfile(param_id);
@@ -141,11 +145,92 @@ export class ProfilePage implements OnInit {
     }
   }
 
+  async changeCover() {
+    if (!this.isOwnProfile) return;
+    try {
+      // Utiliser le CameraService pour choisir une image depuis la galerie
+      const mediaFile: MediaFile | null = await this.cameraService.pickSingle();
+
+      if (mediaFile && mediaFile.file) {
+        // Valider le ratio de l'image (doit être 16:9)
+        const isValidRatio = await this.validateImageRatio(mediaFile.file, 16, 9);
+
+        if (!isValidRatio) {
+          this.showToast('L\'image doit avoir un ratio de 16:9', 'warning');
+          return;
+        }
+
+        if (mediaFile.file.size > 1 * 1024 * 1024) {
+          mediaFile.file = await this.cameraService.compressImage(mediaFile.file, 2048, 0.85);
+        }
+
+        // Démarrer le chargement
+        this.isChangingCover = true;
+        this.cdr.detectChanges();
+
+        // Utiliser la méthode uploadCoverImage du ProfileService avec le fichier
+        const result = await this.profileService.uploadCoverImage(
+          this.userProfile.id,
+          mediaFile.file
+        ).toPromise();
+        console.log("result : ",result);
+        // Le profil est déjà mis à jour en base par uploadCoverImage, 
+        // on met juste à jour l'affichage local
+        this.userProfile.coverImg = result?.url || "";
+
+        // Arrêter le chargement
+        this.isChangingCover = false;
+        this.cdr.detectChanges();
+
+        // Afficher un message de succès
+        this.showToast('Photo de couverture mise à jour avec succès', 'success');
+      }
+    } catch (error) {
+      // Arrêter le chargement en cas d'erreur
+      this.isChangingCover = false;
+      this.cdr.detectChanges();
+
+      console.error('Erreur lors du changement de la photo de couverture:', error);
+      this.showToast('Erreur lors de la mise à jour de la photo de couverture', 'danger');
+    }
+  }
+
+  /**
+   * Valide que le ratio de l'image correspond au ratio attendu
+   * @param width Largeur de l'image
+   * @param height Hauteur de l'image
+   * @param targetWidth Largeur cible (ex: 16)
+   * @param targetHeight Hauteur cible (ex: 9)
+   * @returns boolean true si le ratio est valide (avec petite tolérance)
+   */
+  private async validateImageRatio(file: File, targetWidth: number, targetHeight: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        const currentRatio = width / height;
+        const targetRatio = targetWidth / targetHeight;
+
+        // On garde ta tolérance de 5%
+        const tolerance = 0.05;
+        const isValid = currentRatio >= targetRatio * (1 - tolerance) &&
+          currentRatio <= targetRatio * (1 + tolerance);
+
+        // Nettoyage mémoire
+        URL.revokeObjectURL(img.src);
+        resolve(isValid);
+      };
+
+      img.onerror = () => resolve(false);
+      img.src = URL.createObjectURL(file);
+    });
+  }
 
   async toggleFollow() {
     if (!this.currentUserId || !this.userProfile) return;
     this.isLoading = true;
-    
+
     try {
       let result;
       if (this.userProfile.isFollowing) {
@@ -171,7 +256,7 @@ export class ProfilePage implements OnInit {
 
   async openSettings() {
     const currentUser = this.authservice.getCurrentUser();
-    
+
     if (!currentUser || !this.userProfile) {
       console.error('Utilisateur ou profil non disponible pour les paramètres');
       return;
@@ -184,7 +269,7 @@ export class ProfilePage implements OnInit {
       breakpoints: [0, 0.75, 1],
       handle: true
     });
-    
+
     await modal.present();
   }
 
@@ -201,21 +286,20 @@ export class ProfilePage implements OnInit {
       if (!profile) {
         throw new Error('Profil non trouvé');
       }
-      
       if (this.currentUserId !== profile.id) {
         const myUserProfile = await this.profileService.getProfileById(this.currentUserId as string).toPromise();
         profile.isFollowing = myUserProfile?.myFollows.some((id) => id == profile.id) || false;
         this.isBlocked = myUserProfile?.myBlackList.some((id) => id == profile.id) || profile.myBlackList.some((id) => id == myUserProfile?.id) || false;
       }
-      
+
       this.userProfile = profile;
       this.isOwnProfile = this.currentUserId === userId;
-      
+
       // Charger les informations XP une seule fois après le chargement du profil
       this.resolveNextXp();
       this.getCollectedReward();
       this.cdr.detectChanges();
-      
+
     } catch (error) {
       console.error('Erreur lors du chargement du profil:', error);
       this.router.navigate(['/home']);
@@ -229,24 +313,24 @@ export class ProfilePage implements OnInit {
    * XP Management
    */
 
-  async getCollectedReward(){
-     if (!this.userProfile || !this.userProfile.id) {
+  async getCollectedReward() {
+    if (!this.userProfile || !this.userProfile.id) {
       console.error('Aucun profil utilisateur trouvé');
       return;
     }
-    try{
+    try {
       const rewards = await this.rewardService.getCollectedRewards(this.userProfile.id).toPromise();
       this.pastAwards = rewards?.reverse() || [];
-      if(this.pastAwards.length > 0){
+      if (this.pastAwards.length > 0) {
         const reachedby = await this.rewardService.getCollectedRewardsTotalCount(this.pastAwards[0].name, this.userProfile.xpPercent).toPromise();
         this.reachedCount = reachedby || 0;
       }
-    }catch (error) {
+    } catch (error) {
       console.error('Erreur lors de l\'ouverture des récompenses debloquer:', error);
       await this.showToast('Erreur lors du chargement des récompenses debloquer', 'danger');
     }
   }
-  async openLevelReward(){
+  async openLevelReward() {
     if (!this.userProfile || !this.userProfile.id) {
       console.error('Aucun profil utilisateur trouvé');
       return;
@@ -255,7 +339,7 @@ export class ProfilePage implements OnInit {
     try {
       // Récupérer les récompenses calculées via le RewardService
       const userRewards = await this.rewardService.getCalculatedRewards(this.userProfile.id).toPromise();
-      
+
       if (!userRewards) {
         console.error('Impossible de récupérer les récompenses');
         return;
@@ -264,8 +348,8 @@ export class ProfilePage implements OnInit {
       const modal = await this.modalCtrl.create({
         component: LevelRewardsComponent,
         componentProps: {
-          userXp: this.userProfile.xpPercent, 
-          userType: this.userProfile.type, 
+          userXp: this.userProfile.xpPercent,
+          userType: this.userProfile.type,
           currentLevel: this.userProfile.level,
           rewards: userRewards // 🎯 Transmettre les rewards du service
         },
@@ -274,7 +358,7 @@ export class ProfilePage implements OnInit {
         breakpoints: [0, 0.95, 1],
         handle: true
       });
-      
+
       await modal.present();
     } catch (error) {
       console.error('Erreur lors de l\'ouverture des récompenses de niveau:', error);
@@ -282,9 +366,9 @@ export class ProfilePage implements OnInit {
     }
   }
 
-     // XP requis pour passer au niveau suivant (à brancher sur votre modèle réel)
+  // XP requis pour passer au niveau suivant (à brancher sur votre modèle réel)
   xpPercentRequired: number = 0;
- 
+
   private resolveNextXp(): void {
     if (!this.userProfile || !this.userProfile.id) {
       this.xpPercentRequired = 0;
@@ -293,7 +377,7 @@ export class ProfilePage implements OnInit {
 
     // Récupérer les récompenses via le service
     this.rewardService.getUserRewards(this.userProfile.id).subscribe(rewards => {
-      const next = rewards.find(r => 
+      const next = rewards.find(r =>
         this.userProfile.level && r.level === this.userProfile.level + 1
       );
       this.xpPercentRequired = next?.xpRequired ?? 0;
@@ -309,14 +393,14 @@ export class ProfilePage implements OnInit {
    */
   getXpFillPercent(): number {
     // NE PAS appeler resolveNextXp() ici - déjà appelé dans loadUserProfile
-    const current  = this.userProfile?.xpPercent  ?? 0;
-    const required = this.xpPercentRequired        ?? 0;
-    const fill     = current - required;
+    const current = this.userProfile?.xpPercent ?? 0;
+    const required = this.xpPercentRequired ?? 0;
+    const fill = current - required;
     return Math.min(100, Math.max(0, fill));
   }
 
-  async OpenAwards(){
-   
+  async OpenAwards() {
+
     const modal = await this.modalCtrl.create({
       component: AwardsGalleryComponent,
       cssClass: 'auto-height',
@@ -324,7 +408,7 @@ export class ProfilePage implements OnInit {
       breakpoints: [0, 0.95, 1],
       handle: true
     });
-    
+
     await modal.present();
   }
 
@@ -338,29 +422,29 @@ export class ProfilePage implements OnInit {
         {
           text: 'Mes Transactions',
           icon: 'wallet-outline',
-          handler: async () =>{
-             try {
-      const modal = await this.modalCtrl.create({
-        component: TransactionHistoryModalComponent,
-        cssClass: 'auto-height',
-        initialBreakpoint: 0.95,
-        breakpoints: [0, 0.95, 1],
-        handle: true
-      });
-      
-      await modal.present();
-    } catch (error) {
-      console.error('Erreur lors de l\'ouverture de la modale following:', error);
-      await this.showToast('Erreur lors du chargement des abonnements', 'danger');
-    }
+          handler: async () => {
+            try {
+              const modal = await this.modalCtrl.create({
+                component: TransactionHistoryModalComponent,
+                cssClass: 'auto-height',
+                initialBreakpoint: 0.95,
+                breakpoints: [0, 0.95, 1],
+                handle: true
+              });
+
+              await modal.present();
+            } catch (error) {
+              console.error('Erreur lors de l\'ouverture de la modale following:', error);
+              await this.showToast('Erreur lors du chargement des abonnements', 'danger');
+            }
           }
         },
-         {
+        {
           text: 'BlackList',
           icon: 'eye-off-outline',
-          handler: () =>{
-             this.modalCtrl.dismiss();
-             this.router.navigate(['/blacklist']);
+          handler: () => {
+            this.modalCtrl.dismiss();
+            this.router.navigate(['/blacklist']);
           }
         },
         {
@@ -439,16 +523,16 @@ export class ProfilePage implements OnInit {
               spinner: 'crescent',
               cssClass: 'logout-loading'
             });
-            
+
             await loading.present();
-            
+
             try {
               this.authservice.logout();
               await new Promise(resolve => setTimeout(resolve, 800));
-              
+
               await loading.dismiss();
               window.location.href = '/login';
-              
+
             } catch (error) {
               await loading.dismiss();
               console.error('Erreur lors de la déconnexion:', error);
@@ -506,56 +590,56 @@ export class ProfilePage implements OnInit {
     await alert.present();
   }
 
-   private async handlePasswordChange(currentPassword: string, newPassword: string) {
-      try {
-        const user = await this.userService.getUserById(this.currentUserId as string).toPromise();
-        if (!user) {
-          this.showToast('Erreur: utilisateur non trouvé', 'danger');
-          return;
-        }
-  
-        if (!user.password_hash) {
-          //console.error('❌ PASSWORD_HASH MANQUANT');
-          this.showToast('Erreur: hash du mot de passe non disponible', 'danger');
-          return;
-        }
-  
-        // 1. Vérifier que le hash bcrypt du currentPassword correspond au password_hash du User
-         const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
-         
-        if (!isPasswordValid) {
-          this.showToast('Mot de passe actuel incorrect', 'danger');
-          return;
-        }
-  
-        // 2. Si le mot de passe est valide, hasher le nouveau mot de passe
-        const saltRounds = await bcrypt.genSalt(10);
-        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
-       
-        // 3. Utiliser updatePasswordHash de UserService pour mettre à jour le mot de passe
-         const result = await this.userService.updatePasswordHash(user.id as string, newPasswordHash).toPromise();
-   
-        // 4. Mettre à jour le user local avec le nouveau hash
-        user.password_hash = newPasswordHash;
-  
-        this.showToast('Mot de passe modifié avec succès', 'success');
-      } catch (error) {
-        console.error('❌ Erreur lors du changement de mot de passe:', error);
-        console.error('❌ STACK TRACE:', (error as any)?.stack);
-        
-        // Message d'erreur plus spécifique
-        let errorMessage = 'Erreur lors du changement de mot de passe';
-        if ((error as any)?.message?.includes('bcrypt')) {
-          errorMessage = 'Erreur lors du hashage du mot de passe';
-        } else if ((error as any)?.status) {
-          errorMessage = `Erreur serveur: ${(error as any).status}`;
-        }
-        
-        this.showToast(errorMessage, 'danger');
+  private async handlePasswordChange(currentPassword: string, newPassword: string) {
+    try {
+      const user = await this.userService.getUserById(this.currentUserId as string).toPromise();
+      if (!user) {
+        this.showToast('Erreur: utilisateur non trouvé', 'danger');
+        return;
       }
-    }
 
- 
+      if (!user.password_hash) {
+        //console.error('❌ PASSWORD_HASH MANQUANT');
+        this.showToast('Erreur: hash du mot de passe non disponible', 'danger');
+        return;
+      }
+
+      // 1. Vérifier que le hash bcrypt du currentPassword correspond au password_hash du User
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+
+      if (!isPasswordValid) {
+        this.showToast('Mot de passe actuel incorrect', 'danger');
+        return;
+      }
+
+      // 2. Si le mot de passe est valide, hasher le nouveau mot de passe
+      const saltRounds = await bcrypt.genSalt(10);
+      const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+      // 3. Utiliser updatePasswordHash de UserService pour mettre à jour le mot de passe
+      const result = await this.userService.updatePasswordHash(user.id as string, newPasswordHash).toPromise();
+
+      // 4. Mettre à jour le user local avec le nouveau hash
+      user.password_hash = newPasswordHash;
+
+      this.showToast('Mot de passe modifié avec succès', 'success');
+    } catch (error) {
+      console.error('❌ Erreur lors du changement de mot de passe:', error);
+      console.error('❌ STACK TRACE:', (error as any)?.stack);
+
+      // Message d'erreur plus spécifique
+      let errorMessage = 'Erreur lors du changement de mot de passe';
+      if ((error as any)?.message?.includes('bcrypt')) {
+        errorMessage = 'Erreur lors du hashage du mot de passe';
+      } else if ((error as any)?.status) {
+        errorMessage = `Erreur serveur: ${(error as any).status}`;
+      }
+
+      this.showToast(errorMessage, 'danger');
+    }
+  }
+
+
 
   private async editProfile() {
     const modal = await this.modalCtrl.create({
@@ -571,11 +655,11 @@ export class ProfilePage implements OnInit {
     await modal.present();
 
     const { data } = await modal.onDidDismiss();
-    
+
     if (data?.success && data?.profile) {
       this.userProfile = data.profile;
       this.cdr.detectChanges();
-      
+
       const toast = await this.toastController.create({
         message: 'Profil mis à jour avec succès',
         duration: 2000,
@@ -633,7 +717,7 @@ export class ProfilePage implements OnInit {
           role: 'destructive',
           handler: async () => {
             if (!this.userProfile) return;
-            
+
             try {
               if (!status) {
                 await this.profileService.unfollowProfile(String(this.currentUserId), String(this.userProfile.id));
@@ -656,7 +740,7 @@ export class ProfilePage implements OnInit {
   }
 
   copyProfileLink(profile: UserProfile) {
-    const link = `https://app.com/profile/${profile.id}`;
+    const link = `https://datafire-681e8.firebaseapp.com/profile/${profile.id}`;
     navigator.clipboard.writeText(link);
     console.log('Link copied:', link);
   }
@@ -665,7 +749,7 @@ export class ProfilePage implements OnInit {
     const shareData = {
       title: `${profile.displayName} - Best Academy`,
       text: `Découvrez le profil de ${profile.displayName}${profile.userInfo?.bio ? ': ' + profile.userInfo.bio : ''}`,
-      url: `https://app.com/profile/${profile.id}`
+      url: `https://datafire-681e8.firebaseapp.com/profile/${profile.id}`
     };
 
     try {
@@ -678,7 +762,7 @@ export class ProfilePage implements OnInit {
       }
     } catch (error: unknown) {
       console.error('Error sharing profile:', error);
-      
+
       const errorName = error instanceof Error ? error.name : 'UnknownError';
       if (errorName !== 'AbortError') {
         await this.copyProfileLink(profile);
@@ -692,7 +776,7 @@ export class ProfilePage implements OnInit {
       console.error('Content not found for item:', content);
       return;
     }
-    
+
     const myUserProfile = await this.profileService.getProfileById(this.currentUserId as string).toPromise();
     const modal = await this.modalCtrl.create({
       component: FollowedViewComponent,
@@ -715,13 +799,21 @@ export class ProfilePage implements OnInit {
     imgElement.classList.add('is-default');
   }
 
+  onImageCover(event: any) {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.onerror = null;
+    imgElement.src = 'assets/default-thumbnail.jpg';
+    imgElement.classList.add('is-default');
+  }
+
+
   onImageContentError(event: any) {
     const imgElement = event.target as HTMLImageElement;
     imgElement.onerror = null;
     imgElement.src = 'assets/splash.png';
     imgElement.classList.add('is-default');
   }
-  
+
   private async showToast(message: string, color: string) {
     const toast = await this.toastController.create({
       message,
@@ -753,7 +845,7 @@ export class ProfilePage implements OnInit {
         breakpoints: [0, 0.95, 1],
         handle: true
       });
-      
+
       await modal.present();
     } catch (error) {
       console.error('Erreur lors de l\'ouverture de la modale following:', error);
@@ -761,137 +853,5 @@ export class ProfilePage implements OnInit {
     }
   }
 
-
-  /**
-   * Sélectionne et upload une nouvelle image de couverture
-   */
-  async selectCoverImage() {
-    if (!this.isOwnProfile || !this.userProfile?.id) {
-      return;
-    }
-
-    const actionSheet = await this.actionSheetController.create({
-      header: 'Changer la photo de couverture',
-      buttons: [
-        {
-          text: 'Prendre une photo',
-          icon: 'camera-outline',
-          handler: () => {
-            this.takeCoverPhoto();
-          }
-        },
-        {
-          text: 'Choisir depuis la galerie',
-          icon: 'images-outline',
-          handler: () => {
-            this.pickCoverFromGallery();
-          }
-        },
-        {
-          text: 'Annuler',
-          icon: 'close',
-          role: 'cancel'
-        }
-      ]
-    });
-
-    await actionSheet.present();
-  }
-
-  /**
-   * Prend une photo pour la couverture avec la caméra
-   */
-  private async takeCoverPhoto() {
-    try {
-      const loading = await this.loadingController.create({
-        message: 'Capture de la photo...',
-        cssClass: 'custom-loading'
-      });
-      await loading.present();
-
-      const mediaFile = await this.cameraService.takePhoto();
-      
-      if (mediaFile && mediaFile.file) {
-        await this.uploadCoverImage(mediaFile.file);
-      }
-      
-      await loading.dismiss();
-    } catch (error) {
-      console.error('Erreur lors de la capture de la photo:', error);
-      await this.showToast('Erreur lors de la capture de la photo', 'danger');
-    }
-  }
-
-  /**
-   * Choisi une image depuis la galerie pour la couverture
-   */
-  private async pickCoverFromGallery() {
-    try {
-      const loading = await this.loadingController.create({
-        message: 'Chargement de l\'image...',
-        cssClass: 'custom-loading'
-      });
-      await loading.present();
-
-      const mediaFile = await this.cameraService.pickSingle();
-      
-      if (mediaFile && mediaFile.file) {
-        await this.uploadCoverImage(mediaFile.file);
-      }
-      
-      await loading.dismiss();
-    } catch (error) {
-      console.error('Erreur lors de la sélection de l\'image:', error);
-      await this.showToast('Erreur lors de la sélection de l\'image', 'danger');
-    }
-  }
-
-  /**
-   * Upload la nouvelle image de couverture et met à jour le profil
-   */
-  private async uploadCoverImage(file: File) {
-    if (!this.userProfile?.id) {
-      return;
-    }
-
-    try {
-      const loading = await this.loadingController.create({
-        message: 'Upload en cours...',
-        cssClass: 'custom-loading'
-      });
-      await loading.present();
-
-      // Upload de l'image de couverture
-      this.profileService.uploadCoverImage(
-        this.userProfile.id,
-        file,
-        (progress) => {
-          loading.message = `Upload en cours... ${progress}%`;
-        }
-      ).subscribe({
-        next: async (result) => {
-          // Mettre à jour le profil avec la nouvelle URL de couverture
-          await this.profileService.updateProfile(this.userProfile.id, {
-            coverImg: result.url
-          }).toPromise();
-
-          // Mettre à jour l'affichage
-          this.userProfile.coverImg = result.url;
-          this.cdr.detectChanges();
-
-          await loading.dismiss();
-          await this.showToast('Photo de couverture mise à jour avec succès', 'success');
-        },
-        error: async (error) => {
-          console.error('Erreur lors de l\'upload de la couverture:', error);
-          await loading.dismiss();
-          await this.showToast('Erreur lors de la mise à jour de la photo de couverture', 'danger');
-        }
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'upload de la couverture:', error);
-      await this.showToast('Erreur lors de la mise à jour de la photo de couverture', 'danger');
-    }
-  }
 
 }

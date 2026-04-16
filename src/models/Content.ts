@@ -116,7 +116,7 @@ export interface ExclusiveContent {
   id?: string;
   userId: string;
   created_at?: string;
-  updatedAt?: string;
+  updated_at?: string;
   
   // Métadonnées principales
   title: string;

@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { IonIcon, IonButton, IonThumbnail, IonBadge, IonAvatar } from "@ionic/angular/standalone";
-import { ToastController, ModalController, LoadingController } from '@ionic/angular';
+import { ToastController, ModalController, LoadingController, ActionSheetController, AlertController } from '@ionic/angular';
 import { Content } from 'src/models/Content';
 import { Challenge } from 'src/models/Challenge';
 import { VoteService } from 'src/services/Service_vote/vote-service';
@@ -12,6 +12,9 @@ import { Router } from '@angular/router';
 import { NgIf, NgFor } from '@angular/common';
 import { CreationService } from 'src/services/Service_content/creation-service';
 import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
+import { ellipsisHorizontal, chatbubble, share, trashOutline, linkOutline, flagOutline, downloadOutline } from 'ionicons/icons';
+import { addIcons } from 'ionicons';
+import { SystemMessenger } from 'src/services/Service_message/system-messenger';
 
 @Component({
   selector: 'app-side-actions',
@@ -28,9 +31,9 @@ export class SideActionsComponent  implements OnInit, OnChanges {
   @Input() HasActiveChallenge!: boolean;
   @Input() CommentCount!: number;
   buttonAction: { [key: string]: string } = {};
-  constructor(private toastController: ToastController, private creationService: CreationService,
-    private modalController: ModalController, 
-    private voteService: VoteService, private router: Router, private loadingController: LoadingController) { }
+  constructor(private toastController: ToastController, private creationService: CreationService, private sysMsg: SystemMessenger,
+    private modalController: ModalController, private actionSheetController: ActionSheetController, private alertController: AlertController,
+    private voteService: VoteService, private router: Router, private loadingController: LoadingController) { addIcons({ellipsisHorizontal, chatbubble, share, trashOutline, linkOutline, flagOutline, downloadOutline}); }
 
   // ✅ Stocker le résultat calculé
 cachedActions: any[] = [];
@@ -58,6 +61,8 @@ ngOnChanges(changes: SimpleChanges) {
 
 // ✅ Renommée et privée — appelée uniquement quand nécessaire
 private async buildActions() {
+  
+
   const giftColor = this.Post.isGiftedByUser ? 'danger' : '';
   const buttons = [];
 
@@ -101,7 +106,8 @@ private async buildActions() {
 
     buttons.push(
       { icon: 'chatbubble', count: this.Post.commentCount || 0, action: () => this.openComments(this.Post) },
-      { icon: 'share', count: this.Post.shareCount || 0, action: () => this.sharePost(this.Post) }
+      { icon: 'share', count: this.Post.shareCount || 0, action: () => this.sharePost(this.Post) },
+      { icon: 'ellipsis-horizontal', action: () => this.optionPost(this.Post) }
     );
 
     this.cachedActions = buttons;
@@ -110,7 +116,8 @@ private async buildActions() {
     // En cas d'erreur, on ajoute quand même les actions de base
     buttons.push(
       { icon: 'chatbubble', count: this.Post.commentCount || 0, action: () => this.openComments(this.Post) },
-      { icon: 'share', count: this.Post.shareCount || 0, action: () => this.sharePost(this.Post) }
+      { icon: 'share', count: this.Post.shareCount || 0, action: () => this.sharePost(this.Post) },
+      { icon: 'ellipsis-horizontal',  action: () => this.optionPost(this.Post) }
     );
     this.cachedActions = buttons;
   }
@@ -242,6 +249,162 @@ const modal = await this.modalController.create({
         
       }
     
+      async optionPost(post: Content) {
+    const buttons = [];
+    const isOwner = post.userId === this.CurrentUserProfile?.id;
+
+    // 1. Option de Téléchargement
+    if (post.allowDownloads && post.fileUrl) {
+      buttons.push({
+        text: 'Télécharger le fichier',
+        icon: 'download-outline',
+        handler: () => {
+          window.open(post.fileUrl, '_blank');
+        }
+      });
+    }
+
+    // 2. Option de Suppression (Uniquement pour l'auteur)
+    if (isOwner) {
+      buttons.push({
+        text: 'Supprimer mon contenu',
+        role: 'destructive',
+        icon: 'trash-outline',
+        handler: () => this.confirmDeletion(post)
+      });
+    }
+
+    // 3. Option de Signalement (Uniquement pour les autres)
+    if (!isOwner) {
+      buttons.push({
+        text: 'Signaler le contenu',
+        icon: 'flag-outline',
+        handler: () => this.reportContent(post)
+      });
+    }
+
+    // 4. Copier le lien (Utile si navigator.share échoue)
+    buttons.push({
+      text: 'Copier le lien',
+      icon: 'link-outline',
+      handler: () => {
+        this.copyToClipboard(post.fileUrl || '');
+        this.showToast('Lien copié !');
+      }
+    });
+
+    // Bouton Fermer
+    buttons.push({
+      text: 'Fermer',
+      icon: 'close',
+      role: 'cancel'
+    });
+
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Options du contenu',
+      subHeader: post.username,
+      cssClass: 'custom-action-sheet',
+      buttons: buttons
+    });
+
+    await actionSheet.present();
+  }
+
+  private async reportContent(post: Content) {
+  const alert = await this.alertController.create({
+    header: 'Signaler ce contenu',
+    message: 'Pourquoi souhaitez-vous signaler ce post ?',
+    inputs: [
+      {
+        name: 'reason',
+        type: 'textarea', // Textarea est mieux pour une explication
+        placeholder: 'Précisez la raison (ex: contenu inapproprié, droits d\'auteur...)'
+      }
+    ],
+    buttons: [
+      {
+        text: 'Annuler',
+        role: 'cancel'
+      },
+      {
+        text: 'Envoyer',
+        handler: async (data) => {
+          if (!data.reason || data.reason.trim().length < 5) {
+            this.showToast('Veuillez fournir une raison plus détaillée', 'warning');
+            return false; // Empêche la fermeture de l'alerte
+          }
+
+          try {
+            // On construit un message détaillé pour l'admin
+            const reportDetails = `
+              [SIGNALEMENT CONTENU]
+              ID Contenu: ${post.id}
+              Auteur ID: ${post.userId}
+              Raison: ${data.reason}
+            `;
+
+            // On attend la confirmation de l'envoi
+            const isSent = await this.sysMsg.sendNoticeOfReport(reportDetails);
+
+            if (isSent) {
+              this.showToast('Signalement transmis avec succès', 'success');
+              return true; // Ferme l'alerte
+            } else {
+              this.showToast('Erreur lors de l\'envoi du signalement', 'danger');
+              return false;
+            }
+          } catch (error) {
+            console.error('Report Error:', error);
+            this.showToast('Une erreur est survenue', 'danger');
+            return false;
+          }
+        }
+      }
+    ]
+  });
+
+  await alert.present();
+}
+
+     async confirmDeletion(post: Content) {
+  const alert = await this.actionSheetController.create({
+    header: 'Supprimer ce contenu ?',
+    subHeader: 'Cette action est irréversible',
+    mode: 'ios', // Optionnel : force le style iOS plus élégant
+    buttons: [
+      {
+        text: 'Supprimer définitivement',
+        role: 'destructive',
+        icon: 'trash-outline',
+        handler: () => {
+          this.executeDelete(post);
+        }
+      },
+      {
+        text: 'Annuler',
+        role: 'cancel',
+        icon: 'close-outline'
+      }
+    ]
+  });
+
+  await alert.present();
+}
+
+private executeDelete(post: Content) {
+  if (!post.id) return;
+
+  this.creationService.deleteContent(post.id).subscribe({
+    next: () => {
+      this.showToast('Votre contenu a été supprimé avec succès', 'success');
+    },
+    error: (err) => {
+      console.error('Erreur suppression:', err);
+      this.showToast('Impossible de supprimer le contenu pour le moment', 'danger');
+    }
+  });
+}
+
       async sharePost(post: Content) {
         try {
           const shareData = {
@@ -261,10 +424,10 @@ const modal = await this.modalController.create({
                 shareCount: this.Post.shareCount
               }).subscribe({
                 next: () => {
-                  console.log('Share count updated successfully');
+                  //console.log('Share count updated successfully');
                 },
                 error: (err: any) => {
-                  console.error('Error updating share count:', err);
+                  //console.error('Error updating share count:', err);
                 }
               });
               
@@ -294,6 +457,7 @@ const modal = await this.modalController.create({
         }
       }
     
+      
       private async copyToClipboard(text: string): Promise<void> {
         try {
           await navigator.clipboard.writeText(text);

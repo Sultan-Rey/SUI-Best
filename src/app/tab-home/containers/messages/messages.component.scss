@@ -38,9 +38,8 @@ $separator:   #1a1a1a;
 //  HEADER
 // ─────────────────────────────────────────────
 .dm-header {
-  margin-top: 10px;
   ion-toolbar {
-    --background: #{$black};
+    background: #{$black};
     --border-color: #{$separator};
     --padding-start: 4px;
     --padding-end: 4px;
@@ -56,19 +55,19 @@ $separator:   #1a1a1a;
     .header-username {
       font-size: 17px;
       font-weight: 700;
-      color: $text-1;
+      --color: $text-1;
       letter-spacing: -0.3px;
     }
 
     .username-chevron {
       font-size: 13px;
-      color: $text-2;
+      --color: $text-2;
       margin-top: 1px;
     }
   }
 
   .icon-btn {
-    --color: #{$text-1};
+    color: var($text-1);
     --padding-start: 8px;
     --padding-end: 8px;
 
@@ -128,7 +127,7 @@ $separator:   #1a1a1a;
 //  CONTENT
 // ─────────────────────────────────────────────
 .dm-content {
-  --background: #{$black};
+  background: #{$black};
   --padding-top: 0;
 }
 
@@ -224,7 +223,7 @@ ion-item-sliding {
 //  DM ITEM
 // ─────────────────────────────────────────────
 .dm-item {
-  --background: #{$black};
+  background: #{$black};
   --background-activated: rgba(255, 255, 255, 0.04);
   --inner-padding-end: 16px;
   --padding-start: 16px;
@@ -235,7 +234,7 @@ ion-item-sliding {
   transition: background 0.12s;
 
   &.unread {
-    --background: #{$black};
+    background: #{$black};
   }
 
   // ── Avatar wrap ──
@@ -512,7 +511,7 @@ ion-item-sliding {
 
     ion-icon {
       font-size: 32px;
-      color: $text-1;
+      --color: $text-1;
     }
   }
 

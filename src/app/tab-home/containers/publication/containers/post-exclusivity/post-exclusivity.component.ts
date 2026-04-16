@@ -257,9 +257,26 @@ export class PostExclusivityComponent implements OnInit {
         );
         this.contentUpdated.emit(contentData);
       } else {
-        createdContent = await firstValueFrom(this.exclusiveService.createExclusiveContent(contentData));
-        this.contentCreated.emit(contentData);
-      }
+  // LOGIQUE DE CRÉATION
+  if (formData.isSeries && formData.seriesTitle) {
+    // 1. On prépare un ID pour la série (ex: "ma-super-serie")
+    const generatedSeriesId = formData.seriesTitle.toLowerCase().replace(/\s+/g, '-');
+    
+    // 2. On injecte cet ID dans les infos de l'épisode
+    contentData.series = {
+      ...seriesInfo!,
+      seriesId: generatedSeriesId 
+    };
+
+    // 3. On appelle le service qui va gérer la double création (Série + Épisode)
+    createdContent = await firstValueFrom(this.exclusiveService.createExclusiveContent(contentData));
+  } else {
+    // Cas normal hors série
+    createdContent = await firstValueFrom(this.exclusiveService.createExclusiveContent(contentData));
+  }
+  
+  this.contentCreated.emit(contentData);
+}
 
       console.log('✅ Contenu exclusif créé/mis à jour:', createdContent);
       this.createForm.reset();

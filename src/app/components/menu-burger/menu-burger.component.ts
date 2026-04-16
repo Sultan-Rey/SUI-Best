@@ -1,9 +1,10 @@
 import { Component, Input, Output, EventEmitter, HostBinding } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
-import { IonIcon } from "@ionic/angular/standalone";
+import { IonIcon, IonAvatar } from "@ionic/angular/standalone";
 import { SafeHtmlPipe } from "../bottom-navigation/safe-html.pipe";
-
+import { AsyncPipe } from '@angular/common';
+import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 interface NavItem {
   idx: number;
   page: string;
@@ -20,12 +21,13 @@ interface NavItem {
   templateUrl: './menu-burger.component.html',
   styleUrls: ['./menu-burger.component.scss'],
   standalone: true,
-  imports: [NgFor, NgIf, SafeHtmlPipe]
+  imports: [IonAvatar, NgFor, NgIf, SafeHtmlPipe, MediaUrlPipe, AsyncPipe]
 })
 export class MenuBurgerComponent {
 
   @Input() isOpen: boolean = false;
   @Input() isCollapsed: boolean = false;
+  @Input() avatar!:string;
   @Input() theme: 'dark' | 'light' = 'dark';
   @Input() activeItemIndex: number = 2; // Ajout de l'input pour l'item actif
   @Output() activeItemChange = new EventEmitter<NavItem>();
@@ -110,10 +112,18 @@ export class MenuBurgerComponent {
     this.closeMenu.emit();
   }
  
-  onCloseMenu() {
+  gotoprofile() {
+    this.router.navigate(['/profile', '']);
     this.closeMenu.emit();
   }
  
+  onImageAvatarError(event: any) {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.onerror = null;
+    imgElement.src = 'assets/avatar-default.png';
+    imgElement.classList.add('is-default');
+  }
+
   @HostBinding('class.theme-light') get isLight() { return this.theme === 'light'; }
   @HostBinding('class.theme-dark')  get isDark()  { return this.theme === 'dark'; }
 

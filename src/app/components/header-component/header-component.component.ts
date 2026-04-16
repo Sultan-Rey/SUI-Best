@@ -4,7 +4,7 @@ import { IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButto
 import { Observable, shareReplay, Subject, takeUntil } from 'rxjs';
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { addIcons } from 'ionicons';
-import { checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search } from 'ionicons/icons';
+import { checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search, menu } from 'ionicons/icons';
 import { Auth } from 'src/services/AUTH/auth';
 import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
 import { CouponModalComponent } from '../modal-coupon/coupon-modal.component';
@@ -43,6 +43,7 @@ export class HeaderComponentComponent  implements OnInit {
    
    // Détection de plateforme
    isMobile: boolean = true;
+   isMobileWeb: boolean = false;
    
    // Animation Lottie pour les coins
    showCoinAnimation: boolean = false;
@@ -98,7 +99,7 @@ export class HeaderComponentComponent  implements OnInit {
    }
 
   ngOnInit() {
-    addIcons({checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search});
+    addIcons({checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search, menu});
     
     // Détecter la plateforme
    
@@ -127,8 +128,8 @@ export class HeaderComponentComponent  implements OnInit {
     this.platform.ready().then(() => {
       // Vérifier si c'est une plateforme mobile (iOS, Android) ou web/desktop
       this.isMobile = this.platform.is('ios') || this.platform.is('android');
+      this.isMobileWeb = this.platform.is('desktop') || this.platform.is('ipad') || this.platform.is('mobileweb')
       
-      console.log('Plateforme détectée:', this.isMobile ? 'Mobile' : 'Desktop/Web');
     });
   }
 

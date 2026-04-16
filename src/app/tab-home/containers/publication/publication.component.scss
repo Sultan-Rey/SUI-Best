@@ -21,7 +21,7 @@
   flex-shrink: 0;
   display: flex;
   border-bottom: 1px solid var(--ion-color-light-shade, #e0e0e0);
-
+  background: var(--ion-color-light-shade, #e0e0e0);
   .tab-button {
     flex: 1;
     display: flex;

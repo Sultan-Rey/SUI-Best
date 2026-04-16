@@ -159,23 +159,8 @@ export class DiscoveryViewComponent implements OnInit {
         // Attendre toutes les réponses des profils
         return forkJoin(profileRequests);
       }),
-      switchMap((contentsWithProfiles) => {
-        // Créer les requêtes de commentaires pour chaque contenu
-        const commentRequests = contentsWithProfiles.map(({ content, profile }) => 
-          this.commentService.getCommentCount(content.id as string).pipe(
-            map(commentCount => ({
-              content,
-              profile,
-              commentCount
-            }))
-          )
-        );
-        
-        // Attendre tous les comptes de commentaires
-        return forkJoin(commentRequests);
-      }),
       map((contentsWithProfilesAndComments) => 
-        contentsWithProfilesAndComments.map(({ content, profile, commentCount }) => ({
+        contentsWithProfilesAndComments.map(({ content, profile }) => ({
           id: content.id || '',
           title: content.description || 'Contenu sans titre',
           thumbnail: content.thumbnailUrl || content.fileUrl || '',
@@ -185,12 +170,12 @@ export class DiscoveryViewComponent implements OnInit {
           category: content.tags || ['general'],
           trending: Math.random() > 0.7,
           likes: content.voteCount?.toString() || '0',
-          comments: commentCount.toString(),
+          comments: content.commentCount?.toString() || '0',
           views: content.viewCount?.toString() || '0',
           timeAgo: this.formatTimeAgo(content.created_at),
           author: {
             name: profile?.username || content.username || `User ${content.userId.slice(-4)}`,
-            avatar: profile?.avatar || 'https://picsum.photos/seed/' + content.userId + '/100/100.jpg'
+            avatar: profile?.avatar || 'assets/avatar-default.png'
           },
           saved: false,
           loading: false // ← Initialiser l'état de chargement individuel

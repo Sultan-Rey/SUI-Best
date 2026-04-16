@@ -10,9 +10,9 @@
 
         <!-- Bouton retour — visible si goBackTarget défini ou hors home -->
         <ion-buttons slot="start" *ngIf="goBackTarget || !isHomePage()">
-          <ion-back-button defaultHref="/home" (click)="handleGoBack()"></ion-back-button>
+          <ion-back-button color="dark" defaultHref="/home" (click)="handleGoBack()"></ion-back-button>
         </ion-buttons>
-
+     
         <!-- XP chip — visible sur home uniquement, sans bouton retour -->
         <ion-badge color="warning"
                   *ngIf="isHomePage() && !goBackTarget"
@@ -36,7 +36,7 @@
           <button class="action-button margin-right"
                   [class.active]="isTabActive('/ranking')"
                   (click)="navigateTo('/ranking')">
-            <ion-icon name="trophy"></ion-icon>
+            <ion-icon name="trophy" color="dark"></ion-icon>
           </button>
 
           <button class="action-button margin-right"
@@ -49,7 +49,7 @@
           <button class="action-button search-button"
                   [class.active]="isTabActive('/search')"
                   (click)="navigateTo('/search')">
-            <ion-icon name="search" class="action-icon"></ion-icon>
+            <ion-icon name="search" color="dark"></ion-icon>
           </button>
 
         </ion-buttons>
@@ -60,6 +60,10 @@
     <!-- ── Ligne 2 : solde coins (toujours visible, jamais tronqué) ─────── -->
     <div class="header-row-balance">
 
+       <ion-buttons *ngIf="isMobileWeb">
+          <ion-button (click)="toggleBurgerMenu()" fill="clear" size="small"><ion-icon color="dark" name="menu"></ion-icon></ion-button>  
+        </ion-buttons>
+        
       <div class="coin-balance">
         <ion-img src="assets/icon/coin-collecting.png"></ion-img>
         <span [class]="'coin-amount' + (showCoinAnimation ? ' animating' : '')">
@@ -211,6 +215,7 @@
 </ion-header>
 
 <app-menu-burger
+  *ngIf="isMobileWeb"
   [isOpen]="isBurgerMenuOpen"
   [isCollapsed]="isMenuCollapsed"
   [theme]="'dark'"
@@ -218,6 +223,7 @@
   [activeItemIndex]="activeSegmentIndex"
   [allowedToExclusive]="UserIsVerified"
   [unreadCount]="countUnreadMessages"
+  [avatar]="userAvatar"
   (activeItemChange)="onMenuNavigationChange($event)"
   (closeMenu)="closeBurgerMenu()">
 </app-menu-burger>

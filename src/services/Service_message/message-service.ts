@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, of, forkJoin, throwError } from 'rxjs';
-import { map, tap, catchError, switchMap } from 'rxjs/operators';
+import { map, tap, catchError, switchMap, take } from 'rxjs/operators';
 import { map as rxMap } from 'rxjs';
 import { ApiJSON } from '../API/api-json';
 import { ProfileService } from '../Service_profile/profile-service';
@@ -64,6 +64,26 @@ export class MessageService {
       catchError(err => {
         console.error('[MessageService] getConversations:', err);
         return of([]);
+      })
+    );
+  }
+
+  /**
+   * Récupère une conversation spécifique par son ID.
+   */
+  getConversation(conversationId: string): Observable<Conversation> {
+    return this.api.filter<Conversation>(this.RESOURCE, { filters: { id: conversationId }}).pipe(
+      take(1),
+      map(filterResult => {
+        const conversations = filterResult.data;
+        if (!conversations || conversations.length === 0) {
+          throw new Error(`Conversation ${conversationId} not found`);
+        }
+        return conversations[0];
+      }),
+      catchError(err => {
+        console.error('[MessageService] getConversation:', err);
+        return throwError(() => err);
       })
     );
   }

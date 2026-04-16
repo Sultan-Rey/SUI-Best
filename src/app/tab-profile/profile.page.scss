@@ -1,4 +1,5 @@
 // Variables
+// Thème sombre (défaut)
 $bg-primary: #0a0a0f;
 $glass-bg: rgba(255, 255, 255, 0.03);
 $glass-border: rgba(255, 255, 255, 0.08);
@@ -7,6 +8,14 @@ $gradient-end: #764ba2;
 $text-primary: #ffffff;
 $text-secondary: #9ca3af;
 $text-tertiary: #6b7280;
+
+// Thème clair (override via media query ou classe .light-theme)
+$light-bg-primary: #f8f9fa;
+$light-glass-bg: rgba(0, 0, 0, 0.02);
+$light-glass-border: rgba(0, 0, 0, 0.08);
+$light-text-primary: #1a1a2e;
+$light-text-secondary: #5a5a7a;
+$light-text-tertiary: #8a8aa0;
 
 :host {
   ion-content {
@@ -29,6 +38,47 @@ $text-tertiary: #6b7280;
     --padding-end: 16px;
     font-weight: 600;
     margin: 0;
+  }
+}
+
+// Light theme support
+:host-context(.light-theme),
+:host-context([data-theme="light"]) {
+  ion-content {
+    --background: #{$light-bg-primary};
+    --color: #{$light-text-primary};
+  }
+
+  ion-toolbar {
+    --background: #{$light-bg-primary};
+    --color: #{$light-text-primary};
+    --border-color: #{$light-glass-border};
+  }
+
+  ion-button {
+    --color: #{$light-text-primary};
+    --border-color: #{$light-glass-border};
+  }
+}
+
+// Media query pour détection auto du thème système
+@media (prefers-color-scheme: light) {
+  :host:not([data-theme="dark"]) {
+    ion-content {
+      --background: #{$light-bg-primary};
+      --color: #{$light-text-primary};
+    }
+
+    ion-toolbar {
+      --background: #{$light-bg-primary};
+      --color: #{$light-text-primary};
+      --border-color: #{$light-glass-border};
+    }
+
+    ion-button {
+      --color: #{$light-text-primary};
+      --border-color: #{$light-glass-border};
+    }
   }
 }
 
@@ -89,8 +139,11 @@ $text-tertiary: #6b7280;
         inset: 0;
         background: linear-gradient(to top, $bg-primary, transparent);
       }
+      
     }
     
+  
+
     .profile-info-desktop {
       position: relative;
       padding: 0 8px;
@@ -207,6 +260,57 @@ $text-tertiary: #6b7280;
   }
 }
 
+// Light theme overrides for desktop
+:host-context(.light-theme) .desktop-header {
+  .cover-container .cover-overlay {
+    background: linear-gradient(to top, $light-bg-primary, transparent);
+  }
+  
+  .avatar-container .avatar-wrapper .avatar-desktop {
+    border-color: $light-bg-primary;
+  }
+  
+  .profile-details-desktop .name-section h1 {
+    color: $light-text-primary;
+  }
+  
+  .profile-details-desktop .bio-desktop {
+    color: $light-text-secondary;
+  }
+  
+  .action-buttons-desktop .setting-btn-desktop {
+    --background: #{$light-glass-bg};
+    --border-color: #{$light-glass-border};
+    --color: #{$light-text-primary};
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .desktop-header {
+    .cover-container .cover-overlay {
+      background: linear-gradient(to top, $light-bg-primary, transparent);
+    }
+    
+    .avatar-container .avatar-wrapper .avatar-desktop {
+      border-color: $light-bg-primary;
+    }
+    
+    .profile-details-desktop .name-section h1 {
+      color: $light-text-primary;
+    }
+    
+    .profile-details-desktop .bio-desktop {
+      color: $light-text-secondary;
+    }
+    
+    .action-buttons-desktop .setting-btn-desktop {
+      --background: #{$light-glass-bg};
+      --border-color: #{$light-glass-border};
+      --color: #{$light-text-primary};
+    }
+  }
+}
+
 // Mobile Profile Header
 .mobile-profile-header {
   @media (min-width: 768px) {
@@ -228,6 +332,11 @@ $text-tertiary: #6b7280;
       inset: 0;
       background: linear-gradient(to top, $bg-primary, transparent);
     }
+      .cover-edit-overlay{
+        position: absolute;
+        bottom: 15%;
+        right: 10px;
+      }
   }
   
   .profile-info-mobile {
@@ -303,7 +412,7 @@ $text-tertiary: #6b7280;
         .user-name {
           font-size: 20px;
           font-weight: 700;
-          color: $text-primary;
+          --color: $text-primary;
           margin: 0;
         }
       }
@@ -387,6 +496,119 @@ $text-tertiary: #6b7280;
   }
 }
 
+// Light theme overrides for mobile
+:host-context(.light-theme) .mobile-profile-header {
+  .cover-mobile .cover-gradient {
+    background: linear-gradient(to top, $light-bg-primary, transparent);
+  }
+  
+  .profile-info-mobile {
+    .avatar-section .story-ring .avatar-mobile {
+      border-color: $light-bg-primary;
+    }
+    
+    .action-buttons-mobile .message-btn-mobile {
+      --background: #{$light-glass-bg};
+      --border-color: #{$light-glass-border};
+    }
+    
+    .user-info-mobile {
+      .user-name {
+        color: $light-text-primary;
+      }
+      
+      .user-bio {
+        color: $light-text-secondary;
+      }
+      
+      .user-links .link-item {
+        color: $light-text-tertiary;
+      }
+    }
+    
+    .stats-container {
+      border-top-color: rgba(0, 0, 0, 0.08);
+      border-bottom-color: rgba(0, 0, 0, 0.08);
+      
+      .stat-item {
+        &.with-borders {
+          border-left-color: rgba(0, 0, 0, 0.08);
+          border-right-color: rgba(0, 0, 0, 0.08);
+        }
+        
+        &.with-right-border {
+          border-right-color: rgba(0, 0, 0, 0.08);
+        }
+        
+        .stat-value {
+          color: $light-text-primary;
+        }
+        
+        .stat-label {
+          color: $light-text-secondary;
+        }
+      }
+    }
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .mobile-profile-header {
+    .cover-mobile .cover-gradient {
+      background: linear-gradient(to top, $light-bg-primary, transparent);
+    }
+    
+    .profile-info-mobile {
+      .avatar-section .story-ring .avatar-mobile {
+        border-color: $light-bg-primary;
+      }
+      
+      .action-buttons-mobile .message-btn-mobile {
+        --background: #{$light-glass-bg};
+        --border-color: #{$light-glass-border};
+      }
+      
+      .user-info-mobile {
+        .user-name {
+          color: $light-text-primary;
+        }
+        
+        .user-bio {
+          color: $light-text-secondary;
+        }
+        
+        .user-links .link-item {
+          color: $light-text-tertiary;
+        }
+      }
+      
+      .stats-container {
+        border-top-color: rgba(0, 0, 0, 0.08);
+        border-bottom-color: rgba(0, 0, 0, 0.08);
+        
+        .stat-item {
+          &.with-borders {
+            border-left-color: rgba(0, 0, 0, 0.08);
+            border-right-color: rgba(0, 0, 0, 0.08);
+          }
+          
+          &.with-right-border {
+            border-right-color: rgba(0, 0, 0, 0.08);
+          }
+          
+          .stat-value {
+            color: $light-text-primary;
+          }
+          
+          .stat-label {
+            color: $light-text-secondary;
+          }
+        }
+      }
+    }
+  }
+}
+
 // addition 
 // ═══════════════════════════════════════════════════════════
 //  PROFILE PAGE — Premium additions  v2
@@ -422,6 +644,40 @@ $text-tertiary: #6b7280;
   --transition-smooth: 300ms cubic-bezier(.4,0,.2,1);
 }
 
+// Light theme design tokens override
+:host-context(.light-theme),
+:host-context([data-theme="light"]) {
+  --surface-0:  #ffffff;
+  --surface-1:  #f8f9fa;
+  --surface-2:  #f1f3f5;
+  --surface-3:  #e9ecef;
+  --surface-border: rgba(0, 0, 0, 0.08);
+  --surface-dark-banner: #e9ecef;
+
+  --text-primary:   #1a1a2e;
+  --text-secondary: #5a5a7a;
+  --text-muted:     #8a8aa0;
+
+  --gold-glow: rgba(245, 158, 11, 0.25);
+}
+
+@media (prefers-color-scheme: light) {
+  :host:not([data-theme="dark"]) {
+    --surface-0:  #ffffff;
+    --surface-1:  #f8f9fa;
+    --surface-2:  #f1f3f5;
+    --surface-3:  #e9ecef;
+    --surface-border: rgba(0, 0, 0, 0.08);
+    --surface-dark-banner: #e9ecef;
+
+    --text-primary:   #1a1a2e;
+    --text-secondary: #5a5a7a;
+    --text-muted:     #8a8aa0;
+
+    --gold-glow: rgba(245, 158, 11, 0.25);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════
 //  SEGMENTS & TABS
 // ═══════════════════════════════════════════════════════════
@@ -442,6 +698,20 @@ $text-tertiary: #6b7280;
     font-weight: 600;
     min-width: 0;
     flex: 1;
+  }
+}
+
+// Light theme override for segment
+:host-context(.light-theme) .custom-segment,
+.custom-segment.light-theme {
+  ion-segment-button {
+    --color: #8a8aa0;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .custom-segment ion-segment-button {
+    --color: #8a8aa0;
   }
 }
 
@@ -495,7 +765,12 @@ $text-tertiary: #6b7280;
   }
 }
 
-// Content container
+// Light theme override for desktop tab
+:host-context(.light-theme) .desktop-tab,
+.desktop-tab.light-theme {
+  color: #8a8aa0;
+}
+
 .content-container {
   padding: 0 16px;
 
@@ -509,6 +784,7 @@ $text-tertiary: #6b7280;
 // ═══════════════════════════════════════════════════════════
 //  1. REWARD PROGRESS PILL  — progress fill visible
 // ═══════════════════════════════════════════════════════════
+
  
 .xp-pill-wrapper {
   padding: 16px 16px 8px;
@@ -539,7 +815,27 @@ $text-tertiary: #6b7280;
     0 4px 18px rgba(0, 0, 0, 0.45);
  
   transition: transform var(--transition-fast);
-  &:active { transform: scale(0.985); }
+}
+
+.xp-pill:active {
+  transform: scale(0.985);
+}
+
+// Light theme pill background adjustment
+:host-context(.light-theme) .xp-pill {
+  background: #e6c27a;
+  box-shadow:
+    0 0 0 1.5px rgba(245, 158, 11, 0.40),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: light) {
+  .xp-pill {
+    background: #e6c27a;
+    box-shadow:
+      0 0 0 1.5px rgba(245, 158, 11, 0.40),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 }
  
 // ── Fill : zone active, superposée en absolute à gauche
@@ -615,9 +911,31 @@ $text-tertiary: #6b7280;
  
 // Sur la partie non remplie (level right) le texte devient plus clair
 // car le fond est sombre
-.xp-level-right .xp-lvl-sup,
+.xp-level-right .xp-lvl-sup {
+  color: rgba(255,255,255,0.55);
+}
+
 .xp-level-right .xp-lvl-num {
   color: rgba(255,255,255,0.55);
+}
+
+// Light theme right level text
+:host-context(.light-theme) .xp-level-right .xp-lvl-sup {
+  color: rgba(0,0,0,0.5);
+}
+
+:host-context(.light-theme) .xp-level-right .xp-lvl-num {
+  color: rgba(0,0,0,0.5);
+}
+
+@media (prefers-color-scheme: light) {
+  .xp-level-right .xp-lvl-sup {
+    color: rgba(0,0,0,0.5);
+  }
+
+  .xp-level-right .xp-lvl-num {
+    color: rgba(0,0,0,0.5);
+  }
 }
  
 // Centre
@@ -665,6 +983,17 @@ $text-tertiary: #6b7280;
   }
 }
 
+// Light theme arrow icon
+:host-context(.light-theme) .xp-arrow ion-icon {
+  color: rgba(0,0,0,0.5);
+}
+
+@media (prefers-color-scheme: light) {
+  .xp-arrow ion-icon {
+    color: rgba(0,0,0,0.5);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════
 //  2. AWARDS CARD  — style maquette hexagones
 // ═══════════════════════════════════════════════════════════
@@ -685,6 +1014,17 @@ $text-tertiary: #6b7280;
   border-radius: var(--radius-card);
   overflow: hidden;
   box-shadow: 0 4px 28px rgba(0,0,0,0.35);
+}
+
+// Light theme card shadow
+:host-context(.light-theme) .awards-card {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+@media (prefers-color-scheme: light) {
+  .awards-card {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
 }
 
 // ── Card Header ──────────────────────────────────────────
@@ -730,6 +1070,18 @@ $text-tertiary: #6b7280;
   &:active {
     opacity: 0.8;
     transform: scale(0.97);
+  }
+}
+
+// Light theme see all button
+:host-context(.light-theme) .awards-see-all-btn,
+.light-theme .awards-see-all-btn {
+  background: #1a1a2e;
+}
+
+@media (prefers-color-scheme: light) {
+  .awards-see-all-btn {
+    background: #1a1a2e;
   }
 }
 
@@ -824,6 +1176,41 @@ $text-tertiary: #6b7280;
   margin-top: 12px;
   background: #3a3a3a;
   padding: 16px 18px 18px;
+}
+
+// Light theme banner
+:host-context(.light-theme) .award-info-banner {
+  background: var(--surface-2);
+}
+
+:host-context(.light-theme) .award-banner-name {
+  color: var(--text-primary);
+}
+
+:host-context(.light-theme) .award-banner-reason {
+  color: var(--text-secondary);
+}
+
+:host-context(.light-theme) .award-banner-meta {
+  color: var(--text-muted);
+}
+
+@media (prefers-color-scheme: light) {
+  .award-info-banner {
+    background: var(--surface-2);
+  }
+  
+  .award-banner-name {
+    color: var(--text-primary);
+  }
+  
+  .award-banner-reason {
+    color: var(--text-secondary);
+  }
+  
+  .award-banner-meta {
+    color: var(--text-muted);
+  }
 }
 
 .award-banner-name {
@@ -959,4 +1346,165 @@ $text-tertiary: #6b7280;
   --color: #fff;
   --box-shadow: 0 4px 16px var(--gold-glow);
   margin-top: 8px; font-weight: 700;
+}
+
+/* =====================
+   SKELETON LOADER STYLES
+   ===================== */
+
+.skeleton {
+  background: linear-gradient(90deg, 
+    var(--surface-3) 25%, 
+    var(--surface-2) 50%, 
+    var(--surface-3) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Skeleton elements */
+.skeleton-cover-image {
+  height: 200px;
+  width: 100%;
+  border-radius: 0;
+}
+
+.skeleton-cover-image-mobile {
+  height: 150px;
+  width: 100%;
+  border-radius: 0;
+}
+
+.skeleton-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+}
+
+.skeleton-avatar-mobile {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.skeleton-name {
+  height: 24px;
+  width: 200px;
+  margin-bottom: 8px;
+}
+
+.skeleton-name-mobile {
+  height: 20px;
+  width: 150px;
+  margin-bottom: 6px;
+}
+
+.skeleton-badge {
+  height: 16px;
+  width: 80px;
+}
+
+.skeleton-badge-mobile {
+  height: 14px;
+  width: 60px;
+}
+
+.skeleton-handle {
+  height: 16px;
+  width: 250px;
+  margin-bottom: 8px;
+}
+
+.skeleton-bio {
+  height: 14px;
+  width: 300px;
+}
+
+.skeleton-bio-mobile {
+  height: 12px;
+  width: 200px;
+  margin-bottom: 4px;
+}
+
+.skeleton-title {
+  height: 14px;
+  width: 180px;
+  margin-bottom: 8px;
+}
+
+.skeleton-links {
+  height: 12px;
+  width: 150px;
+}
+
+.skeleton-button {
+  height: 36px;
+  width: 100px;
+  border-radius: 20px;
+}
+
+.skeleton-button-mobile {
+  height: 32px;
+  width: 80px;
+  border-radius: 16px;
+}
+
+.skeleton-stat {
+  height: 40px;
+  width: 60px;
+  border-radius: 8px;
+}
+
+/* =====================
+   PROFILE ERROR STYLES
+   ===================== */
+
+.profile-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 20px;
+}
+
+.error-container {
+  text-align: center;
+  max-width: 300px;
+}
+
+.error-icon {
+  font-size: 64px;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+}
+
+.error-container h3 {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.error-container p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.error-container ion-button {
+  --background: var(--ion-color-primary);
+  --color: white;
+  border-radius: 20px;
+  font-weight: 500;
 }

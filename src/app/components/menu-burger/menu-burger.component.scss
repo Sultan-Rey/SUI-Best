@@ -21,8 +21,9 @@
 
   // Pour les écrans mobiles
   @media (max-width: 768px) {
+    width:75%;
     transform: translateX(-100%); // Cacher sur mobile par défaut
-    
+    top: 75px;
     &.open {
       transform: translateX(0); // Montrer quand ouvert
     }
@@ -40,13 +41,21 @@
       color: var(--ion-text-color);
     }
 
-    .close-btn {
+    .profile-btn {
       background: none;
+      display:none;
       border: none;
       font-size: 24px;
       color: var(--ion-text-color);
       cursor: pointer;
     }
+
+    @media (max-width: 768px) {
+    .profile-btn{
+      display:block;
+    }
+  }
+
   }
 
   .menu-items {

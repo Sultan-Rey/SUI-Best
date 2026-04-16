@@ -140,6 +140,74 @@ export class CameraService {
     });
   }
 
+async generateThumbnail(videoFile: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    video.src = URL.createObjectURL(videoFile);
+    video.currentTime = 1; // On prend la frame à 1 seconde
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadeddata = () => {
+      canvas.width = video.videoWidth / 2; // On réduit la taille pour le poids
+      canvas.height = video.videoHeight / 2;
+      
+      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject('Erreur génération thumbnail');
+        URL.revokeObjectURL(video.src);
+      }, 'image/webp', 0.7); // WebP à 70% de qualité = ultra léger
+    };
+
+    video.onerror = (err) => reject(err);
+    video.load();
+  });
+}
+
+
+async compressImage(file: File, maxWidth = 1920, quality = 0.8): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Redimensionnement proportionnel si l'image dépasse la largeur max
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        } else {
+          reject(new Error('Erreur de compression'));
+        }
+        URL.revokeObjectURL(img.src);
+      }, 'image/jpeg', quality); // On force le JPEG pour une meilleure compression
+    };
+    img.onerror = (err) => reject(err);
+  });
+}
+
   private async buildMediaFile(file: File, previewUrl: string): Promise<MediaFile> {
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');

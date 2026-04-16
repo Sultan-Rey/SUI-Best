@@ -82,7 +82,7 @@ private polling?: FollowedViewPolling;
   //#region Public Properties
   needsRefresh = false;
   currentIndex = 0;
-  isMuted = true;
+  isMuted = false;
   scrollingUiHidden = false;
   uiHidden: { [postId: string]: boolean } = {};
   loadingVideos: { [postId: string]: boolean } = {};
@@ -358,25 +358,60 @@ private triggerSnapReveal(postEl: HTMLElement) {
   // -------------------------------------------------------
   // ✅ Lecture vidéo avec gestion du son et du loading
   // -------------------------------------------------------
-  private async playVideo(video: HTMLVideoElement, postId: string) {
-    video.muted = this.isMuted;
+ private async playVideo(video: HTMLVideoElement, postId: string) {
+  video.muted = this.isMuted; // Tentative avec le son si isMuted est false
 
-    // Afficher le spinner si la vidéo n'est pas prête
-    if (video.readyState < 3) {
-      this.loadingVideos[postId] = true;
-      await new Promise<void>(resolve => {
-        video.oncanplay = () => resolve();
-      });
-      this.loadingVideos[postId] = false;
-    }
-
-    try {
-      await video.play();
-    } catch (err) {
-      // Autoplay bloqué par le navigateur → silencieux
-      console.warn('Autoplay bloqué:', err);
-    }
+  if (video.readyState < 3) {
+    this.loadingVideos[postId] = true;
+    await new Promise<void>(resolve => {
+      video.oncanplay = () => resolve();
+    });
+    this.loadingVideos[postId] = false;
   }
+
+  try {
+    await video.play();
+  } catch (err) {
+    console.warn('Autoplay avec son bloqué, tentative en muet :', err);
+    video.muted = true; // On force le muet pour que la vidéo tourne quand même
+    await video.play();
+  }
+}
+
+// Dans followed-view.component.ts
+
+// Ajoutez cette méthode pour gérer le "Long Press"
+onPressStart(post: Content) {
+  const currentPostEl = this.postElements.find(
+    el => el.nativeElement.getAttribute('data-content-id') === post.id
+  );
+  
+  if (currentPostEl) {
+    const video = currentPostEl.nativeElement.querySelector('video') as HTMLVideoElement;
+    if (video) {
+      video.pause(); // Stoppe la vidéo
+    }
+    // Optionnel : masquer l'interface pendant l'appui
+    this.uiHidden[post.id || ''] = true; 
+    this.cdr.markForCheck();
+  }
+}
+
+onPressEnd(post: Content) {
+  const currentPostEl = this.postElements.find(
+    el => el.nativeElement.getAttribute('data-content-id') === post.id
+  );
+  
+  if (currentPostEl) {
+    const video = currentPostEl.nativeElement.querySelector('video') as HTMLVideoElement;
+    if (video) {
+      video.play(); // Relance la vidéo
+    }
+    // Réafficher l'interface
+    this.uiHidden[post.id || ''] = false;
+    this.cdr.markForCheck();
+  }
+}
 
   // -------------------------------------------------------
   // ✅ Toggle mute global sur toutes les vidéos

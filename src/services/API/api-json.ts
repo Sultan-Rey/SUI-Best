@@ -1,5 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
-import { environment } from 'src/environments/environment.prod';
+import { environment } from 'src/environments/environment';
 import {
   HttpClient, HttpEvent, HttpHeaders, HttpParams, HttpErrorResponse
 } from '@angular/common/http';
@@ -546,6 +546,36 @@ export class ApiJSON {
       catchError(err => this.handleError(err))
     );
   }
+
+  /**
+ * Envoie un morceau de fichier spécifique au serveur.
+ */
+uploadChunk<T>(
+  chunk: Blob,
+  chunkInfo: { index: number; total: number; uuid: string; filename: string },
+  path: string = 'contents'
+): Observable<HttpEvent<T>> {
+  const formData = new FormData();
+  formData.append('file', chunk, chunkInfo.filename);
+  formData.append('chunkIndex', chunkInfo.index.toString());
+  formData.append('totalChunks', chunkInfo.total.toString());
+  formData.append('uuid', chunkInfo.uuid);
+  formData.append('filename', chunkInfo.filename);
+  formData.append('path', path);
+
+  return this.http.post<T>(
+    `${this.BASE_URL}/upload-chunk`, // Nouvelle route dédiée
+    formData,
+    {
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${this.getToken()}` }),
+      reportProgress: true, // Toujours utile pour le micro-feedback
+      observe: 'events'
+    }
+  ).pipe(
+    this.retryWithBackoff(3, 1000), // Plus de retries pour les chunks
+    catchError(err => this.handleError(err))
+  );
+}
 
   getFile(filePath: string): Observable<Blob> {
     const params = new HttpParams().set('path', filePath);

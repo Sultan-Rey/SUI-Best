@@ -208,7 +208,7 @@ export class ExclusivePage implements OnInit {
       },
       
       created_at: series.created_at,
-      updatedAt: series.updated_at
+      updated_at: series.updated_at
     };
   }
 

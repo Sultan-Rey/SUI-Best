@@ -28,7 +28,7 @@ import {
 
   IonButton,
 
-  IonIcon, IonSpinner, IonLoading } from '@ionic/angular/standalone';
+  IonIcon, IonSpinner } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
 
@@ -84,7 +84,7 @@ import { NotificationManagerService } from 'src/services/Notification/notificati
 
   standalone: true,
 
-  imports: [IonLoading, 
+  imports: [ 
 
     CommonModule,
 
@@ -369,7 +369,13 @@ this.registrationData.myPlan = {
 
     try {
 
-      this.isLoading = true;
+      const loading = await this.loadingController.create({
+        message:"Creation de compte...",
+        duration:7000,
+        spinner: "bubbles"
+      });
+
+      loading.present();
 
       // Utilisation propre du service Auth avec gestion d'erreurs
 
@@ -378,9 +384,19 @@ this.registrationData.myPlan = {
       if (!signupResponse.success) {
 
         throw new Error(signupResponse.error || signupResponse.message || 'Échec de l\'inscription');
-
+        
       } else {
+        
+      loading.dismiss();
 
+      // Notifier l'inscription réussie
+
+      if (this.registrationData?.id) {
+
+        await this.notificationManager.notifyWelcome(this.registrationData.id);
+
+      }
+      
          // Rediriger vers la page default avec account-success et les extras
       await this.router.navigate(['/default/account-success'], {
         state: {
@@ -389,13 +405,7 @@ this.registrationData.myPlan = {
         }
       });
       
-      // Notifier l'inscription réussie
-
-      if (this.registrationData?.id) {
-
-        await this.notificationManager.notifyWelcome(this.registrationData.id);
-
-      }
+      
      
       // Réinitialiser les données du formulaire
 

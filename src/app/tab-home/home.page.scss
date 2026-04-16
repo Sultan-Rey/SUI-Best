@@ -20,10 +20,10 @@
   height: 10px;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.7) 30%,
-    rgba(0, 0, 0, 0.15) 60%,
-    rgba(0, 0, 0, 0.07) 85%,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.2) 30%,
+    rgba(0, 0, 0, 0.1) 60%,
+    rgba(0, 0, 0, 0.05) 85%,
     rgba(0, 0, 0, 0) 100%
   );
   backdrop-filter: blur(15px);
@@ -43,6 +43,7 @@
     rgba(0, 0, 0, 0) 100%
   );
 }
+
 /* ==================== */
 /*   CONTENU FULL       */
 /* ==================== */
@@ -52,7 +53,6 @@
   --padding-bottom: 0;
   --padding-start: 0;
   --padding-end: 0;
-  padding-left: 280px; // Laisser de la place pour le menu fixe
   transition: padding-left 0.3s ease;
   
   // Quand le menu est réduit
@@ -66,6 +66,7 @@
   }
 }
 
+
 // PAS de spacer - le contenu commence en haut
 // Le header flotte par-dessus
 .content-spacer {
@@ -74,7 +75,7 @@
 
 .views-container {
   display: flex;
-  width: 100%;
+  width: 75%;
   margin-left: 25%;
   min-height: 100vh;
   transform: translateX(0);
@@ -88,7 +89,7 @@
   @media (max-width: 768px) {
  
     margin-left: 0;
-    
+    width:100%;
     &.show-followed {
       transform: translateX(-50%);
     }
@@ -96,7 +97,7 @@
 }
 
 .view-panel {
-  width: 75%;
+  width: 100%;
   flex-shrink: 0;
   
   &::-webkit-scrollbar {
@@ -121,15 +122,16 @@
 /* ==================== */
 .floating-banner-ad {
   position: fixed;
-  top: 15%;
+  top: 30%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9999;
   width: 90%;
+  padding-top: 4px;
   max-width: 400px;
+  max-height: 200px;
   background: rgba(0, 0, 0, 0.9);
   border-radius: 16px;
-  padding: 4px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -140,14 +142,13 @@
   
   // Responsive
   @media (max-width: 480px) {
-    width: 95%;
-    max-width: 350px;
-    top: 45%;
+        max-width: 300px;
+        top: 25%;
   }
   
   @media (min-width: 768px) {
-    width: 80%;
-    max-width: 500px;
+    width: 100%;
+    max-width: 400px;
   }
 }
 
@@ -179,6 +180,11 @@
   
   &:active {
     transform: scale(0.95);
+  }
+
+   @media (max-width: 480px) {
+        top: -8px;
+        right: -8px;
   }
 }
 
@@ -437,12 +443,20 @@ ion-footer{
 }
 
 .empty-state-title {
-  color: #ffffff;
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 16px 0;
   line-height: 1.2;
   background: linear-gradient(135deg, #ff9500 0%, #ff5c3a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Light theme adaptation
+.ion-palette-light .empty-state-title {
+  color: #333333;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c42 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -457,6 +471,15 @@ ion-footer{
   strong {
     color: #ff9500;
     font-weight: 600;
+  }
+}
+
+// Light theme adaptation
+.ion-palette-light .empty-state-text {
+  color: #666666;
+  
+  strong {
+    color: #ff6b00;
   }
 }
 

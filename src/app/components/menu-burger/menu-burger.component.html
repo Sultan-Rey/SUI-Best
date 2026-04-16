@@ -1,11 +1,12 @@
-<div class="burger-overlay" [class.open]="isOpen" (click)="onCloseMenu()"></div>
 
 <div class="burger-menu" [class.open]="isOpen" [class.collapsed]="isCollapsed">
-  <div class="menu-header" *ngIf="!isCollapsed">
-    <!-- <button class="close-btn" (click)="onCloseMenu()">
-      <ion-icon name="close"></ion-icon>
-    </button> -->
-    <h3>Menu</h3>
+  <div class="menu-header" *ngIf="!isCollapsed" >
+     <button class="profile-btn" (click)="gotoprofile()">
+       <ion-avatar class="header-avatar"  >
+            <img [src]="avatar  | mediaUrl | async" alt="Profile" (error)="onImageAvatarError($event)" />
+          </ion-avatar> 
+    </button> 
+    <h3>Profile</h3>
   </div>
  <div class="menu-items">
   <ng-container *ngFor="let item of navItems">

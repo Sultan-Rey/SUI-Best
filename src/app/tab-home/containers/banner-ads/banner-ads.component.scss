@@ -7,7 +7,7 @@
 .banner-wrapper {
   position: relative;
   width: 100%;
-  max-width: 300px;
+  max-width: 350px;
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
@@ -19,7 +19,7 @@
 .banner-content {
   position: relative;
   width: 100%;
-  aspect-ratio: 300/250; // Ratio 300x250px
+  aspect-ratio: 400/210; // Ratio 300x250px
 }
 
 .banner-image {
@@ -41,7 +41,7 @@
 .close-banner {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;
   width: 24px;
   height: 24px;
   background: rgba(0, 0, 0, 0.7);
@@ -183,7 +183,7 @@
 // Responsive
 @media (max-width: 768px) {
   .banner-wrapper {
-    max-width: 280px;
+    max-width: 300px;
   }
 
   .close-banner {
@@ -207,8 +207,8 @@
 
 @media (max-width: 480px) {
   .banner-wrapper {
-    max-width: 260px;
-    margin: 0 8px;
+    max-width: 280px;
+    margin: 0 0px;
   }
 
   .banner-ads-container {

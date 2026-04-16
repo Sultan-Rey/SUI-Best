@@ -70,12 +70,15 @@ export class Auth {
     }
 
     // Préparer les données pour le backend selon la structure attendue
+    const platformInfo = this.detectPlatform();
     const payload = {
       email: userData.email.toLowerCase().trim(),
       password: userData.password,
       displayName: userData.first_name+" "+userData.last_name || userData.email,
       user_type: userData.user_type || 'fan',
-      user_status: userData.user_status
+      user_status: userData.user_status,
+      platform: platformInfo.type,
+      device_info: platformInfo.info
     };
     // Utiliser la route d'inscription dédiée
     return this.api.post<any>('auth/register', payload).pipe(
@@ -164,49 +167,58 @@ export class Auth {
         };
       }
 
-  private async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
-            // Nettoyer les caractères spéciaux et les accents
-            const cleanString = (str: string) => {
-              return str
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, '') // Garde uniquement les lettres et chiffres
-                .substring(0, 15); // Limite la longueur
-            };
-          
-            const cleanFirstName = cleanString(firstName);
-            const cleanLastName = cleanString(lastName);
-            
-            // Première tentative : prénom.nom
-            let baseUsername = `${cleanFirstName}.${cleanLastName}`;
-            let username = baseUsername;
-            let counter = 1;
-          
-            // Vérifier si le nom d'utilisateur existe déjà
-            const usernameExists = async (username: string): Promise<boolean> => {
-              try {
-                const profile = await firstValueFrom(this.profileService.getProfileByUsername(username));
-                return profile !== null;
-              } catch (error) {
-                console.error('Erreur lors de la vérification du nom d\'utilisateur', error);
-                return false; // En cas d'erreur, on considère que le nom est disponible
-              }
-            };
-          
-            // Tant que le nom d'utilisateur existe, on ajoute un numéro
-            while (await usernameExists(username)) {
-              username = `${baseUsername}${counter}`;
-              counter++;
-              
-              // Limite de sécurité pour éviter les boucles infinies
-              if (counter > 1000) {
-                throw new Error('Impossible de générer un nom d\'utilisateur unique');
-              }
-            }
-          
-            return username;
-          }
+ private async generateUniqueUsername(firstName: string, lastName: string): Promise<string> {
+  const clean = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+  
+  const f = clean(firstName);
+  const l = clean(lastName);
+
+  // 1. Stratégies de génération (ordre de préférence)
+  const candidates = [
+    `${f}${l.charAt(0)}`,       // jdoe
+    `${f.charAt(0)}${l}`,       // jdoe
+    `${f}.${l}`,                // john.doe
+    `${f}${l}`,                 // johndoe
+  ];
+
+  // Essayer les combinaisons naturelles d'abord
+  for (const candidate of candidates) {
+    if (candidate.length >= 3 && !(await this.usernameExists(candidate))) {
+      return candidate;
+    }
+  }
+
+  // 2. Si tout est pris, on passe au mode "Modern Suffix"
+  // On prend une base courte + un suffixe hexadécimal ou alphanumérique court
+  let isUnique = false;
+  let finalUsername = '';
+  let attempts = 0;
+
+  while (!isUnique && attempts < 10) {
+    const base = `${f}${l.charAt(0)}`.substring(0, 10);
+    const suffix = Math.random().toString(36).substring(2, 5); // ex: '7ax'
+    finalUsername = `${base}_${suffix}`;
+    
+    if (!(await this.usernameExists(finalUsername))) {
+      isUnique = true;
+    }
+    attempts++;
+  }
+
+  if (!isUnique) throw new Error('Generation failed');
+  return finalUsername;
+}
+
+  // Vérifier si le nom d'utilisateur existe déjà
+  private async usernameExists(username: string): Promise<boolean> {
+    try {
+      const profile = await firstValueFrom(this.profileService.getProfileByUsername(username));
+      return profile !== null;
+    } catch (error) {
+      console.error('Erreur lors de la vérification du nom d\'utilisateur', error);
+      return false; // En cas d'erreur, on considère que le nom est disponible
+    }
+  }
   /* ======================
      LOGIN
      ====================== */

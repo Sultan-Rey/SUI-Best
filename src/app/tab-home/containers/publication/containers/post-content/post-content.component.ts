@@ -6,11 +6,7 @@ import {
 import { CameraService, MediaFile } from 'src/services/CAMERA/camera-service';
 import { CreationService } from 'src/services/Service_content/creation-service';
 import { Content, ContentSource, ContentStatus, ContentCategory } from 'src/models/Content';
-import {
-  IonButton, IonChip, IonToggle, IonTextarea, IonIcon,
-  IonHeader, IonToolbar, IonTitle, IonButtons,
-  IonRadioGroup, IonRadio, IonSpinner
-} from '@ionic/angular/standalone';
+import { IonToggle, IonTextarea, IonIcon, IonRadioGroup, IonRadio, IonSpinner, IonProgressBar } from '@ionic/angular/standalone';
 import { NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
@@ -22,13 +18,12 @@ import {
   expandOutline, contractOutline, checkmark
 } from 'ionicons/icons';
 import { Challenge } from 'src/models/Challenge';
-import { Auth } from 'src/services/AUTH/auth';
 import { ProfileService } from 'src/services/Service_profile/profile-service';
-import { Router } from '@angular/router';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { UserProfile } from 'src/models/User';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 import { SystemMessenger } from 'src/services/Service_message/system-messenger';
+import { lastValueFrom, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-post-content',
@@ -37,7 +32,7 @@ import { SystemMessenger } from 'src/services/Service_message/system-messenger';
   standalone: true,
   providers: [ModalController],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [IonProgressBar, 
     NgIf, NgFor, FormsModule, IonToggle, IonTextarea,
     IonIcon, IonRadio, IonRadioGroup,
     IonSpinner
@@ -82,12 +77,20 @@ export class PostContentComponent implements OnInit, OnDestroy {
   // ─── UI ───────────────────────────────────────────────────────
   currentStep     = 1;
   totalSteps      = 3;
+  uploadProgress  = 0;
   isPickingMedia  = false;
   isUploading     = false;
   isPublic        = true;
   isLocked        = false;
   isAdvertisement = false;
   advertisementType = 'ads_post';
+  
+  // Optimistic upload
+  backgroundUploadUuid = '';
+  isBackgroundUploadActive = false;
+  backgroundUploadProgress = 0;
+  uploadedThumbnailUrl = '';
+  uploadedVideoUrl = '';
   
   constructor(
     private cameraService:    CameraService,
@@ -130,6 +133,7 @@ export class PostContentComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
+    this.stopOptimisticUpload();
   }
 
   loadChallenges(): void {
@@ -146,6 +150,70 @@ export class PostContentComponent implements OnInit, OnDestroy {
       },
       error: () => this.showError('Tableau des défis vide')
     });
+  }
+
+  /**
+   * Démarre l'upload optimiste (sans métadonnées)
+   */
+  async startOptimisticUpload(): Promise<void> {
+    if (!this.activeMedia?.isVideo) return;
+    
+    const file = this.activeMedia.file;
+    const thumbBlob = await this.cameraService.generateThumbnail(file);
+    
+    // Démarrer l'upload optimiste
+    this.backgroundUploadUuid = crypto.randomUUID();
+    this.isBackgroundUploadActive = true;
+    
+    //console.log('[PostContent] Starting optimistic upload:', this.backgroundUploadUuid);
+    
+    // S'abonner à la progression
+    this.creationService.uploadVideoFilesOnly(file, thumbBlob).subscribe({
+      next: (result) => {
+        this.backgroundUploadProgress = result.progress;
+        
+        if (result.thumbnailUrl) {
+          this.uploadedThumbnailUrl = result.thumbnailUrl;
+        }
+        
+        if (result.videoUrl) {
+          this.uploadedVideoUrl = result.videoUrl;
+        }
+        
+       // console.log('[PostContent] Upload progress:', result.progress + '%');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('[PostContent] Optimistic upload error:', err);
+        this.stopOptimisticUpload();
+      },
+      complete: () => {
+        console.log('[PostContent] Optimistic upload completed');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /**
+   * Arrête l'upload optimiste
+   */
+  stopOptimisticUpload(): void {
+    this.isBackgroundUploadActive = false;
+    this.backgroundUploadUuid = '';
+    this.backgroundUploadProgress = 0;
+    this.uploadedThumbnailUrl = '';
+    this.uploadedVideoUrl = '';
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Vérifie si un upload optimiste est en cours et terminé
+   */
+  isOptimisticUploadCompleted(): boolean {
+    return this.isBackgroundUploadActive && 
+           this.backgroundUploadProgress === 100 && 
+           !!this.uploadedThumbnailUrl && 
+           !!this.uploadedVideoUrl;
   }
 
   async takePhoto(): Promise<void> {
@@ -185,6 +253,7 @@ export class PostContentComponent implements OnInit, OnDestroy {
     this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
     this.selectedMedia = [];
     this.activeIndex   = 0;
+    this.stopOptimisticUpload(); // Arrêter l'upload en cours
     this.cdr.markForCheck();
   }
 
@@ -198,6 +267,9 @@ export class PostContentComponent implements OnInit, OnDestroy {
     this.selectedMedia.forEach(m => URL.revokeObjectURL(m.previewUrl));
     this.selectedMedia = mediaFiles;
     this.activeIndex   = 0;
+    
+    // Arrêter l'upload optimiste précédent
+    this.stopOptimisticUpload();
 
     // Vérifier les dimensions si c'est une bannière publicitaire
     if (this.isAdvertisement && this.advertisementType === 'ads_banner' && mediaFiles.length > 0) {
@@ -216,8 +288,8 @@ export class PostContentComponent implements OnInit, OnDestroy {
         const width = img.width;
         const height = img.height;
         
-        if (width > 300 || height > 250) {
-          this.showError(`Les dimensions de la bannière publicitaire doivent être de 300x250px maximum. Actuel: ${width}x${height}px`);
+        if (width > 400 || height > 210) {
+          this.showError(`Les dimensions de la bannière publicitaire doivent être de 400x250px maximum. Actuel: ${width}x${height}px`);
           // Réinitialiser le média
           this.selectedMedia = [];
           this.activeIndex = 0;
@@ -254,7 +326,7 @@ export class PostContentComponent implements OnInit, OnDestroy {
 
   isAuthorized(): boolean {
   // AUTORISÉ SI : est vérifié OU (si pas vérifié, alors possède un challenge)
-  if (this.CurrentUserProfile?.isVerified) {
+  if (this.CurrentUserProfile?.isVerified || this.CurrentUserProfile?.type === 'admin') {
     return true; 
   }
   return !!this.selectedChallenge;
@@ -263,6 +335,12 @@ export class PostContentComponent implements OnInit, OnDestroy {
   nextStep(): void {
     if (this.currentStep >= this.totalSteps) return;
     this.currentStep++;
+    
+    // Étape 2 : Démarrer l'optimistic upload pour les vidéos
+    if (this.currentStep === 2 && this.activeMedia?.isVideo) {
+      this.startOptimisticUpload();
+    }
+    
     this.cdr.markForCheck();
   }
 
@@ -272,44 +350,186 @@ export class PostContentComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  async submit(): Promise<void> {
+
+async submit(): Promise<void> {
     if (!this.hasMedia)                    { this.showError('Veuillez sélectionner un fichier'); return; }
     if (!this.content.description?.trim()) { this.showError('Veuillez ajouter un titre'); return; }
+    if(!this.isAuthorized()){
+      this.alertCtrl.create({
+        header:"Publication non autorisé",
+        subHeader:"Votre compte n'est pas verifié",
+        message:"Vous ne pouvez pas publier de contenu hors challenge si votre compte n'est pas verifié",
+        buttons: ['J\'ai compris']
+      }).then((alert)=>alert.present());
+      return;
+    }
 
-    if(!this.isAuthorized()) {this.showError('Vous n\'avez choisit aucun défi pour ce post'); return;}
-    
-    this.isUploading = true;
-    this.cdr.markForCheck();
+  this.isUploading = true;
+  this.uploadProgress = 0;
+  this.cdr.markForCheck();
 
-    const loading = await this.loadingCtrl.create({ message: 'Publication en cours...' });
-    await loading.present();
+  try {
+    const metadata = {
+      userId:         this.content.userId ?? '',
+      description:    this.content.description,
+      isPublic:       this.content.isPublic ?? true,
+      allowDownloads: this.content.allowDownloads ?? true,
+      allowComments:  this.content.allowComments ?? false,
+      challengeId:    this.selectedChallenge?.id ?? '',
+      cadrage:        'default',
+      width:          this.activeMedia?.width,
+      height:         this.activeMedia?.height,
+      duration:       this.activeMedia?.duration,
+      username:       this.CurrentUserProfile.displayName,
+      publishedAt:    new Date(Date.now()),
+      status:         this.content.status,
+      fileSize:       this.activeMedia!.file.size ?? 0,
+      source:         this.content.source,
+      category:       this.isAdvertisement ? 'ADS_POST' : 'POST'
+    };
 
-    try {
-      const challengeId = this.selectedChallenge?.creator_id !== this.CurrentUserProfile.id &&
-                          !this.selectedChallenge?.is_acceptance_automatic ? '' : this.content.challengeId;
-      const newContent = await this.creationService.createContentWithFile(
-        this.activeMedia!.file,
-        {
-          userId:         this.content.userId ?? '',
-          description:    this.content.description,
-          isPublic:       this.content.isPublic ?? true,
-          allowDownloads: this.content.allowDownloads ?? true,
-          allowComments:  this.content.allowComments ?? false,
-          challengeId:    challengeId ,
-          cadrage:        'default' as const,
-          status:         this.content.status as ContentStatus,
-          likedIds:       [],
-          commentIds:     [],
-          source:         this.content.source ?? ContentSource.CAMERA,
-          category:       this.isAdvertisement 
-            ? (this.advertisementType === 'ads_banner' ? ContentCategory.ADS_BANNER : ContentCategory.ADS_POST)
-            : ContentCategory.POST,
+    if (this.activeMedia?.isVideo) {
+      // VIDÉO : gérer l'optimistic upload
+      
+      if (this.isOptimisticUploadCompleted()) {
+        // Upload déjà terminé : créer le Content avec les URLs
+        //console.log('[PostContent] Using uploaded files:', this.uploadedThumbnailUrl, this.uploadedVideoUrl);
+        
+        this.creationService.createContentWithUploadedFiles(
+          this.uploadedThumbnailUrl,
+          this.uploadedVideoUrl,
+          metadata
+        ).subscribe({
+          next: (content) => {
+            this.uploadProgress = 100;
+            this.handleSuccess(content);
+          },
+          error: (err) => {
+            this.isUploading = false;
+            this.showError('Erreur de publication');
+            this.cdr.markForCheck();
+          }
+        });
+        
+      } else if (this.isBackgroundUploadActive) {
+        // Upload en cours : attendre la fin
+        console.log('[PostContent] Waiting for upload completion...');
+        
+        // Surveiller la progression jusqu'à 100%
+        const checkInterval = setInterval(() => {
+          this.uploadProgress = this.backgroundUploadProgress;
+          this.cdr.markForCheck();
+          
+          if (this.isOptimisticUploadCompleted()) {
+            clearInterval(checkInterval);
+            
+            // Créer le Content avec les URLs
+            this.creationService.createContentWithUploadedFiles(
+              this.uploadedThumbnailUrl,
+              this.uploadedVideoUrl,
+              metadata
+            ).subscribe({
+              next: (content) => {
+                this.uploadProgress = 100;
+                this.handleSuccess(content);
+              },
+              error: (err) => {
+                this.isUploading = false;
+                this.showError('Erreur de publication');
+                this.cdr.markForCheck();
+              }
+            });
+          }
+        }, 500);
+        
+      } else {
+        // Pas d'upload en cours : upload normal
+        let file = this.activeMedia!.file;
+        if (file.size > 3 * 1024 * 1024) {
+          file = await this.cameraService.compressImage(file, 2048, 0.85);
         }
-      ).toPromise();
+        
+        const thumbBlob = await this.cameraService.generateThumbnail(file);
+        this.creationService.createVideoWithThumbnail(file, thumbBlob, metadata).subscribe({
+          next: (val) => {
+            this.uploadProgress = val.progress;
+            this.cdr.markForCheck();
 
-      if (newContent && this.content.userId) {
-        try {
-          const profile = await this.profileService.getProfileById(this.content.userId).toPromise();
+            if (val.content) this.handleSuccess(val.content);
+          },
+          error: (err) => {
+            this.isUploading = false;
+            this.showError('Erreur de publication');
+            this.cdr.markForCheck();
+          }
+        });
+      }
+      
+    } else {
+      // IMAGE : upload normal
+      let file = this.activeMedia!.file;
+      if (file.size > 3 * 1024 * 1024) {
+        file = await this.cameraService.compressImage(file, 2048, 0.85);
+      }
+      
+      this.creationService.createContentWithFile(file, metadata).subscribe({
+        next: (val) => {
+          this.uploadProgress = val.progress;
+          this.cdr.markForCheck();
+
+          if (val.content) this.handleSuccess(val.content);
+        },
+        error: (err) => {
+          this.isUploading = false;
+          this.showError('Erreur de publication');
+          this.cdr.markForCheck();
+        }
+      });
+    }
+
+  } catch (error) {
+    this.isUploading = false;
+    this.showError('Erreur technique');
+  }
+}
+
+ 
+
+  // post-content-deriver.ts
+
+/**
+ * Gère les actions à effectuer après une publication réussie
+ * @param content Le contenu créé retourné par le backend
+ */
+private async handleSuccess(content: Content): Promise<void> {
+  // 1. Mise à jour des statistiques du profil (incrémentation du nombre de posts)
+  // Utilise le profileService injecté dans le constructeur
+  await this.updateProfileStats(content.userId);
+
+  // 2. Gestion spécifique si c'est une participation à un challenge
+  // Utilise la logique de notification et de compteur de participants
+  await this.manageChallengeContent();
+
+  // 3. Réinitialisation complète de l'interface
+  this.resetForm();
+
+  // 4. Notification visuelle à l'utilisateur
+  // Si ce n'est pas un challenge (déjà géré dans manageChallengeContent), on affiche un succès simple
+  if (!this.isChallenging) {
+    this.showSuccess('Contenu publié avec succès !');
+  }
+
+  // 5. Fin de l'état d'upload
+  this.isUploading = false;
+  this.uploadProgress = 100;
+  
+  // Force la détection de changement pour mettre à jour l'UI (barre de progression, spinner)
+  this.cdr.markForCheck();
+}
+
+  private async updateProfileStats(profileId: string){
+try {
+          const profile = await this.profileService.getProfileById(profileId).toPromise();
           if (profile) {
             const stats = profile.stats ?? { posts: 0, fans: 0, votes: 0, stars: 0 };
             await this.profileService.updateProfile(profile.id, {
@@ -317,16 +537,15 @@ export class PostContentComponent implements OnInit, OnDestroy {
             }).toPromise();
           }
         } catch { /* non bloquant */ }
-      }
+  }
 
-      await loading.dismiss();
-     
-      if(this.isChallenging && this.selectedChallenge && this.selectedChallenge.participants_count){
+  private async manageChallengeContent(){
+if(this.isChallenging && this.selectedChallenge && this.selectedChallenge.participants_count){
         this.selectedChallenge.participants_count +=1;
         this.challengeService.updateChallenge(this.selectedChallenge.id, this.selectedChallenge)
        
         if(!this.selectedChallenge.is_acceptance_automatic)
-        this.systemMessenger.sendParticipationRequired_msg(`${this.CurrentUserProfile.displayName} souhaite participer a ${this.selectedChallenge.name} cliquer pour plus d'options`, this.CurrentUserProfile.id, this.CurrentUserProfile.username);
+        this.systemMessenger.sendParticipationRequired_msg(`${this.CurrentUserProfile.displayName} souhaite participer a ${this.selectedChallenge.name} cliquer pour plus d'options`, this.selectedChallenge.creator_id, this.CurrentUserProfile.username);
         const alert = await this.alertCtrl.create({
           header:    'Participation au défi',
           subHeader: 'Acceptation en cours de traitement',
@@ -338,16 +557,6 @@ export class PostContentComponent implements OnInit, OnDestroy {
     } else {
         this.showSuccess('Contenu publié avec succès !');
       }
-
-      this.resetForm();
-
-    } catch {
-      await loading.dismiss();
-      this.showError('Erreur lors de la publication');
-    } finally {
-      this.isUploading = false;
-      this.cdr.markForCheck();
-    }
   }
 
   private resetForm(): void {
@@ -356,6 +565,7 @@ export class PostContentComponent implements OnInit, OnDestroy {
     this.activeIndex   = 0;
     this.content       = { description: '', isPublic: true, allowDownloads: true, allowComments: false };
     this.currentStep   = 1;
+    this.stopOptimisticUpload(); // Arrêter l'upload en cours
     this.cdr.markForCheck();
   }
 

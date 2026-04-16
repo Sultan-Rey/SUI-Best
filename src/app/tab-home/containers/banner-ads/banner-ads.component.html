@@ -3,16 +3,16 @@
   <!-- Bannière actuelle -->
   <div class="banner-wrapper" *ngIf="currentBanner">
     <div class="banner-content">
-      <!-- Image de la bannière (300x250px max) -->
+      <!-- Image de la bannière (400x210px max) -->
       <ion-img 
-        [src]="currentBanner.fileUrl | mediaUrl" 
+        [src]="currentBanner.fileUrl | mediaUrl | async" 
         [alt]="currentBanner.description || 'Publicité'"
         class="banner-image"
         (click)="onBannerClick(currentBanner)">
       </ion-img>
       
       <!-- Bouton de fermeture -->
-      <button class="close-banner" (click)="closeBanner()">
+      <button class="close-banner" (click)="closeBanner()" *ngIf="bannerAds.length>1" >
         <ion-icon name="close"></ion-icon>
       </button>
     </div>

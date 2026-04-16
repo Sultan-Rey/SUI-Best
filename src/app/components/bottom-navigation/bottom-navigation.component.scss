@@ -69,8 +69,8 @@
 
     .badge-wrap svg {
       width: 22px;
-      height: 22px;
-      stroke: rgba(255, 255, 255, 0.3); // dark par défaut
+      height: 22px; 
+      stroke: #181818;// dark par défaut
       transition: stroke 0.3s ease;
       display: block;
     }
@@ -81,7 +81,7 @@
     font-family: var(--font-nav);
     font-size: 10.5px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.3); // dark par défaut
+    --color: var(--color, rgba(255, 255, 255, 0.3)); // dark par défaut
     letter-spacing: 0.2px;
     transition: color 0.3s ease;
     white-space: nowrap;
@@ -89,8 +89,8 @@
 
   // Item adjacent — légèrement plus lumineux
   &.near {
-    .badge-wrap svg { stroke: rgba(255, 255, 255, 0.6); }
-    .item-label     { color: rgba(255, 255, 255, 0.6); }
+    .badge-wrap svg { --stroke: var(--stroke, rgba(255, 255, 255, 0.6)); }
+    .item-label     { --color: var(--color, rgba(255, 255, 255, 0.6)); }
   }
 
   // Item capturé — invisible dans la bande
@@ -104,24 +104,24 @@
 :host.theme-light {
 
   .nav-item {
-    .badge-wrap svg { stroke:  var(--orange) }
-    .item-label     { color: var(--orange) }
+    .badge-wrap svg { stroke: #333333; }
+    .item-label     { color: #333333; }
 
     &.near {
-      .badge-wrap svg { stroke:  var(--orange) }
-      .item-label     { color: var(--orange) }
+      .badge-wrap svg { stroke: #666666; }
+      .item-label     { color: #666666; }
     }
   }
 
-  // Icône dans le cercle aussi en sombre
-  .circle-action-btn svg { stroke: #1a1a1a; }
+  // Icône dans le cercle adaptée pour mode light
+  .circle-action-btn svg { --stroke: #333333; }
 
   // Corde : glassmorphisme clair
   .circle-chord {
-    background: rgba(0, 0, 0, 0.06);
-    border-top: 0.5px solid rgba(0, 0, 0, 0.12);
+    --background: var(--background, rgba(255, 255, 255, 0.8));
+    border-top: 0.5px solid rgba(0, 0, 0, 0.15);
 
-    span { color: rgba(0, 0, 0, 0.75); }
+    span { color: var(--color, #333333); }
   }
 }
 
@@ -137,8 +137,8 @@
   position: absolute;
   top: -5px;
   right: -10px;
-  background: #e63946;
-  color: #fff;
+  --background: var(--background, #e63946);
+  --color: var(--color, #fff);
   font-family: var(--font-nav);
   font-size: 8.5px;
   font-weight: 700;
@@ -198,7 +198,7 @@
   svg {
     width: 27px;
     height: 27px;
-    stroke: #ffffff; // blanc sur fond noir
+    --stroke: var(--stroke, #ffffff); // blanc sur fond noir
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -231,12 +231,12 @@
   overflow: hidden;
 
   // Glassmorphisme : verre dépoli sombre
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--background, rgba(255, 255, 255, 0.07));
   backdrop-filter: blur(14px) saturate(1.6) brightness(1.1);
   -webkit-backdrop-filter: blur(14px) saturate(1.6) brightness(1.1);
 
   // Délimitation subtile en haut de la corde
-  border-top: 0.5px solid rgba(255, 255, 255, 0.18);
+  --border-top: 0.5px solid rgba(255, 255, 255, 0.18);
 
   display: flex;
   align-items: center;
@@ -248,7 +248,7 @@
     font-family: var(--font-nav);
     font-size: 10px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.88);
+    --color: var(--color, rgba(255, 255, 255, 0.88));
     letter-spacing: 0.3px;
     text-transform: uppercase;
     animation: chordIn 0.25s ease forwards;

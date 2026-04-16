@@ -6,7 +6,7 @@ import { ApiJSON } from '../API/api-json';
 import { UserProfile } from '../../models/User';
 import { User } from 'firebase/auth';
 import { options } from 'ionicons/icons';
-import { HttpEventType } from '@angular/common/http';
+import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -165,6 +165,7 @@ export class ProfileService {
           file, 
           'profiles',
         ).pipe(
+
           switchMap((event: any) => {
             // Handle progress events
             if (event.type) {
@@ -201,40 +202,121 @@ export class ProfileService {
 
 
   /* =====================
-     UPLOAD COVER IMAGE
+     UPLOAD COVER
      ===================== */
-  uploadCoverImage(
+  uploadCover(
     profileId: string, 
-    coverImageFile: File, 
+    coverDataUrl: string, 
     progressCallback?: (progress: number) => void
   ): Observable<{ url: string }> {
-    // Utiliser la méthode upload de l'API avec gestion de progression
-    return this.api.upload<{ url: string }>( 
-      coverImageFile, 
-      'profiles',
-    ).pipe(
-      switchMap((event: any) => {
-        // Handle progress events
-        if (event.type) {
-          if (progressCallback && event.loaded !== undefined && event.total) {
-            const progress = Math.round((100 * event.loaded) / event.total);
-            progressCallback(progress);
-          }
-          // Return an empty observable that doesn't emit any values
-          return EMPTY;
+    // Convertir dataURL en File
+    return new Observable<{ url: string }>((observer) => {
+      try {
+        // Extraire le type MIME et les données base64
+        const matches = coverDataUrl.match(/^data:(.+?);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          observer.error(new Error('Format d\'image invalide'));
+          return;
         }
 
-        // Handle final response
-        const uploadResponse = event.body || event;
-        return of(uploadResponse);
-      }),
-      catchError(error => {
-        console.error('Erreur lors de l\'upload de l\'image de couverture:', error);
-        return throwError(() => error);
-      })
-    );
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        
+        // Convertir base64 en blob
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+
+        // Créer un fichier avec un nom approprié
+        const fileName = `cover_${profileId}_${Date.now()}.${mimeType.split('/')[1] || 'jpg'}`;
+        const file = new File([blob], fileName, { type: mimeType });
+
+        // Utiliser la méthode upload de l'API avec gestion de progression
+        this.api.upload<{ url: string }>( 
+          file, 
+          'profiles',
+        ).pipe(
+          switchMap((event: any) => {
+            // Handle progress events
+            if (event.type) {
+              if (progressCallback && event.loaded !== undefined && event.total) {
+                const progress = Math.round((100 * event.loaded) / event.total);
+                progressCallback(progress);
+              }
+              // Return an empty observable that doesn't emit any values
+              return EMPTY;
+            }
+
+            // Handle final response
+            const uploadResponse = event.body || event;
+            return of(uploadResponse);
+          }),
+          catchError(error => {
+            console.error('Erreur lors de l\'upload de la couverture:', error);
+            return throwError(() => error);
+          })
+        ).subscribe({
+          next: (result) => {
+            observer.next(result);
+            observer.complete();
+          },
+          error: (error) => {
+            observer.error(error);
+          }
+        });
+      } catch (error) {
+        observer.error(error);
+      }
+    });
   }
 
+  /* =====================
+     UPLOAD COVER IMAGE
+     ===================== */
+ uploadCoverImage(
+  profileId: string, 
+  coverImageFile: File, 
+  progressCallback?: (progress: number) => void
+): Observable<{ url: string }> {
+  
+  return this.api.upload<{ path: string }>( 
+    coverImageFile, 
+    'profiles',
+  ).pipe(
+    switchMap((event: HttpEvent<{ path: string }>) => { // Typage explicite de l'event
+      
+      if (event.type === HttpEventType.UploadProgress && event.total) {
+        if (progressCallback) {
+          const progress = Math.round((100 * event.loaded) / event.total);
+          progressCallback(progress);
+        }
+        return EMPTY;
+      }
+
+      if (event.type === HttpEventType.Response) {
+        // On récupère le path, si absent on met une chaîne vide
+        const coverImagePath = event.body?.path || "";
+
+        return this.updateProfile(profileId, { coverImg: coverImagePath }).pipe(
+          map(updatedProfile => ({ 
+            // On force le retour en string avec '|| ""' pour éviter le type 'undefined'
+            url: updatedProfile.coverImg || "" 
+          }))
+        );
+      }
+
+      return EMPTY;
+    }),
+    catchError(error => {
+      console.error('Erreur lors de l\'upload:', error);
+      return throwError(() => error);
+    })
+  );
+}
   /* =====================
      DELETE OLD COVER IMAGE
      ===================== */

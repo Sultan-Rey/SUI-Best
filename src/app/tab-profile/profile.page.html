@@ -5,15 +5,22 @@
 
 <ion-content [fullscreen]="false" class="profile-content">
   
-  <div class="profile-wrapper">
+  <div class="profile-wrapper" *ngIf="userProfile && !isLoading; else profileLoadingOrError">
 <!-- Desktop Header (hidden on mobile) -->
   <div class="desktop-header">
     <div class="desktop-header-container">
-      <div class="cover-container" (click)="isOwnProfile && selectCoverImage()">
-        <img [src]="userProfile.coverImg| mediaUrl | async"  
+      <div class="cover-container" (click)="isOwnProfile && changeCover()">
+        <ion-img [src]="userProfile.coverImg| mediaUrl | async" 
+              (error)="onImageCover($event)" 
              alt="Cover" 
-             class="cover-image">
+             class="cover-image"></ion-img>
         <div class="cover-overlay"></div>
+        <!-- Loading overlay during cover change -->
+      <div class="cover-loading-overlay" *ngIf="isChangingCover">
+        <ion-spinner name="dots"></ion-spinner>
+        <div class="loading-text">Changement de la photo de couverture...</div>
+      </div>
+
         <!-- Edit overlay for own profile -->
         <div class="cover-edit-overlay" *ngIf="isOwnProfile">
           <ion-icon name="camera-outline" class="cover-edit-icon"></ion-icon>
@@ -29,7 +36,7 @@
                  (error)="onImageAvatarError($event)"
                  alt="Profile" 
                  class="avatar-desktop">
-            <div class="online-indicator">
+            <div class="online-indicator" *ngIf="userProfile.isVerified">
               <ion-icon name="checkmark"></ion-icon>
             </div>
           </div>
@@ -38,7 +45,7 @@
         <div class="profile-details-desktop">
           <div class="name-section">
             <h1>{{userProfile.displayName}}</h1>
-            <span class="pro-badge-desktop">{{userProfile.type}}|{{userProfile.userInfo.memberShip?.plan}}</span>
+            <span class="pro-badge-desktop"><b>{{userProfile.type}}</b> | {{userProfile.userInfo.memberShip?.plan}}</span>
           </div>
           <p class="handle">@{{userProfile.username}} • {{userProfile.userInfo.activity || 'Aucune activité/passion' }}</p>
           <p class="bio-desktop">
@@ -57,15 +64,22 @@
   <!-- Mobile Profile Header -->
   <div class="mobile-profile-header">
     <!-- Cover -->
-    <div class="cover-mobile" (click)="isOwnProfile && selectCoverImage()">
-      <img [src]="userProfile.coverImg| mediaUrl | async" 
+    <div class="cover-mobile" (click)="isOwnProfile && changeCover()">
+      <ion-img [src]="userProfile.coverImg| mediaUrl | async" 
            alt="Cover" 
-           class="cover-image-mobile">
+           class="cover-image-mobile"></ion-img>
       <div class="cover-gradient"></div>
+      
+      <!-- Loading overlay during cover change -->
+      <div class="cover-loading-overlay" *ngIf="isChangingCover">
+        <ion-spinner name="dots"></ion-spinner>
+        <div class="loading-text">Changement de la photo de couverture...</div>
+      </div>
+      
       <!-- Edit overlay for own profile -->
-      <div class="cover-edit-overlay" *ngIf="isOwnProfile">
+      <div class="cover-edit-overlay" *ngIf="isOwnProfile && !isChangingCover">
         <ion-icon name="camera-outline" class="cover-edit-icon"></ion-icon>
-        <span class="cover-edit-text">Changer la photo de couverture</span>
+        <span class="cover-edit-text">Changer la couverture</span>
       </div>
     </div>
 
@@ -281,5 +295,94 @@
   </div>
 
   </div>
+
+  <!-- Template pour le chargement et l'erreur -->
+  <ng-template #profileLoadingOrError>
+    <!-- Skeleton Loader pendant le chargement -->
+    <div class="profile-wrapper" *ngIf="isLoading">
+      <!-- Desktop Header Skeleton -->
+      <div class="desktop-header">
+        <div class="desktop-header-container">
+          <div class="cover-container skeleton-cover">
+            <div class="skeleton skeleton-cover-image"></div>
+            <div class="cover-overlay"></div>
+          </div>
+          <div class="profile-info-desktop">
+            <div class="avatar-container">
+              <div class="avatar-wrapper">
+                <div class="skeleton skeleton-avatar"></div>
+                <div class="online-indicator" >
+                  <ion-icon name="checkmark"></ion-icon>
+                </div>
+              </div>
+            </div>
+            <div class="profile-details-desktop">
+              <div class="name-section">
+                <div class="skeleton skeleton-name"></div>
+                <div class="skeleton skeleton-badge"></div>
+              </div>
+              <div class="skeleton skeleton-handle"></div>
+              <div class="skeleton skeleton-bio"></div>
+            </div>
+            <div class="action-buttons-desktop">
+              <div class="skeleton skeleton-button"></div>
+              <div class="skeleton skeleton-button"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Profile Header Skeleton -->
+      <div class="mobile-profile-header">
+        <div class="cover-mobile skeleton-cover">
+          <div class="skeleton skeleton-cover-image-mobile"></div>
+          <div class="cover-gradient"></div>
+        </div>
+        <div class="profile-info-mobile">
+          <div class="profile-row">
+            <div class="avatar-section">
+              <div class="story-ring">
+                <div class="skeleton skeleton-avatar-mobile"></div>
+              </div>
+            </div>
+            <div class="action-buttons-mobile">
+              <div class="skeleton skeleton-button-mobile"></div>
+              <div class="skeleton skeleton-button-mobile"></div>
+            </div>
+          </div>
+          <div class="user-info-mobile">
+            <div class="name-badge-row">
+              <div class="skeleton skeleton-name-mobile"></div>
+              <div class="skeleton skeleton-badge-mobile"></div>
+            </div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-bio-mobile"></div>
+            <div class="skeleton skeleton-links"></div>
+          </div>
+          <div class="stats-container">
+            <div class="skeleton skeleton-stat"></div>
+            <div class="skeleton skeleton-stat"></div>
+            <div class="skeleton skeleton-stat"></div>
+            <div class="skeleton skeleton-stat"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message d'erreur si le profil n'est pas chargé et pas en chargement -->
+    <div class="profile-error" *ngIf="!isLoading && !userProfile">
+      <div class="error-container">
+        <div class="error-icon">
+          <ion-icon name="wifi-outline"></ion-icon>
+        </div>
+        <h3>Erreur réseau</h3>
+        <p>Profil non chargé</p>
+        <ion-button fill="solid" (click)="ngOnInit()">
+          <ion-icon name="refresh-outline" slot="start"></ion-icon>
+          Réessayer
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
   
 </ion-content>
