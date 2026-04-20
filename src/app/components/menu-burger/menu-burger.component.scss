@@ -1,3 +1,5 @@
+$surface:     #2c2c2d;
+
 .burger-overlay {
   display: none; // Cacher l'overlay car le menu est maintenant fixe
 }
@@ -8,7 +10,7 @@
   left: 0; // Toujours visible
   width: 25%;
   height: calc(100vh - 60px); // Hauteur restante sous l'header
-  background: var(--ion-background-color);
+  background: #{$surface};
   z-index: 1000;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;

@@ -7,7 +7,7 @@
     (mousedown)="onMouseDown($event)"
     (touchstart)="onTouchStart($event)"
     (touchmove)="onTouchMoveLocal($event)"
-    (touchend)="onTouchEndLocal()"
+    (touchend)="onTouchEndLocal($event)"
   >
     <div class="nav-strip" #navStrip>
 
@@ -22,7 +22,7 @@
       [class.near]="isNear(item)"
       [attr.data-idx]="item.idx"
     >
-      <div class="item-inner" (click)="onNavItemClick(item)">
+      <div class="item-inner" >
         <div class="badge-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fbfcfc"
                stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"

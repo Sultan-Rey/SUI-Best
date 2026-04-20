@@ -19,16 +19,24 @@ export class CameraService {
   // ── Caméra ───────────────────────────────────────────────────
 
   async takePhoto(): Promise<MediaFile> {
-    const photo = await Camera.getPhoto({
-      quality: 90,
-      allowEditing: false,
-      resultType: CameraResultType.Uri,
-      source: CameraSource.Camera,
-      correctOrientation: true
-    });
+    try {
+      // Demander les permissions d'abord
+      await this.checkAndRequestPermissions(['camera']);
 
-    const file = await this.photoToFile(photo);
-    return this.buildMediaFile(file, photo.webPath!);
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+        correctOrientation: true
+      });
+
+      const file = await this.photoToFile(photo);
+      return this.buildMediaFile(file, photo.webPath!);
+    } catch (error) {
+      console.error('[CameraService] takePhoto error:', error);
+      throw error;
+    }
   }
 
   // ── Galerie — sélection unique ────────────────────────────────
@@ -39,22 +47,40 @@ export class CameraService {
     }
 
     try {
+      // 🔥 IMPORTANT : Demander les permissions AVANT
+      await this.checkAndRequestPermissions(['photos']);
+
+      console.log('[CameraService] Ouverture de la galerie...');
+
       const photo = await Camera.getPhoto({
         quality: 90,
         allowEditing: false,
         resultType: CameraResultType.Uri,
         source: CameraSource.Photos,
       });
+
+      console.log('[CameraService] Photo sélectionnée:', photo);
+
       const file = await this.photoToFile(photo);
       return this.buildMediaFile(file, photo.webPath!);
-    } catch {
-      return null;
+    } catch (error) {
+      // 🔥 Logger l'erreur complète
+      console.error('[CameraService] pickSingle error:', error);
+      
+      // Vérifier si c'est une annulation utilisateur
+      if (error && typeof error === 'object' && 'message' in error) {
+        const message = (error as any).message;
+        if (message?.includes('cancelled') || message?.includes('User cancelled')) {
+          console.log('[CameraService] Sélection annulée par l\'utilisateur');
+          return null;
+        }
+      }
+      
+      throw error; // Propager l'erreur pour que l'UI puisse l'afficher
     }
   }
 
   // ── Galerie — sélection multiple ──────────────────────────────
-  // Sur mobile : picker natif du système (comme Instagram)
-  // Sur web    : input file multiple
 
   async pickMultiple(): Promise<MediaFile[]> {
     if (Capacitor.getPlatform() === 'web') {
@@ -62,9 +88,14 @@ export class CameraService {
     }
 
     try {
-      await Camera.requestPermissions({ permissions: ['photos'] });
+      await this.checkAndRequestPermissions(['photos']);
+
+      console.log('[CameraService] Ouverture galerie multiple...');
+
       const result = await Camera.pickImages({ quality: 90 });
       const photos = result.photos ?? [];
+
+      console.log(`[CameraService] ${photos.length} photo(s) sélectionnée(s)`);
 
       const mediaFiles = await Promise.all(
         photos.map(async (p) => {
@@ -74,9 +105,57 @@ export class CameraService {
       );
 
       return mediaFiles;
-    } catch (err) {
-      console.error('[CameraService] pickMultiple error:', err);
-      return [];
+    } catch (error) {
+      console.error('[CameraService] pickMultiple error:', error);
+      
+      // Annulation = pas d'erreur
+      if (error && typeof error === 'object' && 'message' in error) {
+        const message = (error as any).message;
+        if (message?.includes('cancelled') || message?.includes('User cancelled')) {
+          return [];
+        }
+      }
+      
+      throw error;
+    }
+  }
+
+  // ── Vérification des permissions ─────────────────────────────
+
+  private async checkAndRequestPermissions(permissions: ('camera' | 'photos')[]): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      return; // Pas de permissions nécessaires sur web
+    }
+
+    try {
+      console.log('[CameraService] Vérification des permissions:', permissions);
+      
+      const permissionStatus = await Camera.checkPermissions();
+      console.log('[CameraService] Status actuel:', permissionStatus);
+
+      const needsRequest = permissions.some(perm => {
+        const status = permissionStatus[perm];
+        return status !== 'granted' && status !== 'limited';
+      });
+
+      if (needsRequest) {
+        console.log('[CameraService] Demande des permissions...');
+        const result = await Camera.requestPermissions({ permissions });
+        console.log('[CameraService] Résultat:', result);
+
+        // Vérifier si toutes les permissions ont été accordées
+        const allGranted = permissions.every(perm => {
+          const status = result[perm];
+          return status === 'granted' || status === 'limited';
+        });
+
+        if (!allGranted) {
+          throw new Error('Permissions refusées. Veuillez autoriser l\'accès dans les paramètres.');
+        }
+      }
+    } catch (error) {
+      console.error('[CameraService] Erreur permissions:', error);
+      throw error;
     }
   }
 
@@ -140,73 +219,71 @@ export class CameraService {
     });
   }
 
-async generateThumbnail(videoFile: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    video.src = URL.createObjectURL(videoFile);
-    video.currentTime = 1; // On prend la frame à 1 seconde
-    video.muted = true;
-    video.playsInline = true;
-
-    video.onloadeddata = () => {
-      canvas.width = video.videoWidth / 2; // On réduit la taille pour le poids
-      canvas.height = video.videoHeight / 2;
-      
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject('Erreur génération thumbnail');
-        URL.revokeObjectURL(video.src);
-      }, 'image/webp', 0.7); // WebP à 70% de qualité = ultra léger
-    };
-
-    video.onerror = (err) => reject(err);
-    video.load();
-  });
-}
-
-
-async compressImage(file: File, maxWidth = 1920, quality = 0.8): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    
-    img.onload = () => {
+  async generateThumbnail(videoFile: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
       const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-
-      // Redimensionnement proportionnel si l'image dépasse la largeur max
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const compressedFile = new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
-        } else {
-          reject(new Error('Erreur de compression'));
+      video.src = URL.createObjectURL(videoFile);
+      video.currentTime = 1;
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadeddata = () => {
+        canvas.width = video.videoWidth / 2;
+        canvas.height = video.videoHeight / 2;
+        
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject('Erreur génération thumbnail');
+          URL.revokeObjectURL(video.src);
+        }, 'image/webp', 0.7);
+      };
+
+      video.onerror = (err) => reject(err);
+      video.load();
+    });
+  }
+
+  async compressImage(file: File, maxWidth = 1920, quality = 0.8): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
         }
-        URL.revokeObjectURL(img.src);
-      }, 'image/jpeg', quality); // On force le JPEG pour une meilleure compression
-    };
-    img.onerror = (err) => reject(err);
-  });
-}
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            reject(new Error('Erreur de compression'));
+          }
+          URL.revokeObjectURL(img.src);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = (err) => reject(err);
+    });
+  }
 
   private async buildMediaFile(file: File, previewUrl: string): Promise<MediaFile> {
     const isVideo = file.type.startsWith('video/');

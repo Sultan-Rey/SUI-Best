@@ -112,13 +112,14 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
   private velocity: number = 0;
   private lastX: number = 0;
   private lastT: number = 0;
-  private animated: boolean = false;
 
-  // 🔥 NOUVEAUX : Détection tap vs drag
-  private dragStartX: number = 0;
-  private dragStartY: number = 0;
-  private hasMoved: boolean = false;
-  private readonly TAP_THRESHOLD = 10; // pixels de tolérance pour considérer comme un tap
+  // 🔥 Long press detection
+  private longPressTimer: any = null;
+  private isDraggingEnabled: boolean = false;
+  private tapStartX: number = 0;
+  private tapStartY: number = 0;
+  private readonly LONG_PRESS_DURATION = 200; // ms - comme Snapchat
+  private readonly TAP_MOVE_THRESHOLD = 8; // px
 
   // Layout constants
   private readonly ITEM_W = 90;
@@ -156,7 +157,6 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
       this.onMouseMove = (e: MouseEvent) => this.pointerMove(e.clientX, e.clientY);
       this.onMouseUp   = () => this.pointerUp();
       this.onTouchMove = (e: TouchEvent) => { 
-        e.preventDefault(); 
         this.pointerMove(e.touches[0].clientX, e.touches[0].clientY); 
       };
       this.onTouchEnd  = () => this.pointerUp();
@@ -167,6 +167,7 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   ngOnDestroy() {
+    this.clearLongPressTimer();
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseup',   this.onMouseUp);
   }
@@ -226,45 +227,73 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
     portal.classList.add('snapped');
   }
 
-  // 🔥 MODIFIÉ : Sauvegarder position de départ
-  onPointerDown(clientX: number, clientY: number) {
-    this.dragStart   = clientX;
-    this.dragStartX  = clientX;
-    this.dragStartY  = clientY;
-    this.hasMoved    = false; // Reset du flag
-    this.startOffset = this.offsetX;
-    this.velocity    = 0;
-    this.lastX       = clientX;
-    this.lastT       = Date.now();
-    this.applyTransform(false);
-    this.navTrackRef.nativeElement.classList.add('dragging');
+  // 🔥 NOUVEAU : Clear timer
+  private clearLongPressTimer() {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
   }
 
-  // 🔥 MODIFIÉ : Tracker si on a vraiment bougé
+  // 🔥 NOUVEAU : Activer le mode drag après long press
+  private enableDragMode() {
+    this.isDraggingEnabled = true;
+    this.navTrackRef.nativeElement.classList.add('dragging');
+    
+    // Feedback haptique si disponible
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+  }
+
+  // 🔥 MODIFIÉ : Démarrer le timer de long press
+  onPointerDown(clientX: number, clientY: number) {
+    this.tapStartX = clientX;
+    this.tapStartY = clientY;
+    this.dragStart = clientX;
+    this.startOffset = this.offsetX;
+    this.velocity = 0;
+    this.lastX = clientX;
+    this.lastT = Date.now();
+    this.isDraggingEnabled = false;
+
+    // Démarrer le timer de long press
+    this.clearLongPressTimer();
+    this.longPressTimer = setTimeout(() => {
+      this.enableDragMode();
+    }, this.LONG_PRESS_DURATION);
+  }
+
+  // 🔥 MODIFIÉ : N'autoriser le drag que si activé
   private pointerMove(clientX: number, clientY: number) {
     if (this.dragStart === null) return;
 
-    // Calculer la distance depuis le point de départ
-    const deltaX = Math.abs(clientX - this.dragStartX);
-    const deltaY = Math.abs(clientY - this.dragStartY);
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    // Calculer le mouvement depuis le début
+    const deltaX = Math.abs(clientX - this.tapStartX);
+    const deltaY = Math.abs(clientY - this.tapStartY);
+    const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-    // Si on a bougé au-delà du seuil, c'est un drag
-    if (distance > this.TAP_THRESHOLD) {
-      this.hasMoved = true;
+    // Si mouvement significatif avant la fin du timer, annuler le long press
+    if (!this.isDraggingEnabled && totalMovement > this.TAP_MOVE_THRESHOLD) {
+      this.clearLongPressTimer();
+      return; // Ne pas drag
     }
+
+    // Si le drag n'est pas activé, ne rien faire
+    if (!this.isDraggingEnabled) return;
 
     const now = Date.now();
     this.velocity = (clientX - this.lastX) / (now - this.lastT + 1);
-    this.lastX    = clientX;
-    this.lastT    = now;
+    this.lastX = clientX;
+    this.lastT = now;
 
     const dx = clientX - this.dragStart;
     let newOffset = this.startOffset + dx;
 
-    const nearIdx    = Math.round((this.CIRCLE_X - newOffset - this.ITEM_W / 2) / this.ITEM_W);
+    // Resistance near snap point
+    const nearIdx = Math.round((this.CIRCLE_X - newOffset - this.ITEM_W / 2) / this.ITEM_W);
     const nearCenter = this.CIRCLE_X - nearIdx * this.ITEM_W - this.ITEM_W / 2;
-    const dist       = Math.abs(newOffset - nearCenter);
+    const dist = Math.abs(newOffset - nearCenter);
     if (dist < 20) {
       newOffset = nearCenter + (newOffset - nearCenter) * 0.35;
     }
@@ -272,50 +301,51 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
     this.offsetX = newOffset;
     this.applyTransform(false);
 
+    // Live update
     const liveIdx = Math.round((this.CIRCLE_X - newOffset - this.ITEM_W / 2) / this.ITEM_W);
     if (liveIdx !== this.activeIdx && liveIdx >= 0 && liveIdx < this.navItems.length) {
-      this.activeIdx  = liveIdx;
+      this.activeIdx = liveIdx;
       this.activeItem = this.navItems[liveIdx];
       this.activeItemChange.emit(this.activeItem);
     }
   }
 
-  // 🔥 MODIFIÉ : Retourner si c'était un tap
-  private pointerUp(): boolean {
-    if (this.dragStart === null) return false;
-    
-    const wasTap = !this.hasMoved; // C'est un tap si on n'a pas bougé
+  // 🔥 MODIFIÉ : Gérer tap vs drag
+  private pointerUp() {
+    this.clearLongPressTimer();
+
+    if (this.dragStart === null) return;
+
+    const wasDragging = this.isDraggingEnabled;
     
     this.dragStart = null;
+    this.isDraggingEnabled = false;
     this.navTrackRef.nativeElement.classList.remove('dragging');
 
-    if (!wasTap) {
-      // C'était un drag, faire le snap normal
+    if (wasDragging) {
+      
+      // C'était un drag, faire le snap
       const projected = this.offsetX + this.velocity * 80;
       const targetIdx = Math.round((this.CIRCLE_X - projected - this.ITEM_W / 2) / this.ITEM_W);
+      console.log(targetIdx);
       this.snapToIndex(targetIdx);
+      
+    } else {
+      // C'était un tap rapide, trouver l'item cliqué
+      const clickedIdx = Math.round((this.CIRCLE_X - this.offsetX - this.ITEM_W / 2) / this.ITEM_W);
+      if (clickedIdx >= 0 && clickedIdx < this.navItems.length) {
+        const clickedItem = this.navItems[clickedIdx];
+        console.log(clickedIdx);
+        this.snapToIndex(clickedIdx+1);
+        //this.onNavItemClick(clickedItem);
+      }
     }
-
-    return wasTap;
   }
 
-  private getTouchedIdx(clientX: number, clientY: number): number | null {
-    const track = this.navTrackRef?.nativeElement;
-    if (track) {
-      const rect = track.getBoundingClientRect();
-      const localX = clientX - rect.left;
-      const xInStrip = localX - this.offsetX;
-      const idx = Math.floor(xInStrip / this.ITEM_W);
-      if (Number.isFinite(idx)) return idx;
-    }
-
-    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-    const navItemEl = el?.closest?.('.nav-item') as HTMLElement | null;
-    const idxStr = navItemEl?.getAttribute?.('data-idx');
-    if (!idxStr) return null;
-
-    const idx = Number(idxStr);
-    return Number.isFinite(idx) ? idx : null;
+  // 🔥 SIMPLIFIÉ : Plus besoin de vérification complexe
+  onNavItemClick(item: NavItem) {
+    console.log("Navigation vers:", item.route);
+    this.snapToIndex(item.idx);
   }
 
   // ── Mouse handlers ──
@@ -324,35 +354,23 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   // ── Touch handlers ──
-  onTouchStart(e: TouchEvent) {
+  onTouchStart(e: TouchEvent) { 
     this.onPointerDown(e.touches[0].clientX, e.touches[0].clientY); 
   }
   
   onTouchMoveLocal(e: TouchEvent) { 
-    if (this.dragStart !== null) {
-      const dx = Math.abs(e.touches[0].clientX - this.dragStartX);
-      const dy = Math.abs(e.touches[0].clientY - this.dragStartY);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance > this.TAP_THRESHOLD) {
-        e.preventDefault();
-      }
+    // Prévenir le scroll seulement si le drag est activé
+    if (this.isDraggingEnabled) {
+      e.preventDefault(); 
     }
-    this.pointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    this.pointerMove(e.touches[0].clientX, e.touches[0].clientY); 
   }
   
-  onTouchEndLocal(e: TouchEvent) { 
-    const wasTap = this.pointerUp();
-    if (!wasTap) return;
-
-    const touch = e.changedTouches[0];
-    const idx = this.getTouchedIdx(touch.clientX, touch.clientY);
-    if (idx === null) return;
-    if (idx < 0 || idx >= this.navItems.length) return;
-
-    this.snapToIndex(idx);
+  onTouchEndLocal() { 
+    this.pointerUp(); 
   }
 
   // ── Helpers ──
   isCapture(item: NavItem): boolean { return item.idx === this.activeIdx; }
-  isNear(item: NavItem): boolean    { return Math.abs(item.idx - this.activeIdx) === 1; }
+  isNear(item: NavItem): boolean { return Math.abs(item.idx - this.activeIdx) === 1; }
 }
