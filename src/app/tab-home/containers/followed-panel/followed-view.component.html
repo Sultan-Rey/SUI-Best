@@ -15,10 +15,19 @@
             (pointerleave)="onPressEnd(post)">
 
             <img *ngIf="!isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl | async"
-              (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail">
-            <video *ngIf="isVideo(post)" [src]="post.fileUrl | mediaUrl | async" [class]="getCadrageClass(post)"
-              class="video-thumbnail" autoplay [muted]="isMuted" loop playsinline>
+              (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail"/>
+            <video ␍
+                [src]="post.fileUrl | mediaUrl | async" ␍
+                class="video-thumbnail" ␍
+                autoplay ␍
+                [muted]="isMuted" ␍
+                loop ␍
+                playsinline␍
+                (loadstart)="onVideoLoadStart(post)"␍
+                (loadeddata)="onVideoLoaded(post)"␍
+                (error)="onVideoError(post)">␍
             </video>
+            <ion-spinner name="bubbles" *ngIf="loadingVideos[post.id || '']"></ion-spinner>
             <div class="video-overlay"></div>
           </div>
 

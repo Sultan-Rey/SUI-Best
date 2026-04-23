@@ -111,7 +111,7 @@ export class MessageService {
    * N'utilise PAS cette méthode pour envoyer des messages — utiliser sendMessage().
    */
   updateConversation(conversation: Conversation): Observable<Conversation> {
-    return this.api.patch<Conversation>(this.RESOURCE, conversation.id as string, conversation).pipe(
+    return this.api.request<Conversation>(this.RESOURCE, conversation.id as string, conversation).pipe(
       tap(updated => this.updateConversationInStore(updated)),
       catchError(err => {
         console.error('[MessageService] updateConversation:', err);
@@ -194,8 +194,9 @@ export class MessageService {
    * Utilise la route dédiée du ConversationsController côté backend.
    */
   sendMessage(conversationId: string, message: Partial<Message>): Observable<Message> {
+    console.log("Message is",message);
     return this.api.post<Message>(
-      `${this.RESOURCE}/${conversationId}/messages`,
+      `${this.RESOURCE}/messages`,
       message
     ).pipe(
       tap(sent => this.appendMessageToStore(conversationId, sent)),
@@ -226,9 +227,11 @@ export class MessageService {
    * Marque un message comme lu via PATCH /conversations/{id}/messages/{mid}/read
    */
  markMessageAsRead(conversationId: string, messageId: string): Observable<void> {
+ 
   return this.api.request<void>(
-    'PATCH',
-    `${this.RESOURCE}/${conversationId}/messages/${messageId}/read`
+    'PUT',
+    `${this.RESOURCE}/mark-read`,
+    { conversationId:conversationId ,messageId: messageId } // Envoyer un payload avec l'ID du message
   ).pipe(
     tap(() => this.markMessageReadInStore(conversationId, messageId)),
     catchError(err => {
@@ -287,7 +290,7 @@ export class MessageService {
   // ==============================================================
 
   /**
-   * Ouvre une connexion SSE vers SSE/stream.php.
+   * Ouvre une connexion SSE vers /api/sse/stream.
    * Pousse les nouveaux messages et la présence en temps réel.
    * Le token est passé en query string (EventSource ne supporte pas les headers).
    *
@@ -301,7 +304,7 @@ export class MessageService {
       const params = new URLSearchParams({ conversation_id: conversationId, token });
       if (since) params.set('since', since);
 
-      const url         = `${base.replace(/\/api$/, '')}/SSE/stream.php?${params}`;
+      const url         = `${base}/sse/stream?${params}`;
       const eventSource = new EventSource(url);
 
       this.activeStreams.set(conversationId, eventSource);
@@ -355,39 +358,29 @@ export class MessageService {
 
   /**
    * Ping de présence — à appeler toutes les 30s depuis le composant actif.
-   * POST SSE/presence.php
+   * POST /api/sse/presence
    */
   pingPresence(conversationId: string): Observable<PresenceData[]> {
-    const token = this.api.getToken();
-    const base  = (this.api as any).BASE_URL;
-    const url   = `${base.replace(/\/api$/, '')}/SSE/presence.php`;
-
-    // On utilise fetch directement car c'est un endpoint hors du routing index.php
-    return new Observable(observer => {
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, conversation_id: conversationId })
-      })
-      .then(r => r.json())
-      .then(data => { observer.next(data.online ?? []); observer.complete(); })
-      .catch(err => { observer.error(err); });
-    });
+    return this.api.post('sse/presence', { conversation_id: conversationId }).pipe(
+      map((response: any) => response.online ?? [])
+    );
   }
 
   /**
    * Notifie que l'utilisateur quitte la conversation.
-   * DELETE SSE/presence.php
+   * DELETE /api/sse/presence
    */
-  leavePresence(conversationId: string): void {
+  leavePresence(conversation_id: string): void {
     const token = this.api.getToken();
-    const base  = (this.api as any).BASE_URL;
-    const url   = `${base.replace(/\/api$/, '')}/SSE/presence.php`;
-
-    fetch(url, {
+    const base = (this.api as any).BASE_URL;
+    
+    fetch(`${base}/sse/presence`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, conversation_id: conversationId })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ conversation_id: conversation_id })
     }).catch(() => { /* fire and forget */ });
   }
 

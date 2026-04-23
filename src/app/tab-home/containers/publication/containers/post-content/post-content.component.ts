@@ -15,8 +15,7 @@ import {
   globe, lockClosed, download, heartOutline, chatbubbleOutline, shareOutline,
   expand, contract, imageOutline, cameraOutline, imagesOutline, videocam,
   phonePortraitOutline, closeCircleOutline, trophyOutline, arrowRedoOutline,
-  expandOutline, contractOutline, checkmark
-} from 'ionicons/icons';
+  expandOutline, contractOutline, checkmark, timeOutline } from 'ionicons/icons';
 import { Challenge } from 'src/models/Challenge';
 import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
@@ -103,13 +102,7 @@ export class PostContentComponent implements OnInit, OnDestroy {
     private toastCtrl:        ToastController,
     private cdr:              ChangeDetectorRef
   ) {
-    addIcons({
-      arrowBack, close, image, imageOutline, cameraOutline, imagesOutline, videocam,
-      phonePortraitOutline, closeCircleOutline, trophyOutline, heartOutline,
-      chatbubbleOutline, arrowRedoOutline, expandOutline, contractOutline,
-      settings, checkmarkCircle, checkmark, images, camera, closeCircle,
-      shareOutline, expand, contract, globe, lockClosed, download
-    });
+    addIcons({arrowBack,imageOutline,close,videocam,checkmark,cameraOutline,imagesOutline,timeOutline,closeCircleOutline,trophyOutline,image,phonePortraitOutline,heartOutline,chatbubbleOutline,arrowRedoOutline,expandOutline,contractOutline,settings,checkmarkCircle,images,camera,closeCircle,shareOutline,expand,contract,globe,lockClosed,download});
   }
 
   ngOnInit(): void { 
@@ -121,7 +114,7 @@ export class PostContentComponent implements OnInit, OnDestroy {
     else
        this.loadChallenges(); 
      
-    if(this.CurrentUserProfile.type == 'admin'){
+    if(this.CurrentUserProfile.type == 'admin' || this.isChallenging){
       this.isPublic = true;
       this.content.isPublic = true;
     }else{
@@ -234,18 +227,201 @@ export class PostContentComponent implements OnInit, OnDestroy {
   async pickFromGallery(): Promise<void> {
     this.isPickingMedia = true;
     this.cdr.markForCheck();
+    
     try {
+      // Utiliser la nouvelle méthode pickMedias qui supporte les vidéos ET les images
       const mediaFiles = await this.cameraService.pickMultiple();
-      if (mediaFiles.length) {
+      
+      if (mediaFiles.length > 0) {
+        // Prendre le premier média pour l'instant
         this.setMedia(mediaFiles);
         this.content.source = ContentSource.GALLERY;
       }
-    } catch {
+    } catch (error: any) {
+      if (error?.message?.includes('User cancelled')) {
+        return; // Annulation silencieuse
+      }
       this.showError('Interruption du chargement de la galerie');
     } finally {
       this.isPickingMedia = false;
       this.cdr.markForCheck();
     }
+  }
+
+  async pickFromRecentGallery(): Promise<void> {
+    this.isPickingMedia = true;
+    this.cdr.markForCheck();
+    
+    try {
+      // Utiliser getRecentGalleryItems pour scanner la galerie
+      const recentItems = await this.cameraService.getRecentGalleryItems(50);
+      
+      if (recentItems.length === 0) {
+        this.showError('Aucun média récent trouvé');
+        return;
+      }
+      
+      // Créer une modale pour choisir parmi les médias récents
+      const selectedMedia = await this.showRecentMediaSelector(recentItems);
+      
+      if (selectedMedia) {
+        // Convertir l'item sélectionné en MediaFile
+        const mediaFile = await this.convertRecentItemToMediaFile(selectedMedia);
+        this.setMedia([mediaFile]);
+        this.content.source = ContentSource.GALLERY;
+      }
+    } catch (error: any) {
+      if (error?.message?.includes('User cancelled')) {
+        return; // Annulation silencieuse
+      }
+      console.error('[PostContent] Erreur galerie récente:', error);
+      this.showError('Impossible d\'accéder à la galerie récente');
+    } finally {
+      this.isPickingMedia = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async showRecentMediaSelector(items: any[]): Promise<any> {
+    return new Promise((resolve) => {
+      // Créer une modale simple pour choisir un média
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        overflow-y: auto;
+      `;
+      
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 90%;
+        max-height: 80%;
+        overflow-y: auto;
+      `;
+      
+      const title = document.createElement('h3');
+      title.textContent = 'Médias récents';
+      title.style.cssText = 'margin: 0 0 15px 0; color: #333; text-align: center;';
+      
+      const grid = document.createElement('div');
+      grid.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+      `;
+      
+      items.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.style.cssText = `
+          cursor: pointer;
+          border: 2px solid transparent;
+          border-radius: 8px;
+          overflow: hidden;
+          aspect-ratio: 1;
+          position: relative;
+        `;
+        
+        const img = document.createElement('img');
+        img.src = item.preview;
+        img.style.cssText = `
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        `;
+        
+        const typeIcon = document.createElement('div');
+        typeIcon.style.cssText = `
+          position: absolute;
+          bottom: 5px;
+          right: 5px;
+          background: ${item.type === 'video' ? '#FF3B30' : '#007AFF'};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: bold;
+        `;
+        typeIcon.textContent = item.type === 'video' ? '▶' : '📷';
+        
+        itemDiv.appendChild(img);
+        itemDiv.appendChild(typeIcon);
+        
+        itemDiv.addEventListener('click', () => {
+          document.body.removeChild(modal);
+          resolve(item);
+        });
+        
+        itemDiv.addEventListener('mouseenter', () => {
+          itemDiv.style.borderColor = '#007AFF';
+        });
+        
+        itemDiv.addEventListener('mouseleave', () => {
+          itemDiv.style.borderColor = 'transparent';
+        });
+        
+        grid.appendChild(itemDiv);
+      });
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Annuler';
+      cancelBtn.style.cssText = `
+        padding: 12px 24px;
+        background: #8E8E93;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        width: 100%;
+      `;
+      
+      cancelBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+        resolve(null);
+      });
+      
+      content.appendChild(title);
+      content.appendChild(grid);
+      content.appendChild(cancelBtn);
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+      
+      // Fermer en cliquant en dehors
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  private async convertRecentItemToMediaFile(item: any): Promise<MediaFile> {
+    // Télécharger le média depuis le chemin natif
+    const response = await fetch(item.preview);
+    const blob = await response.blob();
+    const file = new File([blob], `media_${Date.now()}.${this.getExtensionFromType(item.type)}`, { 
+      type: item.type === 'video' ? 'video/mp4' : 'image/jpeg' 
+    });
+    
+    return await this.cameraService['buildMediaFile'](file, item.preview);
+  }
+
+  private getExtensionFromType(type: string): string {
+    return type === 'video' ? 'mp4' : 'jpg';
   }
 
   removeMedia(event: Event): void {
@@ -363,7 +539,6 @@ async submit(): Promise<void> {
       }).then((alert)=>alert.present());
       return;
     }
-
   this.isUploading = true;
   this.uploadProgress = 0;
   this.cdr.markForCheck();
@@ -372,7 +547,7 @@ async submit(): Promise<void> {
     const metadata = {
       userId:         this.content.userId ?? '',
       description:    this.content.description,
-      isPublic:       this.content.isPublic ?? true,
+      isPublic:       this.isPublic,
       allowDownloads: this.content.allowDownloads ?? true,
       allowComments:  this.content.allowComments ?? false,
       challengeId:    this.selectedChallenge?.id ?? '',

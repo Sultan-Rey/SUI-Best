@@ -2,7 +2,7 @@ import { Component, Input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ModalController } from '@ionic/angular';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
 import { MessageService } from 'src/services/Service_message/message-service';
 import { DmTimePipe } from '../../../utils/pipes/dmPipe/dmtime-pipe';
@@ -38,6 +38,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
   searchQuery = '';
 
   private subscriptions: Subscription[] = [];
+  private refreshInterval: any;
 
   constructor(
     private messageService: MessageService,
@@ -56,10 +57,12 @@ export class MessagesComponent implements OnInit, OnDestroy {
     if (!this.currentUserId) return;
     this.loadConversations();
     this.subscribeToConversations();
+    this.startAutoRefresh();
   }
 
   ngOnDestroy() {
     this.subscriptions.forEach(s => s.unsubscribe());
+    this.stopAutoRefresh();
   }
 
   // ==============================================================
@@ -90,6 +93,27 @@ export class MessagesComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       })
     );
+  }
+
+  /**
+   * Démarre le rechargement automatique toutes les 5 secondes
+   */
+  private startAutoRefresh(): void {
+    this.refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refresh des conversations...');
+      this.loadConversations();
+    }, 5000);
+  }
+
+  /**
+   * Arrête le rechargement automatique
+   */
+  private stopAutoRefresh(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+      console.log('⏹️ Auto-refresh arrêté');
+    }
   }
 
   // ==============================================================

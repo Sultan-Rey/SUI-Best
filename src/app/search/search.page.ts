@@ -158,8 +158,8 @@ export class SearchPage implements OnInit, OnDestroy, AfterViewInit {
                otherUser: {
                 isVerified: profile.isVerified,
                 username: profile.displayName,
-               avatar: profile.avatar,
-               receiverId: profile.id
+                avatar: profile.avatar,
+                receiverId: profile.id
                }},
         presentingElement: await this.modalController.getTop()
       });

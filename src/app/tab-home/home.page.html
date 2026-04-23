@@ -16,7 +16,7 @@
   <div class="content-spacer"></div>
   
   <!-- Section Bannières Publicitaires Superposée -->
-  <div class="floating-banner-ad" *ngIf="showBannerAd && hasContent && bannerAds.length > 0">
+  <div class="floating-banner-ad" *ngIf="showBannerAd && hasContent && bannerAds.length > 0 && isOnline">
     <app-banner-ads 
       [bannerAds]="bannerAds" 
       [isLoading]="isLoadingBannerAds" 
@@ -27,7 +27,7 @@
     </button>
   </div>
   
-  <div class="views-container" [ngSwitch]="selectedSegment">
+  <div class="views-container" [ngSwitch]="selectedSegment"  *ngIf="isOnline || hasCachedData">
     <!-- Affiche les vues même offline - les composants géreront le cache -->
     
     <div class="view-panel challenge-panel" *ngSwitchCase="'challenge'">
@@ -59,15 +59,15 @@
   </div>
 
   <!-- Empty state uniquement si pas de connexion ET pas de données cached -->
-  <div class="empty-state-container" *ngIf="!isOnline">
+  <div class="empty-state-container" *ngIf="!isOnline && !hasCachedData">
     <div class="empty-state-content">
-      <img src="assets/icon/no-internet.gif" alt="no-internet" class="empty-state-gif">
+      <img src="../../assets/icon/no-internet.gif" alt="no-internet" class="empty-state-gif">
       <h2 class="empty-state-title"><ion-icon name="cloud-offline" slot="start"></ion-icon> Hors ligne !</h2>
       <p class="empty-state-text">
         Votre connexion a dérapé !<br>
         <strong>Reconnectez-vous</strong> pour retrouver les contenus<br>
         qui vont vous faire flipper !<br>
-        <small>Les données cached sont disponibles...</small>
+        <small>Aucune donnée disponible hors ligne</small>
       </p>
       <ion-button 
         expand="block" 
@@ -84,7 +84,7 @@
 </ion-content>
 
 <!-- Floating Avatar Button -->
-<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id && (isMobile && !isMobileWeb)">
+<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id && (isMobile && !isMobileWeb) && isOnline">
   <!-- Affiche même offline pour accès au profil cached -->
   <img 
   [src]="currentUserProfile.avatar | mediaUrl | async" 

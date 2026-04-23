@@ -6,7 +6,7 @@ ion-content.tiktok-content {
 }
 
 .posts-container {
-  height: calc(100% - 70px);      // ✅ Hauteur totale moins header et bottom navigation
+  height: calc(100% - 60px);      // ✅ Hauteur totale moins header et bottom navigation
   overflow-y: scroll;
   scroll-snap-type: y mandatory;   // ✅ LE cœur du fix
   -webkit-overflow-scrolling: touch;
@@ -92,6 +92,34 @@ ion-button[disabled] {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  // Styles pour le wrapper vidéo
+  .video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #000;
+    }
+  }
+
+  // Loader pendant le chargement des vidéos
+  .video-loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    
+    ion-spinner {
+      width: 40px;
+      height: 40px;
+    }
   }
 }
 

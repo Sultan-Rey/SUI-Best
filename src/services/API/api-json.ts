@@ -74,13 +74,14 @@ export class ApiJSON {
   
   // TTL spécifiques par type de ressource
   private readonly RESOURCE_TTL = {
-    profiles: 30 * 1000,        // 30 secondes pour les profils
+    profiles: 3 * 60 * 1000,        // 3 minutes pour les profils
     users: 30 * 1000,           // 30 secondes pour les utilisateurs
-    contents: 5 * 60 * 1000,       // 5 minutes pour les publications
+    contents: 30 * 1000,       // 30 secondes pour les publications
     comments: 2 * 60 * 1000,    // 2 minutes pour les commentaires
-    challenges: 10 * 60 * 1000,  // 10 minutes pour les challenges
+    conversations: 5 * 1000,    // 5 secondes pour les conversations
+    challenges: 3 * 60 * 1000,  // 3 minutes pour les challenges
     media: 30 * 60 * 1000,      // 30 minutes pour les médias
-    default: 30 * 60 * 1000     // 30 minutes par défaut
+    default: 10 * 60 * 1000     // 10 minutes par défaut
   };
   
   // État de la connexion

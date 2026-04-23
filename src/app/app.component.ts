@@ -8,7 +8,7 @@ import { FCMService } from '../services/FCM/fcmservice';
 import { Platform } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { App } from '@capacitor/app';
-
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 // Interface pour l'événement de deep link
 interface AppUrlOpenEvent {
   url: string;
@@ -36,7 +36,7 @@ export class AppComponent {
   async ngOnInit() {
     // Initialiser FCM quand la plateforme est prête
     await this.platform.ready();
-    
+    await ScreenOrientation.lock({ orientation: 'portrait' });
     // Configurer l'écoute des deep links
     this.setupDeepLinks();
     

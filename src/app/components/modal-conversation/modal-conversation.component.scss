@@ -1,11 +1,57 @@
+// Système de thèmes premium - même que messages.component
+:root {
+  // Light theme
+  --light-bg: #ffffff;
+  --light-surface: #f8f9fa;
+  --light-surface2: #e9ecef;
+  --light-text-primary: #000000;
+  --light-text-secondary: #6c757d;
+  --light-text-tertiary: #adb5bd;
+  --light-separator: #dee2e6;
+  --light-border: #e1e4e8;
+  --light-hover: #f1f3f4;
+  --light-active: rgba(0, 149, 246, 0.08);
+  
+  // Dark theme (existant)
+  --dark-bg: #000000;
+  --dark-surface: #2c2c2d;
+  --dark-surface2: #2c2c2e;
+  --dark-text-primary: #ffffff;
+  --dark-text-secondary: #a8a8a8;
+  --dark-text-tertiary: #4e4e4e;
+  --dark-separator: #1a1a1a;
+  --dark-border: #2c2c2e;
+  --dark-hover: rgba(255, 255, 255, 0.04);
+  --dark-active: rgba(255, 255, 255, 0.08);
+}
+
+// Mixin pour les thèmes
+@mixin theme-aware($property, $light-value, $dark-value) {
+  #{$property}: $light-value;
+  
+  @media (prefers-color-scheme: dark) {
+    #{$property}: $dark-value;
+  }
+  
+  body.dark & {
+    #{$property}: $dark-value;
+  }
+}
+
+// Mixin pour les transitions premium
+@mixin premium-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .conversation-header {
   ion-toolbar {
-    --background: var(--ion-color-dark);
-    --border-color: var(--ion-color-dark-shade);
+    @include theme-aware(--background, var(--light-bg), var(--dark-bg));
+    @include theme-aware(--border-color, var(--light-border), var(--dark-separator));
+    border-bottom: 1px solid;
   }
 
   .back-btn {
-    --color: var(--ion-color-light);
+    @include theme-aware(--color, var(--light-text-primary), var(--dark-text-primary));
   }
 
   .user-info {
@@ -24,7 +70,8 @@
         height: 40px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid var(--ion-color-dark-shade);
+        @include theme-aware(border-color, var(--light-bg), var(--dark-separator));
+        border: 2px solid;
       }
 
       .online-indicator {
@@ -34,8 +81,9 @@
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        border: 2px solid var(--ion-color-dark);
-        background: var(--ion-color-medium);
+        @include theme-aware(border-color, var(--light-bg), var(--dark-bg));
+        border: 2px solid;
+        @include theme-aware(background, var(--light-text-tertiary), var(--dark-text-secondary));
         
         &.online {
           background: var(--ion-color-success);
@@ -47,13 +95,13 @@
       .username {
         font-weight: 600;
         font-size: 16px;
-        color: var(--ion-color-light);
+        @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
         margin-bottom: 2px;
       }
 
       .user-status {
         font-size: 12px;
-        color: var(--ion-color-medium);
+        @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
 
         .status-online {
           color: var(--ion-color-success);
@@ -66,7 +114,7 @@
         }
 
         .status-offline {
-          color: #6b7280;
+          @include theme-aware(color, var(--light-text-tertiary), #6b7280);
           font-size: 0.85rem;
         }
       }
@@ -74,14 +122,14 @@
   }
 
   .icon-btn {
-    --color: var(--ion-color-light);
+    @include theme-aware(--color, var(--light-text-primary), var(--dark-text-primary));
     --padding-start: 8px;
     --padding-end: 8px;
   }
 }
 
 .conversation-content {
-  --background: var(--ion-color-dark);
+  @include theme-aware(--background, var(--light-bg), var(--dark-bg));
   
   .loading-container {
     display: flex;
@@ -128,8 +176,8 @@
     text-align: center;
 
     .date-text {
-      background: var(--ion-color-medium);
-      color: var(--ion-color-light);
+      @include theme-aware(background, var(--light-surface2), var(--dark-surface));
+      @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
       padding: 4px 12px;
       border-radius: 12px;
       font-size: 12px;
@@ -145,8 +193,8 @@
   }
 
   .message-text {
-    background: var(--ion-color-medium);
-    color: var(--ion-color-light);
+    @include theme-aware(background, var(--light-surface), var(--dark-surface));
+    @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
     padding: 12px 16px;
     border-radius: 18px;
     font-size: 14px;
@@ -161,8 +209,8 @@
     }
 
     &.from-other {
-      background: var(--ion-color-light);
-      color: var(--ion-color-dark);
+      @include theme-aware(background, var(--light-surface2), var(--dark-surface2));
+      @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
       border-bottom-left-radius: 4px;
     }
   }
@@ -171,8 +219,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--ion-color-medium);
-    color: var(--ion-color-light);
+    @include theme-aware(background, var(--light-surface), var(--dark-surface));
+    @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
     padding: 12px 16px;
     border-radius: 18px;
     font-size: 12px;
@@ -186,8 +234,8 @@
     }
 
     &.from-other {
-      background: var(--ion-color-light);
-      color: var(--ion-color-dark);
+      @include theme-aware(background, var(--light-surface2), var(--dark-surface2));
+      @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
       border-bottom-left-radius: 4px;
     }
   }
@@ -197,7 +245,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    color: var(--ion-color-medium);
+    @include theme-aware(color, var(--light-text-tertiary), var(--dark-text-secondary));
     margin-top: 2px;
 
     .message-time {
@@ -212,11 +260,11 @@
         font-size: 14px;
 
         &.status-pending {
-          color: var(--ion-color-medium);
+          @include theme-aware(color, var(--light-text-tertiary), var(--dark-text-secondary));
         }
 
         &.status-sent {
-          color: var(--ion-color-medium);
+          @include theme-aware(color, var(--light-text-tertiary), var(--dark-text-secondary));
         }
 
         &.status-read {
@@ -234,15 +282,16 @@
 }
 
 .conversation-footer {
-  --background: var(--ion-color-dark);
-  border-top: 1px solid var(--ion-color-dark-shade);
+  @include theme-aware(--background, var(--light-bg), var(--dark-bg));
+  @include theme-aware(border-top-color, var(--light-border), var(--dark-separator));
+  border-top: 1px solid;
   padding: 8px 16px 16px 16px;
 
   .message-input-container {
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    background: var(--ion-color-light);
+    @include theme-aware(background, var(--light-surface2), var(--dark-surface));
     border-radius: 24px;
     padding: 4px;
 
@@ -260,7 +309,7 @@
 
       .message-input {
         --background: transparent;
-        --color: var(--ion-color-dark);
+        @include theme-aware(--color, var(--light-text-primary), var(--dark-text-primary));
         --padding-start: 12px;
         --padding-end: 12px;
         --padding-top: 10px;
@@ -273,7 +322,7 @@
       }
 
       .emoji-btn {
-        --color: var(--ion-color-medium);
+        @include theme-aware(--color, var(--light-text-secondary), var(--dark-text-secondary));
         --padding: 8px;
       }
     }
@@ -295,7 +344,7 @@
         }
 
         &.send-btn:disabled {
-          --color: var(--ion-color-medium);
+          @include theme-aware(--color, var(--light-text-tertiary), var(--dark-text-secondary));
         }
       }
 
@@ -322,7 +371,7 @@
   .join-group-btn {
     --border-radius: 12px;
     --border-color: var(--ion-color-primary);
-    --color: var(--ion-color-primary);
+    @include theme-aware(--color, var(--light-text-primary), var(--dark-text-primary));
     margin: 0;
     font-weight: 600;
     
@@ -332,7 +381,7 @@
     
     &:hover {
       --background: var(--ion-color-primary);
-      --color: var(--ion-color-light);
+      --color: var(--ion-color-primary-contrast);
     }
   }
 }
@@ -349,8 +398,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--ion-color-light);
-  color: var(--ion-color-medium);
+  @include theme-aware(background, var(--light-surface2), var(--dark-surface));
+  @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
   font-size: 0.85em;
   font-style: italic;
   padding: 8px 16px;

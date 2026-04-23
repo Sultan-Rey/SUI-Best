@@ -110,6 +110,10 @@
           <div class="media-btn-icon"><ion-icon name="images-outline"></ion-icon></div>
           <span>Galerie</span>
         </button>
+        <!-- <button class="media-btn" (click)="pickFromRecentGallery()" [disabled]="isPickingMedia">
+          <div class="media-btn-icon"><ion-icon name="time-outline"></ion-icon></div>
+          <span>Récents</span>
+        </button> -->
       </div>
 
     </div>
@@ -137,7 +141,7 @@
             <span class="setting-title">Rendre public</span>
             <span class="setting-desc">Visible par tous les utilisateurs</span>
           </div>
-          <ion-toggle [(ngModel)]="isPublic" class="setting-toggle"></ion-toggle>
+          <ion-toggle [(ngModel)]="isPublic" [disabled]="isChallenging" class="setting-toggle"></ion-toggle>
         </div>
         <div class="setting-row">
           <div class="setting-info">

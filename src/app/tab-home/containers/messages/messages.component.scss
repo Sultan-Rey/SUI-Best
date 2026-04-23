@@ -1,13 +1,40 @@
-
 // ─────────────────────────────────────────────
 //  Instagram DM Inbox — Ionic/Angular
 //  Palette: pure black, IG blue, IG gradient
 // ─────────────────────────────────────────────
 
 // ── Tokens ──────────────────────────────────
-$black:       #000000;
-$surface:     #2c2c2d;
-$surface2:    #2c2c2e;
+// Tokens - Système de thèmes premium
+:root {
+  // Light theme
+  --light-bg: #ffffff;
+  --light-surface: #f8f9fa;
+  --light-surface2: #e9ecef;
+  --light-text-primary: #000000;
+  --light-text-secondary: #6c757d;
+  --light-text-tertiary: #adb5bd;
+  --light-separator: #dee2e6;
+  --light-border: #e1e4e8;
+  --light-hover: #f1f3f4;
+  --light-active: rgba(0, 149, 246, 0.08);
+  
+  // Dark theme (existant)
+  --dark-bg: #000000;
+  --dark-surface: #2c2c2d;
+  --dark-surface2: #2c2c2e;
+  --dark-text-primary: #ffffff;
+  --dark-text-secondary: #a8a8a8;
+  --dark-text-tertiary: #4e4e4e;
+  --dark-separator: #1a1a1a;
+  --dark-border: #2c2c2e;
+  --dark-hover: rgba(255, 255, 255, 0.04);
+  --dark-active: rgba(255, 255, 255, 0.08);
+}
+
+// Variables dynamiques selon le thème
+$black:       var(--ion-background-color, #000000);
+$surface:     var(--ion-color-light, #2c2c2d);
+$surface2:    var(--ion-color-medium, #2c2c2e);
 $ig-blue:     #0095f6;
 $ig-grad-a:   #f09433;
 $ig-grad-b:   #e6683c;
@@ -15,10 +42,28 @@ $ig-grad-c:   #dc2743;
 $ig-grad-d:   #cc2366;
 $ig-grad-e:   #bc1888;
 $online:      #3aba6e;
-$text-1:      #ffffff;
-$text-2:      #a8a8a8;
-$text-3:      #4e4e4e;
-$separator:   #1a1a1a;
+$text-1:      var(--ion-text-color, #ffffff);
+$text-2:      var(--ion-color-medium, #a8a8a8);
+$text-3:      var(--ion-color-medium-shade, #4e4e4e);
+$separator:   var(--ion-color-light-shade, #1a1a1a);
+
+// Mixin pour les thèmes
+@mixin theme-aware($property, $light-value, $dark-value) {
+  #{$property}: $light-value;
+  
+  @media (prefers-color-scheme: dark) {
+    #{$property}: $dark-value;
+  }
+  
+  body.dark & {
+    #{$property}: $dark-value;
+  }
+}
+
+// Mixin pour les transitions premium
+@mixin premium-transition {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 // ── Mixins ──────────────────────────────────
 @mixin story-gradient {
@@ -38,9 +83,13 @@ $separator:   #1a1a1a;
 //  HEADER
 // ─────────────────────────────────────────────
 .dm-header {
+  @include theme-aware(background, var(--light-bg), var(--dark-bg));
+  @include premium-transition;
+  
   ion-toolbar {
-    background: #{$black};
-    --border-color: #{$separator};
+    @include theme-aware(background, var(--light-bg), var(--dark-bg));
+    @include theme-aware(border-bottom-color, var(--light-border), var(--dark-separator));
+    border-bottom: 1px solid;
     --padding-start: 4px;
     --padding-end: 4px;
     --min-height: 52px;
@@ -55,35 +104,40 @@ $separator:   #1a1a1a;
     .header-username {
       font-size: 17px;
       font-weight: 700;
-      --color: $text-1;
+      @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
       letter-spacing: -0.3px;
     }
 
     .username-chevron {
       font-size: 13px;
-      --color: $text-2;
+      @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
       margin-top: 1px;
     }
   }
 
   .icon-btn {
-    color: var($text-1);
+    @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
     --padding-start: 8px;
     --padding-end: 8px;
 
     ion-icon { font-size: 22px; }
   }
 
-  // ── Requests bar ──
+  // Requests bar
   .requests-bar {
     @include flex-center;
     gap: 12px;
     padding: 12px 16px;
-    border-bottom: 0.5px solid $separator;
+    @include theme-aware(border-bottom-color, var(--light-border), var(--dark-separator));
+    border-bottom: 0.5px solid;
     cursor: pointer;
-    transition: background 0.15s;
+    @include premium-transition;
 
-    &:active { background: rgba(255,255,255,0.04); }
+    @include theme-aware(background, var(--light-bg), var(--dark-bg));
+    
+    &:active { 
+      @include theme-aware(background, var(--light-active), var(--dark-active));
+    }
 
     .requests-avatars {
       @include flex-center;
@@ -92,7 +146,8 @@ $separator:   #1a1a1a;
         height: 32px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid $black;
+        @include theme-aware(border-color, var(--light-bg), var(--dark-bg));
+        border: 2px solid;
         margin-left: -8px;
 
         &:first-child { margin-left: 0; }
@@ -108,17 +163,17 @@ $separator:   #1a1a1a;
       .requests-label {
         font-size: 14px;
         font-weight: 600;
-        color: $text-1;
+        @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
       }
       .requests-sub {
         font-size: 12px;
-        color: $text-2;
+        @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
       }
     }
 
     .requests-chevron {
       font-size: 16px;
-      color: $text-2;
+      @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
     }
   }
 }
@@ -127,7 +182,7 @@ $separator:   #1a1a1a;
 //  CONTENT
 // ─────────────────────────────────────────────
 .dm-content {
-  background: #{$black};
+  @include theme-aware(background, var(--light-bg), var(--dark-bg));
   --padding-top: 0;
 }
 
@@ -139,21 +194,22 @@ $separator:   #1a1a1a;
 
   .search-inner {
     @include flex-center;
-    background: $surface;
+    @include theme-aware(background, var(--light-surface), var(--dark-surface));
     border-radius: 12px;
     padding: 0 12px;
     gap: 8px;
+    @include premium-transition;
 
     .search-icon {
       font-size: 15px;
-      color: $text-2;
+      @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
       flex-shrink: 0;
     }
 
     .search-input {
       --background: transparent;
-      --color: #{$text-1};
-      --placeholder-color: #{$text-2};
+      @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
+      @include theme-aware(placeholder-color, var(--light-text-secondary), var(--dark-text-secondary));
       --padding-start: 0;
       --padding-end: 0;
       --padding-top: 9px;
@@ -223,18 +279,18 @@ ion-item-sliding {
 //  DM ITEM
 // ─────────────────────────────────────────────
 .dm-item {
-  background: #{$black};
-  --background-activated: rgba(255, 255, 255, 0.04);
+  @include theme-aware(background, var(--light-bg), var(--dark-bg));
+  @include theme-aware(--background-activated, var(--light-active), var(--dark-active));
   --inner-padding-end: 16px;
   --padding-start: 16px;
   --padding-top: 8px;
   --padding-bottom: 8px;
   --min-height: 72px;
   --border-color: transparent;
-  transition: background 0.12s;
+  @include premium-transition;
 
   &.unread {
-    background: #{$black};
+    @include theme-aware(background, var(--light-hover), var(--dark-hover));
   }
 
   // ── Avatar wrap ──
@@ -301,7 +357,7 @@ ion-item-sliding {
     .dm-username {
       font-size: 14px;
       font-weight: 400;
-      color: $text-1;
+      @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
       letter-spacing: 0;
       white-space: nowrap;
       overflow: hidden;
@@ -340,12 +396,12 @@ ion-item-sliding {
 
       .muted-icon {
         font-size: 13px;
-        color: $text-3;
+        @include theme-aware(color, var(--light-text-tertiary), var(--dark-text-tertiary));
       }
 
       .dm-time {
         font-size: 12px;
-        color: $text-2;
+        @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
         white-space: nowrap;
       }
     }
@@ -364,13 +420,13 @@ ion-item-sliding {
 
       .media-icon {
         font-size: 14px;
-        color: $text-2;
+        @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
         flex-shrink: 0;
       }
 
       .dm-preview {
         font-size: 13.5px;
-        color: $text-2;
+        @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
         margin: 0;
         white-space: nowrap;
         overflow: hidden;
@@ -378,12 +434,12 @@ ion-item-sliding {
         line-height: 1.3;
 
         &.unread-preview {
-          color: $text-1;
+          @include theme-aware(color, var(--light-text-primary), var(--dark-text-primary));
           font-weight: 500;
         }
 
         .sent-prefix {
-          color: $text-2;
+          @include theme-aware(color, var(--light-text-secondary), var(--dark-text-secondary));
           font-weight: 400;
         }
       }

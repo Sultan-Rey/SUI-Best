@@ -442,88 +442,107 @@ export class HomePage implements OnInit, OnDestroy {
     const imgElement = event.target as HTMLImageElement;
     imgElement.src = 'assets/avatar-default.png';
   }
-onAvatarLoad(event: Event): void {
-  (event.target as HTMLImageElement).classList.add('loaded');
-}
 
-private setupConnectionListeners() {
-
-  // Initialiser l'état de connexion
-  this.isOnline = navigator.onLine;
-
-  
-  // Écouter les événements de connexion du navigateur
-  window.addEventListener('online', () => {
-    this.isOnline = true;
-    this.cdr.markForCheck();
-    console.log('Connexion rétablie - Rechargement automatique des données...');
-    this.refreshAllDataOnReconnect();
-  });
-  
-  window.addEventListener('offline', () => {
-    this.isOnline = false;
-    this.cdr.markForCheck();
-    console.log('Hors ligne - utilisation du cache');
-  });
-
-  // Écouter les événements de connexion du service métier
-  this.profileService.connectionError.subscribe((isConnected: boolean) => {
-     this.isOnline = isConnected;
-    this.cdr.markForCheck();
-    
-    // Si la connexion est rétablie via le service, recharger les données
-    if (isConnected) {
-      console.log('Service connexion rétablie - Rechargement automatique des données...');
-      this.refreshAllDataOnReconnect();
-    }
-  });
-  
-}
-
-/**
- * Recharge automatiquement toutes les données quand la connexion est rétablie
- */
-private async refreshAllDataOnReconnect() {
-  try {
-    // Afficher un toast pour informer l'utilisateur
-    const toast = await this.toastController.create({
-      message: 'Connexion rétablie - Rechargement des données...',
-      duration: 2000,
-      color: 'success',
-      position: 'top'
-    });
-    await toast.present();
-
-    // Recharger le profil utilisateur
-    if (this.currentUserProfile?.id) {
-      this.profileService.getProfileById(this.currentUserProfile.id).subscribe({
-        next: (profile) => {
-          this.currentUserProfile = profile as UserProfile;
-          this.cdr.markForCheck();
-        },
-        error: (error) => {
-          console.error('Erreur lors du rechargement du profil:', error);
-        }
-      });
-    }
-
-    // Recharger les messages non lus
-    this.unreadMessagesCount();
-
-    // Recharger les bannières publicitaires
-    this.loadBannerAds();
-
-    // Recharger les bannières publicitaires
-    this.loadPostAds();
-
-    // Notifier les composants enfants de se recharger
-    this.cdr.markForCheck();
-
-    console.log('Toutes les données ont été rechargées avec succès');
-  } catch (error) {
-    console.error('Erreur lors du rechargement automatique:', error);
+  onAvatarLoad(event: Event): void {
+    (event.target as HTMLImageElement).classList.add('loaded');
   }
-}
+
+  /**
+   * Vérifie si des données cached sont disponibles pour permettre l'usage hors ligne
+   */
+  private checkCachedDataAvailability(): void {
+    // Vérifier si le profil utilisateur est en cache
+    const hasUserProfile = !!this.currentUserProfile?.id;
+    
+    // Vérifier s'il y a des follows en cache (pour le tab followed)
+    const hasFollows = this.currentUserProfile?.myFollows && this.currentUserProfile.myFollows.length > 0;
+    
+    // Vérifier s'il y a des bannières publicitaires en cache
+    const hasCachedAds = this.bannerAds && this.bannerAds.length > 0;
+    
+    // Déterminer si on a suffisamment de données pour fonctionner hors ligne
+    this.hasCachedData = hasUserProfile && (hasFollows || hasCachedAds);
+    
+    console.log('Cache check - Profile:', hasUserProfile, 'Follows:', hasFollows, 'Ads:', hasCachedAds, 'Result:', this.hasCachedData);
+  }
+
+  private setupConnectionListeners() {
+    // Initialiser l'état de connexion
+    this.isOnline = navigator.onLine;
+
+    // Écouter les événements de connexion du navigateur
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      this.cdr.markForCheck();
+      console.log('Connexion rétablie - Rechargement automatique des données...');
+      this.refreshAllDataOnReconnect();
+    });
+    
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      this.checkCachedDataAvailability();
+      this.cdr.markForCheck();
+      console.log('Hors ligne - Vérification des données cached...');
+    });
+
+    // Écouter les événements de connexion du service métier
+    this.profileService.connectionError.subscribe((isConnected: boolean) => {
+       this.isOnline = isConnected;
+       this.cdr.markForCheck();
+      
+      // Si la connexion est rétablie via le service, recharger les données
+      if (isConnected) {
+        console.log('Service connexion rétablie - Rechargement automatique des données...');
+        this.refreshAllDataOnReconnect();
+      }
+    });
+    
+  }
+
+  /**
+   * Recharge automatiquement toutes les données quand la connexion est rétablie
+   */
+  private async refreshAllDataOnReconnect() {
+    try {
+      // Afficher un toast pour informer l'utilisateur
+      const toast = await this.toastController.create({
+        message: 'Connexion rétablie - Rechargement des données...',
+        duration: 2000,
+        color: 'success',
+        position: 'top'
+      });
+      await toast.present();
+
+      // Recharger le profil utilisateur
+      if (this.currentUserProfile?.id) {
+        this.profileService.getProfileById(this.currentUserProfile.id).subscribe({
+          next: (profile) => {
+            this.currentUserProfile = profile as UserProfile;
+            this.cdr.markForCheck();
+          },
+          error: (error) => {
+            console.error('Erreur lors du rechargement du profil:', error);
+          }
+        });
+      }
+
+      // Recharger les messages non lus
+      this.unreadMessagesCount();
+
+      // Recharger les bannières publicitaires
+      this.loadBannerAds();
+
+      // Recharger les bannières publicitaires
+      this.loadPostAds();
+
+      // Notifier les composants enfants de se recharger
+      this.cdr.markForCheck();
+
+      console.log('Toutes les données ont été rechargées avec succès');
+    } catch (error) {
+      console.error('Erreur lors du rechargement automatique:', error);
+    }
+  }
 
 async retryConnection(event?: Event) {
   if (event) {

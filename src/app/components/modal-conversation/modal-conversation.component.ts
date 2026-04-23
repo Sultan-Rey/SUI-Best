@@ -108,12 +108,22 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
         if (conv) {
           // Vérifier si otherUser.receiverId est dans deletedFor
           this.hasDeleted = conv.deletedFor?.includes(this.otherUser.receiverId) || false;
-          
+           
           this.conversation = conv;
-          this.messages     = [...(conv.messages ?? [])];
+          this.messages     = [...(conv.messages ?? [])]; 
           this.isLoading    = false;
           this.cdr.markForCheck();
           this.scrollToBottomDeferred();
+
+            // Marquer tous les messages comme lus à l'ouverture
+      const unreadMessages = this.messages.filter(msg => msg.status !== 'read' && msg.senderId !== this.currentUserId);
+      console.log('📖 Messages non lus à marquer:', unreadMessages.length);
+      console.log('📖 Détails messages non lus:', unreadMessages.map(m => ({ id: m.id, status: m.status, senderId: m.senderId, currentUserId: this.currentUserId })));
+      
+      unreadMessages.forEach(msg => {
+        console.log('✅ Marquage du message comme lu:', msg.id);
+        this.messageService.markMessageAsRead(this.conversationId, msg.id).subscribe();
+      });
         }
       })
     );
@@ -121,11 +131,15 @@ export class ModalConversationComponent implements OnInit, OnDestroy {
     // Charger les messages paginés si la conversation n'est pas encore dans le store
 this.subscriptions.push(
   this.messageService.getMessages(this.conversationId).subscribe(msgs => {
-    if (msgs.length > 0) {
+    console.log('📨 Messages reçus:', msgs?.length, 'pour conversation:', this.conversationId);
+    
+    if (msgs && msgs.length > 0) {
       // Filtrer les messages qui n'ont PAS été supprimés pour l'utilisateur courant
       const filteredMessages = msgs.filter(msg => 
         !msg.deletedFor || !msg.deletedFor.includes(this.currentUserId)
       );
+      
+      console.log('🔍 Messages filtrés:', filteredMessages.length);
       
       this.messages = filteredMessages;
       // Utiliser le dernier message NON supprimé pour lastMessageSince
@@ -135,6 +149,10 @@ this.subscriptions.push(
       this.isLoading = false;
       this.cdr.markForCheck();
       this.scrollToBottomDeferred();
+      
+    
+    } else {
+      console.log('❌ Aucun message reçu ou msgs est null/undefined');
     }
   })
 );
@@ -266,6 +284,7 @@ this.subscriptions.push(
 
   private doSendMessage(optimistic: Message): void {
     const payload = {
+      conversationId: this.conversationId,
       senderId:   optimistic.senderId,
       receiverId: optimistic.receiverId,
       content:    optimistic.content,

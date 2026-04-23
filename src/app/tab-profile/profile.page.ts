@@ -57,7 +57,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, ToastController, LoadingController } from '@ionic/angular';
 import { UserProfile } from 'src/models/User.js';
-import { Content } from 'src/models/Content.js';
+import { Content, ContentStatus } from 'src/models/Content.js';
 import { ProfileService } from 'src/services/Service_profile/profile-service.js';
 import { Auth } from 'src/services/AUTH/auth';
 import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
@@ -74,6 +74,7 @@ import { AwardsGalleryComponent } from '../components/awards-gallery/awards-gall
 import { RewardService } from 'src/services/Rewards/reward-service';
 import { LevelReward } from 'src/models/LevelReward';
 import { TransactionHistoryModalComponent } from '../components/modal-transaction-history/transaction-history-modal.component';
+import { CreationService } from 'src/services/Service_content/creation-service';
 
 @Component({
   selector: 'app-profile',
@@ -108,6 +109,7 @@ export class ProfilePage implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private profileService: ProfileService,
+    private creationService: CreationService,
     private userService: UserService,
     private authservice: Auth,
     private rewardService: RewardService,
@@ -139,9 +141,11 @@ export class ProfilePage implements OnInit {
     if (param_id) {
       this.isOwnProfile = false;
       this.loadUserProfile(param_id);
+      this.loadUserContents(param_id);
     } else {
       this.isOwnProfile = true;
       this.loadUserProfile(this.currentUserId as string);
+      this.loadUserContents(this.currentUserId as string);
     }
   }
 
@@ -308,7 +312,26 @@ export class ProfilePage implements OnInit {
     }
   }
 
+  async loadUserContents(userId: string){
+    if(!this.isBlocked){
+     
+      const contents = await this.creationService
+        .getContents({ userId: userId, status: ContentStatus.PUBLISHED }, { cache: false })
+        .toPromise();
 
+   
+      if(contents){
+       
+        this.userContents = contents;
+      }
+    }
+  }
+
+  isVideo(post: Content): boolean {
+      if (!post.fileUrl) return false;
+      const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'];
+      return videoExtensions.some(ext => post.fileUrl!.toLowerCase().includes(ext));
+    }
   /**
    * XP Management
    */

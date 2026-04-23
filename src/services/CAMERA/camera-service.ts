@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Camera, CameraResultType, CameraSource, Photo, GalleryPhoto } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
-
+import { Media} from '@capacitor-community/media';
 export interface MediaFile {
   file: File;
   previewUrl: string;
@@ -32,7 +32,7 @@ export class CameraService {
       });
 
       const file = await this.photoToFile(photo);
-      return this.buildMediaFile(file, photo.webPath!);
+      return await this.buildMediaFile(file, photo.webPath!);
     } catch (error) {
       console.error('[CameraService] takePhoto error:', error);
       throw error;
@@ -62,7 +62,7 @@ export class CameraService {
       console.log('[CameraService] Photo sélectionnée:', photo);
 
       const file = await this.photoToFile(photo);
-      return this.buildMediaFile(file, photo.webPath!);
+      return await this.buildMediaFile(file, photo.webPath!);
     } catch (error) {
       // 🔥 Logger l'erreur complète
       console.error('[CameraService] pickSingle error:', error);
@@ -82,6 +82,32 @@ export class CameraService {
 
   // ── Galerie — sélection multiple ──────────────────────────────
 
+  // Dans camera-service.ts
+
+async pickMedias(limit: number = 1): Promise<MediaFile[]> {
+  try {
+    // Utilisation de pickImages avec un filtre de type média "video" ou "all"
+    const { photos } = await Camera.pickImages({
+      limit,
+      quality: 90,
+      // @ts-ignore - 'video' est supporté sur les versions récentes de Capacitor Camera
+      types: ['images', 'videos'] 
+    });
+
+    const results: MediaFile[] = [];
+    for (const photo of photos) {
+      const res = await fetch(photo.webPath!);
+      const blob = await res.blob();
+      const file = new File([blob], `media_${Date.now()}.${this.mimeToExt(blob.type)}`, { type: blob.type });
+      results.push(await this.buildMediaFile(file, photo.webPath!));
+    }
+    return results;
+  } catch (error) {
+    console.error('[CameraService] pickMedias error:', error);
+    return [];
+  }
+}
+
   async pickMultiple(): Promise<MediaFile[]> {
     if (Capacitor.getPlatform() === 'web') {
       return this.pickMultipleWeb();
@@ -92,19 +118,46 @@ export class CameraService {
 
       console.log('[CameraService] Ouverture galerie multiple...');
 
-      const result = await Camera.pickImages({ quality: 90 });
-      const photos = result.photos ?? [];
+      // Essayer d'abord avec les images (plus compatible)
+      try {
+        const result = await Camera.pickImages({
+          quality: 90,
+          limit: 10
+        });
 
-      console.log(`[CameraService] ${photos.length} photo(s) sélectionnée(s)`);
+        console.log(`[CameraService] ${result.photos.length} photo(s) sélectionnée(s)`);
 
-      const mediaFiles = await Promise.all(
-        photos.map(async (p) => {
-          const file = await this.galleryPhotoToFile(p);
-          return this.buildMediaFile(file, p.webPath);
-        })
-      );
+        const mediaFiles = await Promise.all(
+          result.photos.map(async (photo) => {
+            const file = await this.galleryPhotoToFile(photo);
+            return await this.buildMediaFile(file, photo.webPath);
+          })
+        );
 
-      return mediaFiles;
+        return mediaFiles;
+      } catch (imageError) {
+        console.log('[CameraService] Erreur photos, tentative vidéo:', imageError);
+        
+        // Fallback: essayer avec une seule vidéo
+        try {
+          const videoResult = await Camera.getPhoto({
+            quality: 90,
+            source: CameraSource.Photos,
+            resultType: CameraResultType.Uri,
+            // Note: getPhoto peut aussi retourner des vidéos
+          });
+
+          console.log('[CameraService] Vidéo sélectionnée');
+
+          const file = await this.photoToFile(videoResult);
+          const previewUrl = videoResult.webPath!;
+          
+          return [await this.buildMediaFile(file, previewUrl)];
+        } catch (videoError) {
+          console.error('[CameraService] Erreur vidéo aussi:', videoError);
+          throw new Error('Impossible d\'accéder à la galerie. Veuillez vérifier les permissions.');
+        }
+      }
     } catch (error) {
       console.error('[CameraService] pickMultiple error:', error);
       
@@ -119,6 +172,37 @@ export class CameraService {
       throw error;
     }
   }
+
+
+ 
+
+async getRecentGalleryItems(limit: number = 20): Promise<any[]> {
+  try {
+    //1. Demander la permission explicitement
+    //Sur Android, c'est READ_EXTERNAL_STORAGE ou READ_MEDIA_VIDEO/IMAGES
+    const permission = await Media.getAlbumsPath(); // Juste pour déclencher le check si besoin
+
+    //2. Récupérer les médias les plus récents
+    const result = await Media.getMedias({
+      quantity: limit,
+      types: 'all', // Indispensable pour ton app TikTok-like
+    });
+
+    //3. Mapper les résultats pour ton UI
+    return result.medias.map((m:any) => ({
+      id: m.identifier,
+      // On utilise convertFileSrc pour transformer le chemin natif en URL lisible par le WebView
+      preview: Capacitor.convertFileSrc(m.identifier), 
+      type: m.mediaType === 'video' ? 'video' : 'image',
+      nativePath: m.identifier,
+      duration: m.duration // Optionnel : pour afficher la durée sur la miniature
+    }));
+    return [];
+  } catch (error) {
+    console.error('Erreur lors du scan de la galerie:', error);
+    return [];
+  }
+}
 
   // ── Vérification des permissions ─────────────────────────────
 
@@ -208,7 +292,7 @@ export class CameraService {
         const mediaFiles = await Promise.all(
           files.map(async f => {
             const url = URL.createObjectURL(f);
-            return this.buildMediaFile(f, url);
+            return await this.buildMediaFile(f, url);
           })
         );
         resolve(mediaFiles);
@@ -285,7 +369,7 @@ export class CameraService {
     });
   }
 
-  private async buildMediaFile(file: File, previewUrl: string): Promise<MediaFile> {
+  async buildMediaFile(file: File, previewUrl: string): Promise<MediaFile> {
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
 
@@ -323,6 +407,18 @@ export class CameraService {
     const blob = await res.blob();
     const ext  = this.mimeToExt(blob.type);
     return new File([blob], `media_${Date.now()}.${ext}`, { type: blob.type });
+  }
+
+  private async videoToFile(video: any): Promise<File> {
+    if (!video.path) throw new Error('Pas de path pour la vidéo');
+    
+    // Convertir le chemin natif en URL lisible
+    const url = Capacitor.convertFileSrc(video.path);
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const ext = this.mimeToExt(blob.type);
+    
+    return new File([blob], `video_${Date.now()}.${ext}`, { type: blob.type });
   }
 
   private mimeToExt(mime: string): string {

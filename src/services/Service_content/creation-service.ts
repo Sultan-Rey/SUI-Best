@@ -349,6 +349,8 @@ export class CreationService {
    * Incrémente le viewCount via un simple PATCH — une seule requête.
    */
   incrementViewCount(contentId: string): Observable<Content> {
+   console.error('[CreationService] incrementViewCount active:',contentId);
+
     return this.api.getById<Content>(this.RESOURCE, contentId).pipe(
       switchMap(content => this.api.patch<Content>(this.RESOURCE, contentId, {
         viewCount: (content.viewCount ?? 0) + 1
@@ -518,8 +520,15 @@ export class CreationService {
    * Filtre générique — retourne les contenus selon les critères fournis.
    */
   getContents(filters: Record<string, any>, options?: any): Observable<Content[]> {
+   
     return this.api.filter<Content>(this.RESOURCE, { filters, options }).pipe(
-      map(result => result.data),
+      map(result => {
+       
+        if (result.data && result.data.length > 0) {
+         
+        }
+        return result.data;
+      }),
       catchError(err => {
         console.error('[CreationService] getContents:', err);
         return of([]);
