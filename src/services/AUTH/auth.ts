@@ -132,6 +132,7 @@ export class Auth {
           id: registrationData.id || '', // Utiliser l'ID fourni ou chaîne vide par défaut
           type: registrationData.user_type,
           myFollows: [],
+          myFans: [],
           myBlackList: [],
           username: await this.generateUniqueUsername(
             registrationData.first_name || 'user',

@@ -121,6 +121,11 @@ ion-button[disabled] {
       height: 40px;
     }
   }
+
+  @media(min-width: 768px){
+    border-radius: 12px;
+    padding: 50px;
+  }
 }
 
 @keyframes zoomIn {

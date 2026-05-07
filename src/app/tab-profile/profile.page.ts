@@ -234,21 +234,23 @@ export class ProfilePage implements OnInit {
   async toggleFollow() {
     if (!this.currentUserId || !this.userProfile) return;
     this.isLoading = true;
-
     try {
       let result;
-      if (this.userProfile.isFollowing) {
+      if (this.userProfile.isFollowing || this.userProfile.myFans.includes(this.currentUserId)) {
         result = await this.profileService.unfollowProfile(this.currentUserId, this.userProfile.id);
       } else {
         result = await this.profileService.followProfile(this.currentUserId, this.userProfile.id);
       }
 
       if (result) {
+        console.log("result",result);
         this.userProfile.isFollowing = !this.userProfile.isFollowing;
         if (result.profile) {
           this.userProfile.stats = this.userProfile.stats || { fans: 0, following: 0 };
           this.userProfile.stats.fans = result.profile.stats?.fans || 0;
+          this.userProfile.myFollows = result.profile.myFollows || 0;
         }
+        this.cdr.markForCheck();
       }
     } catch (err) {
       console.error('Erreur lors de la mise à jour du suivi', err);

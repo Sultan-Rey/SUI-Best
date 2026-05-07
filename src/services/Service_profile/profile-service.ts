@@ -367,66 +367,86 @@ export class ProfileService {
      ==================== */
   // Dans profile.service.ts
 
-async followProfile(userId: string, profileIdToFollow: string): Promise<any> {
+async followProfile(userId: string, profileIdToFollow: string): Promise<{ user: UserProfile, profile: UserProfile, status: boolean }> {
   try {
-    // 1. Récupérer l'utilisateur qui suit
-    const user = await this.api.getById<UserProfile>(this.resource, userId).toPromise();
-    if (!user) throw new Error('Utilisateur non trouvé');
+    // 1. Récupérer les profils actuels
+    const [user, profileToFollow] = await Promise.all([
+      this.api.getById<UserProfile>(this.resource, userId).toPromise(),
+      this.api.getById<UserProfile>(this.resource, profileIdToFollow).toPromise()
+    ]);
 
-    // 2. Récupérer le profil à suivre
-    const profileToFollow = await this.api.getById<UserProfile>(this.resource, profileIdToFollow).toPromise();
-    if (!profileToFollow) throw new Error('Profil à suivre non trouvé');
+    if (!user || !profileToFollow) {
+      throw new Error('Utilisateur ou profil non trouvé');
+    }
 
     const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
-    
-    if (!myFollows.includes(profileIdToFollow)) {
-      // 3. Mettre à jour la liste des follows de l'utilisateur
-      user.myFollows = [...myFollows, profileIdToFollow];
-      
-      // 4. Incrémenter le compteur de followers du profil suivi
-      profileToFollow.stats = profileToFollow.stats || { fans: 0, following: 0 };
-      profileToFollow.stats.fans = (profileToFollow.stats.fans || 0) + 1;
-
-      // 5. Mettre à jour les deux profils en parallèle
-      await Promise.all([
-        this.api.update(this.resource, userId, user).toPromise(),
-        this.api.update(this.resource, profileIdToFollow, profileToFollow).toPromise()
-      ]);
-
-      return { user, profile: profileToFollow };
+    const profileFans = Array.isArray(profileToFollow.myFans) ? profileToFollow.myFans : [];
+    // Si déjà suivi, on renvoie les profils actuels sans modif
+    if (myFollows.includes(profileIdToFollow)) {
+      return { user, profile: profileToFollow, status: true };
     }
-    return { user, profile: profileToFollow };
+
+    // 2. Préparer les modifications locales (payloads)
+    user.myFollows = [...myFollows, profileIdToFollow];
+    profileToFollow.myFans = [...profileFans, user.id];
+
+    profileToFollow.stats = { ...profileToFollow.stats, fans: (profileToFollow.stats?.fans || 0) + 1 };
+
+    // 3. Exécuter l'update et CAPTURER les résultats du serveur
+    // La déstructuration [updatedUser, updatedProfile] récupère les valeurs résolues par Promise.all
+    const [updatedUser, updatedProfile] = await Promise.all([
+      this.api.update<UserProfile>(this.resource, userId, user).toPromise(),
+      this.api.update<UserProfile>(this.resource, profileIdToFollow, profileToFollow).toPromise()
+    ]);
+
+    // On retourne les données fraîches venant du serveur
+    return { user: updatedUser as UserProfile, profile: updatedProfile as UserProfile, status: true };
+
   } catch (error) {
     console.error('Erreur followProfile:', error);
     throw error;
   }
 }
 
-async unfollowProfile(userId: string, profileIdToUnfollow: string): Promise<any> {
+async unfollowProfile(userId: string, profileIdToUnfollow: string): Promise<{ user: UserProfile, profile: UserProfile, status: boolean }> {
   try {
-    // 1. Récupérer l'utilisateur qui se désabonne
-    const user = await this.api.getById<UserProfile>(this.resource, userId).toPromise();
-    if (!user) throw new Error('Utilisateur non trouvé');
-
-    // 2. Récupérer le profil à ne plus suivre
-    const profileToUnfollow = await this.api.getById<UserProfile>(this.resource, profileIdToUnfollow).toPromise();
-    if (!profileToUnfollow) throw new Error('Profil à ne plus suivre non trouvé');
-
-    const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
-    user.myFollows = myFollows.filter(id => id !== profileIdToUnfollow);
-    
-    // 3. Décrémenter le compteur de followers du profil
-    if (profileToUnfollow.stats?.fans && profileToUnfollow.stats.fans > 0) {
-      profileToUnfollow.stats.fans -= 1;
-    }
-
-    // 4. Mettre à jour les deux profils en parallèle
-    await Promise.all([
-      this.api.update(this.resource, userId, user).toPromise(),
-      this.api.update(this.resource, profileIdToUnfollow, profileToUnfollow).toPromise()
+    // 1. Récupérer les profils actuels en parallèle
+    const [user, profileToUnfollow] = await Promise.all([
+      this.api.getById<UserProfile>(this.resource, userId).toPromise(),
+      this.api.getById<UserProfile>(this.resource, profileIdToUnfollow).toPromise()
     ]);
 
-    return { user, profile: profileToUnfollow };
+    if (!user || !profileToUnfollow) {
+      throw new Error('Utilisateur ou profil non trouvé');
+    }
+
+    const myFollows = Array.isArray(user.myFollows) ? user.myFollows : [];
+    const profileFans = Array.isArray(profileToUnfollow.myFans) ? profileToUnfollow.myFans : [];
+
+    // Si l'utilisateur ne suit pas ce profil, on retourne l'état actuel sans modif
+    if (!myFollows.includes(profileIdToUnfollow)) {
+      return { user, profile: profileToUnfollow, status: false };
+    }
+
+    // 2. Préparer les modifications locales (retrait des IDs)
+    user.myFollows = myFollows.filter(id => id !== profileIdToUnfollow);
+    profileToUnfollow.myFans = profileFans.filter(id => id !== user.id);
+
+    // Mise à jour sécurisée des statistiques (décrémentation)
+    profileToUnfollow.stats = { 
+      ...profileToUnfollow.stats, 
+      fans: Math.max(0, (profileToUnfollow.stats?.fans || 0) - 1) 
+    };
+
+    // 3. Exécuter l'update et CAPTURER les résultats frais du serveur
+    const [updatedUser, updatedProfile] = await Promise.all([
+      this.api.update<UserProfile>(this.resource, userId, user).toPromise(),
+      this.api.update<UserProfile>(this.resource, profileIdToUnfollow, profileToUnfollow).toPromise()
+    ]);
+
+    // Retourner les objets mis à jour par l'API
+    return { user: updatedUser as UserProfile, profile: updatedProfile as UserProfile, status: false };
+
   } catch (error) {
     console.error('Erreur unfollowProfile:', error);
     throw error;

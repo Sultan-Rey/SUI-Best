@@ -1,5 +1,12 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ChangeDetectionStrategy, Input, Output, EventEmitter, OnDestroy, OnChanges, SimpleChanges, ViewChildren, QueryList } from '@angular/core';
 
+// Déclaration de l'objet window pour TypeScript
+declare const window: {
+  innerWidth: number;
+  addEventListener: (type: string, listener: () => void) => void;
+  removeEventListener: (type: string, listener: () => void) => void;
+};
+
 import { NgFor, NgIf, DatePipe, AsyncPipe } from '@angular/common';
 
 import { FormsModule } from '@angular/forms';
@@ -173,6 +180,8 @@ private polling?: FollowedViewPolling;
   uiHidden: { [postId: string]: boolean } = {};
 
   loadingVideos: { [postId: string]: boolean } = {};
+  isDesktop = false;
+  private resizeListener?: () => void;
 
   currentPage = 1;
 
@@ -308,14 +317,16 @@ private polling?: FollowedViewPolling;
 
   async ngOnInit() {
 
-    
+    // Initialiser la détection de taille d'écran
+    this.updateScreenSize();
+    this.resizeListener = () => this.updateScreenSize();
+    window.addEventListener('resize', this.resizeListener);
 
     if (this.posts && this.posts.length > 0) {
 
       await this.processExternalPosts();
 
     } else {
-
       // Ne charger le contenu que si currentUserProfile est valide
 
       if (this.currentUserProfile && this.currentUserProfile.id) {
@@ -375,23 +386,20 @@ private polling?: FollowedViewPolling;
     clearTimeout(this.snapRevealTimeout);
 
     
-
     // Retirer le listener scroll en toute sécurité
-
     if (this.postsContainer?.nativeElement) {
-
       this.postsContainer.nativeElement.removeEventListener('scroll', this.onScroll);
-
     }
 
+    // Nettoyer le listener de resize
+    if (this.resizeListener) {
+      window.removeEventListener('resize', this.resizeListener);
+    }
     
-
     // Arrêter le polling
-
     this.polling?.stop();
 
     
-
     this.cleanup();
 
   }
@@ -1801,63 +1809,62 @@ showAccount(userId:string){
 
 
   // Méthodes de gestion du chargement des vidéos
-
   onVideoLoadStart(post: Content) {
-
     if (post.id) {
-
       this.loadingVideos[post.id] = true;
-
       this.cdr.markForCheck();
-
       
-
       // Timeout de sécurité : arrêter le loader après 3 secondes max
-
       setTimeout(() => {
-
-        if (this.loadingVideos[post.id || '']) {
-
-          this.loadingVideos[post.id || ''] = false;
-
+        if (this.loadingVideos[post.id as string]) {
+          this.loadingVideos[post.id as string] = false;
           this.cdr.markForCheck();
-
         }
-
       }, 3000);
-
     }
-
   }
-
-
 
   onVideoLoaded(post: Content) {
-
     if (post.id) {
-
       this.loadingVideos[post.id] = false;
-
       this.cdr.markForCheck();
-
     }
-
   }
 
-
-
-  onVideoError(post: Content) {
-
+  onVideoError(event: any, post: Content) {
     if (post.id) {
-
       this.loadingVideos[post.id] = false;
-
       this.cdr.markForCheck();
-
-      console.error('Video loading error for post:', post.id);
-
+      
+      // Capturer plus de détails sur l'erreur
+      const video = event.target as HTMLVideoElement;
+      const errorCode = video.error?.code;
+      const errorMessage = video.error?.message;
+      const networkState = video.networkState;
+      const readyState = video.readyState;
+      
+      console.error('🎬 Video loading error details:', {
+        postId: post.id,
+        fileUrl: post.fileUrl,
+        errorCode,
+        errorMessage,
+        networkState,
+        readyState,
+        videoSrc: video.src,
+        currentSrc: video.currentSrc
+      });
+      
+      // Essayer de déterminer la cause
+      let cause = 'Unknown';
+      switch(errorCode) {
+        case 1: cause = 'MEDIA_ERR_ABORTED - Loading stopped by user'; break;
+        case 2: cause = 'MEDIA_ERR_NETWORK - Network error'; break;
+        case 3: cause = 'MEDIA_ERR_DECODE - Video decoding error'; break;
+        case 4: cause = 'MEDIA_ERR_SRC_NOT_SUPPORTED - Format not supported'; break;
+      }
+      
+      console.warn(`🎬 Video error cause: ${cause}`);
     }
-
   }
 
 
@@ -1867,15 +1874,30 @@ showAccount(userId:string){
 
 
   // Méthode pour déterminer si le contenu est une vidéo
-
   isVideo(post: Content): boolean {
-
     if (!post.fileUrl) return false;
 
+    const fileUrl = post.fileUrl.toLowerCase();
+    
+    // Extensions vidéos valides
     const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'];
+    
+    // Extensions images à exclure explicitement
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+    
+    // D'abord vérifier que ce n'est pas une image
+    if (imageExtensions.some(ext => fileUrl.includes(ext))) {
+      return false;
+    }
+    
+    // Ensuite vérifier si c'est une vidéo
+    return videoExtensions.some(ext => fileUrl.includes(ext));
+  }
 
-    return videoExtensions.some(ext => post.fileUrl!.toLowerCase().includes(ext));
-
+  // Méthode pour mettre à jour la taille d'écran
+  private updateScreenSize(): void {
+    this.isDesktop = window.innerWidth > 768;
+    this.cdr.markForCheck();
   }
 
 

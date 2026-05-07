@@ -69,7 +69,7 @@ export class ChallengeService {
 
   getActiveChallenges(): Observable<Challenge[]> {
     return this.api.get<Challenge[]>(this.challengeResource, {
-      is_active: 'true'});
+      is_active: 1});
   }
 
   updateChallenge(id: string, updates: Partial<Challenge>): Observable<Challenge> {

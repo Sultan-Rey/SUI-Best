@@ -45,7 +45,7 @@ export interface UserProfile {
   allowed_exclusive?:boolean;
   isFollowing?: boolean;
   myFollows: string[];
-  myFans?:string[];
+  myFans:string[];
   myBlackList: string[];
   /* Progress */
   level: number;
