@@ -18,7 +18,7 @@ export interface Transaction {
     walletId: string;
     type: 'purchase' | 'usage' | 'refund';
     amount: number;
-    itemType: 'coins' | 'coupons' | 'gift';
+    itemType: 'coins' | 'coupons' | 'gift' |  'subscription';
     description: string;
     date: string;
     price?: number;

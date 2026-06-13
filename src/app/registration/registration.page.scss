@@ -1,0 +1,367 @@
+.premium-bg {
+  --background: #0d0e12; /* Noir de jais profond */
+  color: #ffffff;
+}
+
+.signup-container {
+  max-width: 450px;
+  margin: 0 auto;
+  padding-top: 10%;
+}
+
+.brand-header {
+  text-align: center;
+  margin-bottom: 40px;
+  
+  .title {
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -1px;
+    background: linear-gradient(45deg, #ffdf00, #ff4b2b); /* Dégradé premium */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    color: #8a8d98;
+    font-size: 0.9rem;
+  }
+}
+
+/* Sélecteur de cartes type Apple */
+.card-selector {
+  background: #161920;
+  border: 1px solid #232836;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 2rem;
+    color: #8a8d98;
+    margin-right: 16px;
+  }
+
+  h3 {
+    margin: 0 0 4px 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #8a8d98;
+  }
+
+  &.selected {
+    border-color: #ffdf00;
+    background: rgba(255, 223, 0, 0.05);
+    transform: scale(1.02);
+    ion-icon { color: #ffdf00; }
+  }
+}
+
+/* Inputs minimalistes sans bordures agressives */
+.premium-input {
+  --background: #161920;
+  --color: white;
+  border: 1px solid #232836;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 4px 8px;
+  
+  ion-input {
+    --placeholder-color: #525866;
+  }
+}
+
+/* Bouton Signature */
+.btn-premium {
+  --background: linear-gradient(90deg, #ffdf00, #f3a614);
+  --color: #0d0e12;
+  --border-radius: 12px;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 10%;
+  height: 48px;
+  letter-spacing: 0.5px;
+}
+
+/* Scanner QR */
+.qr-scanner-wrapper {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px dashed #232836;
+  background: #000;
+  margin: 20px 0;
+  min-height: 250px;
+}
+
+.waiting-notice {
+  background: rgba(255, 165, 0, 0.1);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  color: #ffb74d;
+  font-size: 0.85rem;
+}
+
+
+/* Style pour l'affichage de l'âge calculé */
+.age-badge-info {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #232836;
+  border-radius: 8px;
+  padding: 4px 12px;
+  margin-bottom: 20px;
+  display: inline-block;
+  
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #8a8d98;
+    strong {
+      color: #ffdf00;
+    }
+  }
+}
+
+/* Encart d'explication Peer-to-Peer sophistiqué */
+.validation-p2p-notice {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(255, 223, 0, 0.03) !important;
+  border: 1px solid rgba(255, 223, 0, 0.15) !important;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: left;
+
+  .notice-icon-wrapper {
+    background: rgba(255, 223, 0, 0.1);
+    padding: 8px;
+    border-radius: 10px;
+    color: #ffdf00;
+    
+    .animated-sparkle {
+      font-size: 1.4rem;
+      animation: rotateSparkle 4s infinite linear;
+    }
+  }
+
+  .notice-text {
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    p {
+      margin: 0;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: #8a8d98;
+      strong {
+        color: #ffdf00;
+      }
+    }
+  }
+}
+
+.btn-premium-final {
+  --background: linear-gradient(90deg, #ffdf00, #ff4b2b);
+  --color: white;
+  --border-radius: 12px;
+  font-weight: 700;
+  height: 50px;
+  margin-top: 10px;
+}
+
+@keyframes rotateSparkle {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+.level-selector-container {
+  margin-bottom: 20px;
+  text-align: left;
+
+  .input-label {
+    font-size: 0.8rem;
+    color: #8a8d98;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-left: 4px;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* Conteneur horizontal défilant discrètement si trop de choix */
+  .scrollable-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    
+    /* Cache la barre de défilement pour garder l'interface propre */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .custom-chip {
+      background: #161920;
+      color: #8a8d98;
+      border: 1px solid #232836;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &.active {
+        background: rgba(255, 223, 0, 0.08);
+        border-color: #ffdf00;
+        color: #ffdf00;
+        box-shadow: 0 0 12px rgba(255, 223, 0, 0.1);
+      }
+
+      &.mini {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+      }
+    }
+  }
+}
+
+.login-redirect {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 0.9rem;
+  color: #8a8d98; /* Gris discret */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+
+  .login-link {
+    color: #ffdf00; /* Or premium StarInUniform */
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 4px;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &:active {
+    transform: scale(0.98); /* Effet tactile au clic */
+    opacity: 0.8;
+  }
+}
+
+.type-selector-container {
+  margin: -4px 0 20px 12px;
+  border-left: 2px solid #232836;
+  padding-left: 16px;
+
+  .selector-subtitle {
+    color: #8a8d98;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+}
+
+.type-chips {
+  display: flex;
+  gap: 10px;
+  
+  .type-chip {
+    flex: 1;
+    background: #161920;
+    border: 1px solid #232836;
+    border-radius: 25px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+
+    ion-icon {
+      font-size: 1.1rem;
+      color: #8a8d98;
+    }
+
+    span {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #ffffff;
+    }
+
+    /* État sélectionné (Or premium StarInUniform) */
+    &.active {
+      border-color: #ffdf00;
+      background: rgba(255, 223, 0, 0.08);
+      box-shadow: 0 0 12px rgba(255, 223, 0, 0.1);
+      
+      ion-icon {
+        color: #ffdf00;
+      }
+      span {
+        color: #ffdf00;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+.gender-selector-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
+
+  .gender-option {
+    flex: 1;
+    background: #161920;
+    border: 1px solid #232836;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #8a8d98;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    /* Style Premium actif */
+    &.active {
+      border-color: #ffdf00;
+      background: rgba(255, 223, 0, 0.06);
+      color: #ffdf00;
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(255, 223, 0, 0.05);
+    }
+  }
+}

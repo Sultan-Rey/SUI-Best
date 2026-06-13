@@ -11,7 +11,7 @@ import { Auth } from 'src/services/AUTH/auth';
   templateUrl: './default.page.html',
   styleUrls: ['./default.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonButton, IonItem, IonLabel, IonInput, CommonModule, FormsModule]
+  imports: [IonContent, IonIcon, IonButton, CommonModule, FormsModule]
 })
 export class DefaultPage implements OnInit, OnDestroy {
 

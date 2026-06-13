@@ -252,8 +252,11 @@ export class NotificationService {
   }
 
   generateUniqueId(): number {
-    return Date.now() + Math.floor(Math.random() * 1000);
-  }
+  // Secondes depuis 2024-01-01, modulo pour rester sous 2^31
+  // Donne ~23 jours de plage unique avant cycle, suffisant pour des IDs locaux
+  const seconds = Math.floor(Date.now() / 1000) - 1_704_067_200;
+  return (seconds % 1_000_000) * 1000 + Math.floor(Math.random() * 1000);
+}
 
   async scheduleDailyReminder(
     id: number,

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { AnimationService } from '../services/Animation/animation-service';
 import { NgIf, AsyncPipe } from '@angular/common';
@@ -9,7 +9,8 @@ import { Platform } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { App } from '@capacitor/app';
 import { ScreenOrientation } from '@capacitor/screen-orientation';
-// Interface pour l'événement de deep link
+import { SplashScreen } from '@capacitor/splash-screen';
+
 interface AppUrlOpenEvent {
   url: string;
 }
@@ -19,7 +20,7 @@ interface AppUrlOpenEvent {
   templateUrl: 'app.component.html',
   imports: [IonApp, IonRouterOutlet, NgIf, AsyncPipe, LottieComponent],
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   constructor(
     public animService: AnimationService, 
     private mediaCache: MediaCacheService,
@@ -33,47 +34,72 @@ export class AppComponent {
     });
   }
 
-  async ngOnInit() {
-    // Initialiser FCM quand la plateforme est prête
-    await this.platform.ready();
+async ngOnInit() {
+  await this.platform.ready();
+
+  // Cache le splash immédiatement après que la plateforme est prête
+  try {
+    await SplashScreen.hide({ fadeOutDuration: 400 });
+  } catch (e) {
+    console.warn('SplashScreen non dispo sur le Web:', e);
+  }
+
+  try {
     await ScreenOrientation.lock({ orientation: 'portrait' });
-    // Configurer l'écoute des deep links
-    this.setupDeepLinks();
-    
-    // Initialiser les Push Notifications
-    const fcmInitialized = await this.fcmService.initializeFCM();
-    
-    if (fcmInitialized) {
-      //console.log('FCM initialisé avec succès');
+  } catch (err) {
+    console.warn('ScreenOrientation non supporté:', err);
+  }
+
+  this.setupDeepLinks();
+  this.startBackgroundNotificationSetup();
+}
+
+   // 2. Utiliser le cycle de vie d'Ionic pour masquer l'écran natif au moment parfait
+  async ionViewDidEnter() {
+    try {
+      await SplashScreen.hide({
+        fadeOutDuration: 400 
+      });
+    } catch (e) {
+      console.warn('Le plugin SplashScreen n\'est pas dispo sur le Web', e);
+    }
+  }
+  /**
+   * Configure et synchronise les notifications en arrière-plan 
+   * sans bloquer le thread principal d'affichage d'Angular.
+   */
+  private async startBackgroundNotificationSetup() {
+    try {
+      // S'exécute de manière asynchrone en tâche de fond
+      const fcmInitialized = await this.fcmService.initializeFCM();
       
-      // Synchroniser le token au démarrage
-      await this.fcmService.initializeTokenSync();
-    } else {
-      console.log('FCM non disponible sur cette plateforme');
+      if (fcmInitialized) {
+        // Si l'API met 11 secondes, l'écran de login sera déjà affiché !
+        await this.fcmService.initializeTokenSync();
+      } else {
+        console.log('FCM non disponible sur cette plateforme');
+      }
+    } catch (error) {
+      // On intercepte l'erreur pour éviter qu'un crash réseau ne casse le cycle de l'app
+      console.error('Erreur silencieuse lors de la config Push en tâche de fond:', error);
     }
   }
 
   setupDeepLinks() {
-    // Écouter les deep links quand l'application est ouverte
     App.addListener('appUrlOpen', (event: AppUrlOpenEvent) => {
       console.log('Deep link reçu:', event.url);
       
-      // Extraire l'URL et naviguer vers la page correspondante
       if (event.url) {
-        // Gérer les schémas custom comme bestacademy://
         let path = event.url;
         
-        // Remplacer le schéma custom par un chemin relatif
-        if (path.startsWith('bestacademy://')) {
-          path = path.replace('bestacademy://', '/');
+        if (path.startsWith('starinuniform://')) {
+          path = path.replace('starinuniform://', '/');
         }
         
         console.log('Path extrait:', path);
         
-        // Naviguer vers la route correspondante
         this.router.navigateByUrl(path).catch(err => {
           console.error('Erreur de navigation deep link:', err);
-          // En cas d'erreur, rediriger vers la page d'accueil
           this.router.navigate(['/home']);
         });
       }

@@ -5,6 +5,7 @@ import { NotificationManagerService } from '../Notification/notification-manager
 import { BehaviorSubject } from 'rxjs';
 import { UserService } from '../Service_user/user-service';
 import { Auth } from '../AUTH/auth';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +18,8 @@ export class FCMService {
   constructor(
     private notificationManager: NotificationManagerService,
     private userService: UserService,
-    private auth: Auth
+    private auth: Auth,
+    private router: Router
   ) {}
 
   /**
@@ -99,14 +101,19 @@ export class FCMService {
   /**
    * Configure l'écouteur de notifications push
    */
-  private async setupPushListeners(): Promise<void> {
+   private async setupPushListeners(): Promise<void> {
     try {
-      // Écouter les notifications reçues
+      // Écouter les notifications reçues (quand app est au premier plan)
       await PushNotifications.addListener('pushNotificationReceived', (notification) => {
         this.handlePushNotification(notification);
       });
 
-      // Écouter les erreurs d'enregistrement
+      // ✅ NOUVEAU : Écouter les notifications quand l'app est ouverte via notification
+      await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        // Ceci est appelé quand l'utilisateur TAPE sur la notification
+        this.handleNotificationAction(action.notification);
+      });
+
       await PushNotifications.addListener('registrationError', (error) => {
         console.error('Erreur enregistrement Push:', error);
       });
@@ -120,39 +127,116 @@ export class FCMService {
    * Gère les notifications push reçues
    */
   private handlePushNotification(notification: any): void {
-   // console.log('Notification Push reçue:', notification);
+    //console.log('Notification Push reçue:', notification);
 
-    // Extraire les données de la notification
     const title = notification.title || 'Nouvelle notification';
     const body = notification.body || 'Vous avez une nouvelle notification';
     const data = notification.data || {};
 
-    // Convertir en notification locale via NotificationManager
-    // Pour les messages
+    // ✅ VÉRIFIER SI C'EST UNE NOTIFICATION DE NOUVEL UTILISATEUR (P2P)
+    if (data.type === 'new_classmate') {
+      // Afficher une notification locale (optionnel)
+      this.notificationManager.notifyNewMessage(
+        title,
+        body,
+        'p2p_circle',
+        data.newUserId || 'system'
+      );
+      
+      // ✅ NE PAS OUVRIR AUTOMATIQUEMENT ICI
+      // Laissez l'utilisateur taper sur la notification
+      return;
+    }
+
+    // Autres types de notifications (messages, défis, etc.)
     if (data.type === 'message') {
       this.notificationManager.notifyNewMessage(
-        title,
-        body,
-        data.conversationId || 'system',
-        data.senderId || 'system'
+        title, body, data.conversationId || 'system', data.senderId || 'system'
       );
-    }
-    // Pour les défis
-    else if (data.type === 'challenge') {
+    } else if (data.type === 'challenge') {
       this.notificationManager.notifyChallengeCreated(
-        title,
-        data.challengeId || 'unknown',
-        data.userId || 'unknown'
+        title, data.challengeId || 'unknown', data.userId || 'unknown'
       );
+    } else {
+      this.notificationManager.notifyNewMessage(title, body, 'system', 'system');
     }
-    // Notification générique
-    else {
-      this.notificationManager.notifyNewMessage(
-        title,
-        body,
-        'system',
-        'system'
-      );
+  }
+
+  private async handleNotificationAction(notification: any): Promise<void> {
+    console.log('Action sur notification:', notification);
+
+    const data = notification.data || {};
+    const deeplink = data.deeplink || data.deepLink || data.link;
+    const type = data.type;
+
+    // CAS 1: Deeplink explicite dans la notification
+    if (deeplink) {
+      console.log('Navigation via deeplink:', deeplink);
+      await this.navigateByDeeplink(deeplink);
+      return;
+    }
+
+    // CAS 2: Notification de nouvel utilisateur P2P (sans deeplink explicite)
+    if (type === 'new_classmate') {
+      const newUserId = data.newUserId || data.userId;
+      if (newUserId) {
+        // Construire le chemin vers la page profil avec le userId
+        const profilePath = `/profile/${newUserId}`;
+        await this.router.navigateByUrl(profilePath);
+      } else {
+        console.warn('Notification P2P sans userId, impossible de naviguer');
+      }
+      return;
+    }
+
+    // CAS 3: Challenge ou message (navigation spécifique)
+    if (type === 'challenge' && data.challengeId) {
+      await this.router.navigateByUrl(`/challenge/${data.challengeId}`);
+      return;
+    }
+
+    if (type === 'message' && data.conversationId) {
+      await this.router.navigateByUrl(`/conversation/${data.conversationId}`);
+      return;
+    }
+
+    // CAS 4: Fallback - page d'accueil
+   // console.log('Aucune action spécifique, navigation vers home');
+    await this.router.navigateByUrl('/home');
+  }
+
+  /**
+   * ✅ NOUVELLE MÉTHODE : Navigation générique par deeplink
+   * Supporte différents formats: /profile/123, starinuniform://profile/123, etc.
+   */
+  private async navigateByDeeplink(deeplink: string): Promise<void> {
+    let path = deeplink;
+
+    // Nettoyer le deeplink s'il est au format custom scheme
+    if (path.startsWith('starinuniform://')) {
+      path = path.replace('starinuniform://', '/');
+    }
+    
+    // Enlever d'éventuels préfixes http:// ou https:// (cas de fallback)
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      const url = new URL(path);
+      path = url.pathname + url.search;
+    }
+
+    // Vérifier que le chemin commence par /
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
+
+    try {
+      const success = await this.router.navigateByUrl(path);
+      if (!success) {
+        console.warn(`Échec navigation vers ${path}, fallback home`);
+        //await this.router.navigateByUrl('/home');
+      }
+    } catch (error) {
+      console.error('Erreur navigation:', error);
+      await this.router.navigateByUrl('/home');
     }
   }
 
@@ -190,6 +274,7 @@ export class FCMService {
    * Initialise la synchronisation du token au démarrage
    */
   async initializeTokenSync(): Promise<void> {
+    if(!this.auth.isAuthenticated()) return;
     try {
       const currentToken = this.getCurrentToken();
       const localToken = localStorage.getItem('fcm_token');

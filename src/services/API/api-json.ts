@@ -113,8 +113,20 @@ export class ApiJSON {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
+  /**
+   * Retourne le token à envoyer dans le header Authorization.
+   *
+   * Priorité :
+   *   1. JWT utilisateur connecté  (localStorage 'access_token')
+   *   2. Public Token de l'app     (environment.publicToken)
+   *
+   * Ainsi, toutes les requêtes — authentifiées ou non — portent
+   * toujours un Bearer token valide reconnu par le middleware PHP.
+   */
   getToken(): string {
-    return localStorage.getItem('access_token') ?? '';
+    const jwt = localStorage.getItem('access_token');
+    if (jwt) return jwt;
+    return environment.publicToken ?? '';
   }
 
   protected getAuthHeaders(): HttpHeaders {
@@ -280,7 +292,7 @@ export class ApiJSON {
       return new Observable<T>(subscriber => {
         getFromCache().then(cachedData => {
           if (cachedData) {
-            console.log(`📦 Cache hit (${this.isOnline ? 'online' : 'offline'}): ${resource}`);
+            //console.log(`📦 Cache hit (${this.isOnline ? 'online' : 'offline'}): ${resource}`);
             subscriber.next(cachedData);
             
             // Si on est en ligne, on rafraîchit en arrière-plan (comme Twitter)
@@ -594,8 +606,10 @@ uploadChunk<T>(
     return `${this.BASE_URL}/download?path=${encodeURIComponent(filePath)}&token=${token}`;
   }
 
-  deleteFile(filePath: string): Observable<{ message: string; path: string }> {
-    return this.http.delete<{ message: string; path: string }>(
+  deleteFile(filePath: string): Observable<{
+    success: any; message: string; path: string 
+}> {
+    return this.http.delete<{success:any, message: string; path: string }>(
       `${this.BASE_URL}/deletefile`,
       {
         headers: this.getAuthHeaders(),

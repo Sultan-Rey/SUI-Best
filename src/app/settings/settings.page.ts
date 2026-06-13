@@ -97,7 +97,7 @@ export class SettingsPage implements OnInit {
     }
     
     if (this.userProfile) {
-      this.isVerified = this.userProfile.isVerified;
+      this.isVerified = this.userProfile.isVerified || false;
       this.blockedCount = this.userProfile.myBlackList.length;
     }
     

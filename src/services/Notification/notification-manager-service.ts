@@ -87,7 +87,7 @@ export class NotificationManagerService {
     }),
     
     WELCOME: (): NotificationTemplate => ({
-      title: '🎉 Bienvenue sur Best Academy !',
+      title: '🎉 Bienvenue sur Star In Uniform !',
       body: 'Votre compte a été créé avec succès. Bienvenue dans notre communauté !',
       icon: 'happy',
       color: 'green',

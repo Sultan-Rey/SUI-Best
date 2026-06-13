@@ -140,12 +140,12 @@
         </div>
         
         <div class="stat-item with-borders" (click)="openModalFollowing()">
-          <div class="stat-value">{{userProfile.myFollows?.length || 0 | shortNumber}}</div>
+          <div class="stat-value">{{userProfile.myFollows.length || 0 | shortNumber}}</div>
           <div class="stat-label">Suivis</div>
         </div>
         
         <div class="stat-item with-right-border" (click)="openModalFollowing()">
-          <div class="stat-value">{{userProfile.myFans?.length || 0 | shortNumber}}</div>
+          <div class="stat-value">{{userProfile.myFans.length || 0 | shortNumber}}</div>
           <div class="stat-label">Fans</div>
         </div>
         

@@ -1,464 +1,376 @@
-.login-content {
+// =============================================
+// FanLabel Home Page — SCSS (Teinte Turquoise)
+// =============================================
 
-  // ─── Layout principal ────────────────────────────────────────────────────────
-  .login-layout {
-    display: flex;
-    min-height: 100vh;
+:host {
+  // Mise à jour de ta palette avec ta nouvelle couleur #01A2BF
+  --fan-brand-color: #01A2BF;
+  --fan-brand-dark: #004b59;
+  --fan-brand-light: #66e2f8;
+  --fan-brand-dim: rgba(1, 162, 191, 0.35);
+
+  --fan-text: #ffffff;
+  --fan-subtext: #b3f2fd;
+  --fan-auth-bg: #f2f5f6;
+  --fan-card-radius: 14px;
+  --fan-btn-radius: 14px;
+}
+
+// ── Ion Content ──────────────────────────────
+.fanlabel-content {
+  --background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+// ── Album Grid (La grille centrale) ────────────────
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); // 4 colonnes comme le fond
+  gap: 8px;
+  margin: 20px 0;
+  padding: 0 4px;
+
+  .album-card {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.6s ease forwards;
+    opacity: 0; // Utilisé avec l'animation delay du HTML
   }
+}
 
-  // ─── Panneau branding gauche (desktop uniquement) ────────────────────────────
-  .brand-panel {
-    display: none; // caché sur mobile
-
-    @media (min-width: 1024px) {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      width: 45%;
-      min-height: 100vh;
-      background: #111111;
-      padding: 60px 56px;
-      position: relative;
-      overflow: hidden;
-
-      // Décoration géométrique de fond
-      &::before {
-        content: '';
-        position: absolute;
-        top: -80px;
-        right: -80px;
-        width: 320px;
-        height: 320px;
-        border-radius: 50%;
-        border: 1px solid rgba(203, 216, 28, 0.15);
-      }
-
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 80px;
-        left: -60px;
-        width: 200px;
-        height: 200px;
-        border-radius: 50%;
-        border: 1px solid rgba(197, 4, 4, 0.12);
-      }
-    }
-
-    .brand-inner {
-      display: flex;
-      flex-direction: column;
-      gap: 32px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .brand-logo {
-      width: 100px;
-      height: 100px;
-
-      img {
-        width: 100%;
-        height: auto;
-        object-fit: contain;
-      }
-    }
-
-    .brand-name {
-      font-size: 22px;
-      font-weight: 300;
-      color: #cbd81c;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin: 0;
-
-      span {
-        font-weight: 700;
-        color: #c50404f1;
-      }
-    }
-
-    .brand-tagline {
-      font-size: 28px;
-      font-weight: 300;
-      color: #ffffff;
-      line-height: 1.5;
-      margin: 0;
-      letter-spacing: -0.3px;
-    }
-
-    .brand-decoration {
-      width: 48px;
-      height: 2px;
-      background: #cbd81c;
-      margin-top: 8px;
-    }
-
-    .brand-footer {
-      font-size: 12px;
-      color: #555555;
-      font-weight: 300;
-      margin: 0;
-      position: relative;
-      z-index: 1;
-    }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-
-  // ─── Panneau formulaire droit ────────────────────────────────────────────────
-  .login-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 40px 24px;
-    max-width: 480px;
-    margin: 0 auto;
-    width: 100%;
-
-    @media (min-width: 1024px) {
-      justify-content: center;
-      padding: 60px 72px;
-      max-width: none;
-      margin: 0;
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  // ─── Utilitaire mobile ───────────────────────────────────────────────────────
-  .mobile-only {
-    @media (min-width: 1024px) {
-      display: none !important;
-    }
-  }
+// ── Background grid (Les albums qui défilent) ──
+.album-scroll-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 0; // Tout au fond
+  overflow: hidden;
+}
 
-  // ─── En-tête ─────────────────────────────────────────────────────────────────
-  .header-section {
-    text-align: center;
-    margin-bottom: 60px;
+.album-track {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 6px;
+  animation: scrollUp 30s linear infinite;
+}
 
-    @media (min-width: 1024px) {
-      text-align: left;
-      margin-bottom: 56px;
-    }
-    
-    .logo-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 10px;
-      
-      .logo-symbol {
-        width: 120px;
-        height: 120px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        
-        img {
-          width: 100%;
-          height: auto;
-          object-fit: contain;
-        }
-      }
-      
-      .app-name {
-        font-size: 18px;
-        font-weight: 300;
-        color: #cbd81c;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        margin: 0;
-        
-        span {
-          font-weight: 600;
-          color: #c50404f1;
-        }
-      }
-    }
+.album-card {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255, 255, 255, 0.08);
+}
 
-    .welcome-text {
-      font-size: 32px;
-      font-weight: 300;
-      color: #000000;
-      margin: 0 0 8px 0;
-      letter-spacing: -0.5px;
+@keyframes scrollUp {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
 
-      @media (min-width: 1024px) {
-        font-size: 36px;
-      }
-    }
-
-    .subtitle {
-      font-size: 16px;
-      color: #666666;
-      margin: 0;
-      font-weight: 300;
-    }
-  }
-
-  // ─── Formulaire ──────────────────────────────────────────────────────────────
-  .form-section {
-    .input-group {
-      margin-bottom: 32px;
-      
-      .input-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
-        
-        ion-icon {
-          font-size: 18px;
-          color: #666666;
-        }
-        
-        span {
-          font-size: 14px;
-          color: #666666;
-          font-weight: 400;
-          letter-spacing: 0.5px;
-        }
-      }
-      
-      .custom-input {
-        --background: transparent;
-        --padding-start: 0;
-        --padding-bottom: 12px;
-        --padding-top: 12px;
-        --border-color: #e0e0e0;
-        --border-width: 0 0 1px 0;
-        --border-style: solid;
-        --color: #000000;
-        --placeholder-color: #999999;
-        --placeholder-opacity: 1;
-        font-size: 16px;
-        font-weight: 400;
-        transition: all 0.3s ease;
-        
-        &:focus-within {
-          --border-color: #000000;
-        }
-      }
-      
-      .password-input-wrapper {
-        position: relative;
-        
-        .custom-input {
-          --padding-end: 50px;
-        }
-        
-        .toggle-password-btn {
-          position: absolute;
-          right: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          background: none;
-          border: none;
-          padding: 8px;
-          
-          ion-icon {
-            font-size: 20px;
-            color: #999999;
-            transition: color 0.3s ease;
-          }
-          
-          &:active ion-icon {
-            color: #000000;
-          }
-        }
-      }
-    }
-
-    .forgot-password {
-      text-align: right;
-      margin-bottom: 40px;
-      
-      .forgot-link {
-        color: #666666;
-        font-size: 14px;
-        text-decoration: none;
-        transition: color 0.3s ease;
-        
-        &:active {
-          color: #000000;
-        }
-      }
-    }
-
-    .login-button {
-      --background: #000000;
-      --background-activated: #333333;
-      --background-hover: #333333;
-      --border-radius: 8px;
-      --color: #ffffff;
-      height: 56px;
-      font-weight: 400;
-      font-size: 16px;
-      letter-spacing: 0.5px;
-      margin-bottom: 40px;
-      transition: all 0.3s ease;
-      
-      ion-icon {
-        margin-left: 8px;
-        transition: transform 0.3s ease;
-      }
-      
-      &:active {
-        --background: #333333;
-        
-        ion-icon {
-          transform: translateX(4px);
-        }
-      }
-    }
-
-    .register-section {
-      text-align: center;
-      
-      .register-text {
-        font-size: 14px;
-        color: #666666;
-        margin-bottom: 16px;
-        font-weight: 300;
-      }
-      
-      .register-btn {
-        background: transparent;
-        border: 1px solid #000000;
-        color: #000000;
-        padding: 16px 32px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 400;
-        letter-spacing: 0.5px;
-        transition: all 0.3s ease;
-        
-        &:active {
-          background: #000000;
-          color: #ffffff;
-        }
-      }
-    }
-  }
+// ── Turquoise Gradient Overlay (Le masque du modèle) ──
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1; /* S'assure d'être pile entre les albums (z-index:0) et le texte (z-index:2) */
+  pointer-events: none;
   
-  // ─── Footer mobile ───────────────────────────────────────────────────────────
-  .footer {
-    text-align: center;
-    padding-top: 40px;
-    border-top: 1px solid #f0f0f0;
-    margin-top: 40px;
-    
-    p {
-      color: #999999;
-      font-size: 12px;
-      margin: 0;
-      font-weight: 300;
-      
-      a {
-        color: #999999;
-        text-decoration: none;
-        
-        &:active {
-          color: #000000;
-        }
-      }
+  /* On applique deux dégradés superposés : 
+     Le premier crée une bulle transparente au centre (ellipse).
+     Le deuxième gère l'obscurité opaque du haut et du bas. */
+  background: 
+    radial-gradient(
+      ellipse at center, 
+      rgba(1, 162, 191, 0) 20%,      /* Centre 100% transparent pour voir les vraies couleurs */
+      rgba(1, 100, 118, 0.4) 60%,    /* Début de la coloration turquoise */
+      rgba(0, 35, 43, 0.85) 100%     /* Extrémités sombres */
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(0, 35, 43, 0.95) 0%,      /* Opaque en haut pour le logo */
+      rgba(1, 162, 191, 0) 30%,      /* On efface complètement le linéaire au milieu */
+      rgba(1, 162, 191, 0) 70%, 
+      rgba(0, 35, 43, 0.95) 100%     /* Opaque en bas pour le panneau de connexion */
+    );
+}
+
+// ── Main wrapper (Le contenu textuel) ─────────
+.main-wrapper {
+  position: relative;
+  z-index: 2;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; // Pousse le top en haut et le prove-section en bas
+  box-sizing: border-box;
+  
+  // Laisse de la place uniquement pour la hauteur de l'auth-panel fixe
+  padding-bottom: calc(150px + env(safe-area-inset-bottom)); 
+}
+
+// Conteneur du haut pour regrouper le logo et la tagline remontée
+.top-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// ── Tagline (Remontée et plus compacte) ──────────────────
+.tagline {
+  padding: 0px 16px 0px; // Réduction des paddings pour la caler haut
+  margin-top: -15px;      // Permet de la faire chevaucher subtilement si besoin
+
+  h1 {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 800;
+    font-size: 34px;      // Un poil plus grand et affirmé comme sur le modèle
+    line-height: 1.1;
+    color: var(--fan-text);
+    margin: 0;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
+}
+
+// ── Prove It Section (Placée tout près de l'auth panel) ──
+.prove-section {
+  text-align: center;
+  padding: 0 16px;
+  margin-bottom: 18px; // Petite marge de sécurité juste au-dessus du volet de connexion
+
+  .prove-text {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 900;
+    font-size: 54px; // Très imposant, fidèle à la capture d'écran
+    color: var(--fan-text);
+    margin: 0 0 4px 0;
+    letter-spacing: -1px;
+    font-style: italic;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+    line-height: 0.95;
+  }
+
+  .platinum-text {
+    font-size: 15px;
+    color: var(--fan-text);
+    margin: 0;
+    line-height: 1.4;
+
+    strong {
+      font-weight: 700;
+    }
+
+    .dates {
+      color: var(--fan-subtext);
+      font-size: 13px;
+      opacity: 0.9;
     }
   }
 }
 
-// ─── Animation d'entrée ──────────────────────────────────────────────────────
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+
+// ── Header / Logo ─────────────────────────────
+.header {
+  padding: 16px 20px 8px;
 }
 
-.login-layout {
-  animation: fadeIn 0.6s ease-out;
-}
+.logo {
+  margin-top: 10%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 
-// ─── États focus ─────────────────────────────────────────────────────────────
-.custom-input:focus-within {
-  --border-color: #000000 !important;
-}
+  .logo-icon {
+    margin-top: 10%;
+    width: 36px;
+    height: 44px;
+  }
 
-// ─── Mode sombre ─────────────────────────────────────────────────────────────
-@media (prefers-color-scheme: dark) {
-  .login-content {
-    --background: #252525;
+  .logo-text {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--fan-text);
+    letter-spacing: -0.5px;
 
-    .brand-panel {
-      background: #0a0a0a;
-    }
-    
-    .header-section {
-      .logo-symbol { color: #ffffff; }
-      
-      .app-name {
-        color: #ffffff;
-        span { color: #ffffff; }
-      }
-      
-      .welcome-text { color: #ffffff; }
-      .subtitle { color: #aaaaaa; }
-    }
-    
-    .form-section {
-      .input-group {
-        .input-label {
-          ion-icon { color: #aaaaaa; }
-          span { color: #aaaaaa; }
-        }
-        
-        .custom-input {
-          --border-color: #333333;
-          --color: #ffffff;
-          --placeholder-color: #666666;
-          
-          &:focus-within { --border-color: #ffffff; }
-        }
-        
-        .toggle-password-btn {
-          ion-icon { color: #666666; }
-          &:active ion-icon { color: #ffffff; }
-        }
-      }
-      
-      .forgot-password {
-        .forgot-link {
-          color: #aaaaaa;
-          &:active { color: #ffffff; }
-        }
-      }
-      
-      .login-button {
-        --background: #ffffff;
-        --background-activated: #e0e0e0;
-        --background-hover: #e0e0e0;
-        --color: #000000;
-        &:active { --background: #e0e0e0; }
-      }
-      
-      .register-section {
-        .register-text { color: #aaaaaa; }
-        
-        .register-btn {
-          border-color: #ffffff;
-          color: #ffffff;
-          &:active {
-            background: #ffffff;
-            color: #000000;
-          }
-        }
-      }
-    }
-    
-    .footer {
-      border-top-color: #333333;
-      p { color: #666666; }
-      a {
-        color: #666666;
-        &:active { color: #ffffff; }
-      }
+    sup {
+      font-size: 11px;
+      vertical-align: super;
+      font-weight: 400;
     }
   }
 }
+
+// ── Hero Section ──────────────────────────────
+.hero-section {
+  padding: 0 12px;
+}
+
+// ── Top row (decorative partial row) ──────────
+.top-album-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+  height: 120px;
+
+  .album-thumb {
+    border-radius: var(--fan-card-radius);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.85;
+
+    &.featured {
+      opacity: 1;
+    }
+  }
+}
+
+
+
+
+// ── Auth Panel (Panneau de connexion en bas) ──
+.auth-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--fan-auth-bg);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.25);
+}
+
+.btn-auth {
+  width: 100%;
+  height: 56px;
+  border-radius: var(--fan-btn-radius);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  letter-spacing: 0.2px;
+
+  &:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+}
+
+.btn-login, .btn-signup {
+  background: #111111;
+  color: #ffffff;
+}
+
+// ── Formulaire de Connexion Intégré (Effet flou transparent premium) ──
+  .login-form-container {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 24px 20px;
+    box-sizing: border-box;
+    text-align: left;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+    .login-title {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: 800;
+      font-size: 32px;
+      color: var(--fan-text);
+      margin: 0 0 20px 0;
+      letter-spacing: -0.5px;
+    }
+  }
+
+  .input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    padding: 0 14px;
+    height: 54px;
+    transition: border-color 0.2s ease;
+
+    &:focus-within {
+      border-color: var(--fan-brand-color);
+    }
+
+    .input-icon {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 20px;
+      margin-right: 12px;
+    }
+
+    .toggle-password {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px;
+      z-index: 5;
+    }
+  }
+
+  .custom-input {
+    --padding-start: 0px;
+    --placeholder-color: rgba(255, 255, 255, 0.4);
+    --color: #ffffff;
+    font-size: 16px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    width: 100%;
+  }
+
+  .forgot-password {
+    font-size: 13px;
+    color: var(--fan-brand-light);
+    text-align: right;
+    margin: 4px 2px 0 0;
+    cursor: pointer;
+    opacity: 0.85;
+    font-weight: 500;
+
+    &:active {
+      opacity: 1;
+    }
+  }
+
+  // ── Ajustements spécifiques des boutons d'auth ──
+  .btn-submit {
+    background: var(--fan-brand-color);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(1, 162, 191, 0.4);
+  }
+
+  .btn-back {
+    background: transparent;
+    color: #333333;
+    font-weight: 500;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }

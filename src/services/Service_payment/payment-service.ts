@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApiJSON } from '../API/api-json';
+import { InAppBrowser } from '@awesome-cordova-plugins/in-app-browser/ngx';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -11,9 +12,16 @@ export interface PaymentRequest {
 }
 
 export interface PaymentResponse {
-  orderId: string;
+  order_id: string;
   amount: number;
   redirect_url: string;
+}
+
+export interface PaymentResult {
+  success: boolean;
+  method: 'moncash' | 'paypal';
+  data?: any; // Contient la réponse API (MonCash ou PayPal)
+  error?: string;
 }
 
 // ─── Interfaces PayPal ────────────────────────────────────────────────────────

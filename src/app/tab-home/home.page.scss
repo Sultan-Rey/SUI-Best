@@ -301,8 +301,26 @@
   }
 }
 
-ion-footer{
+ion-footer {
   padding-bottom: 10px;
+  
+  // iOS : utilise safe-area
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    padding-bottom: calc(25px + env(safe-area-inset-bottom));
+  }
+  
+  // Android : une valeur fixe mais confortable
+  @media (max-width: 767px) {
+    @supports not (padding-bottom: env(safe-area-inset-bottom)) {
+      // C'est très probablement Android (ou vieil iOS)
+      padding-bottom: 34px; // assez pour la plupart des barres gestuelles
+      
+      // Ajustement pour les vieux avec 3 boutons
+      @media (min-height: 600px) and (max-height: 800px) {
+        padding-bottom: 48px;
+      }
+    }
+  }
 }
 /* ==================== */
 /*  FLOATING AVATAR BUTTON */

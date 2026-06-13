@@ -1,522 +1,280 @@
 import { Component, Inject, OnInit, inject } from '@angular/core';
-
 import { CommonModule } from '@angular/common';
-
 import { FormsModule } from '@angular/forms';
-
-import { AlertController, LoadingController } from '@ionic/angular';
-
+import { AlertController, LoadingController, ModalController } from '@ionic/angular';
 import { Router } from '@angular/router';
-
-import { UserProfile } from 'src/models/User';
-
 import { Plan } from '../../models/Plan';
-
-import { ProfileService } from 'src/services/Service_profile/profile-service';
-
+// Remplacement du Browser de Capacitor par InAppBrowser
+import { InAppBrowser } from '@awesome-cordova-plugins/in-app-browser/ngx';
 import { 
-
   IonContent,
-
   IonHeader,
-
   IonTitle,
-
   IonToolbar,
-
   IonButtons,
-
   IonButton,
-
-  IonIcon, IonSpinner } from '@ionic/angular/standalone';
-
+  IonIcon, IonSpinner, IonImg } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-
 import { 
-
   arrowBack,
-
   sparkles,
-
   flame,
-
   starOutline,
-
   trophyOutline,
-
   diamondOutline,
-
   checkmarkCircle,
-
   rocket,
-
   calendar,
-
   trophy,
-
   eyeOutline,
-
 } from 'ionicons/icons';
-
 import { SubscriptionService } from 'src/services/Service_subscription/subscription-service';
-
 import { User } from 'src/models/User';
-
-import { UserService } from 'src/services/Service_user/user-service';
-
-import { firstValueFrom, map, tap } from 'rxjs';
-
+import { firstValueFrom } from 'rxjs';
 import { Auth } from 'src/services/AUTH/auth';
-
-import { environment } from 'src/environments/environment.prod';
-
 import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
-
-
+import { ModalPaymentComponent } from '../components/modal-payment/modal-payment.component';
+import { PaymentService } from 'src/services/Service_payment/payment-service';
+import { PaymentGatewayService } from 'src/services/Service_payment/payment-gateway-service';
+import { WalletService } from 'src/services/Service_wallet/wallet-service';
 
 @Component({
-
   selector: 'app-subscription',
-
   templateUrl: './subscription.page.html',
-
   styleUrls: ['./subscription.page.scss'],
-
   standalone: true,
-
-  imports: [ 
-
+  providers: [ModalController, InAppBrowser], // Ajout d'InAppBrowser aux providers
+  imports: [IonImg,  
     CommonModule,
-
     FormsModule,
-
     IonContent,
-
     IonHeader,
-
     IonTitle,
-
     IonToolbar,
-
     IonButtons,
-
     IonButton,
-
     IonIcon,
-
     IonSpinner
-
   ]
-
 })
-
 export class SubscriptionPage implements OnInit {
 
-
-
   selectedPlan: string | null = null;
-
   plans: Plan[] = [];
-
   selectedPlanId: string | null = null;
-
   currentUser: User | null = null;
-
   isLoading = false;
-
   error: string | null = null
-
   registrationData: any | null = null;
-
   
-
-  // Utiliser inject() pour les services dans une page standalone
-
   private router = inject(Router);
-
   private alertController = inject(AlertController);
-
   private loadingController = inject(LoadingController);
-
+  private modalController = inject(ModalController);
   private subscriptionService = inject(SubscriptionService);
-
   private auth = inject(Auth);
-
-
   private notificationManager = inject(NotificationManagerService);
-
-
+  private paymentGateway = inject(PaymentGatewayService);
+  private walletService = inject(WalletService);
+  private iab = inject(InAppBrowser); // Injection d'InAppBrowser
 
   constructor() {
-
-     addIcons({
-
-    'arrow-back': arrowBack,
-
-    'sparkles': sparkles,
-
-    'flame': flame,
-
-    'checkmark-circle': checkmarkCircle,
-
-    'rocket': rocket,
-
-    'calendar': calendar,  // Ajouté
-
-    'trophy': trophy,       // Ajouté
-
-    'eye-outline': eyeOutline,
-
-    'diamond-outline': diamondOutline,
-
-    'star-outline': starOutline,
-
-    'trophy-outline': trophyOutline,
-
-  });
+     addIcons({arrowBack,sparkles,flame,checkmarkCircle,rocket,'calendar':calendar,'trophy':trophy,'eyeOutline':eyeOutline,'diamondOutline':diamondOutline,'starOutline':starOutline,'trophyOutline':trophyOutline,});
 
   if(this.router.getCurrentNavigation()?.extras.state?.['registrationData']) {
-
     this.registrationData = this.router.getCurrentNavigation()?.extras.state?.['registrationData'] as User;
-
   }
 
    if (!this.registrationData) {
-
       console.error('Aucune donnée d\'inscription trouvée');
-
       this.router.navigate(['/register']);
-
       return;
-
     }
-
-   
-
-  
-
   }
-
-
 
   async ngOnInit() {
-
     this.loadPlans();
-
-}
-
-
+  }
 
   private async loadPlans() {
-
     const loading = await this.loadingController.create({
-
       message: "chargement...",
-
       spinner: 'dots',
-
-      animated:true,
-
+      animated: true,
       duration: 8000
-
     });
-
     await loading.present();
-
-
-
     this.error = null;
-
     
-
     this.subscriptionService.getAvailablePlans().subscribe({
-
       next: (plans) => {
-
         this.plans = plans;
-
         loading.dismiss();
-
       },
-
       error: (error) => {
-
         console.error('💥 Erreur lors du chargement des plans:', error);
-
         this.error = 'Impossible de charger les plans disponibles';
-
         loading.dismiss();
-
       }
-
     });
-
   }
-
-
-
-   
 
   selectPlan(planId: string) {
-
     this.selectedPlan = planId;
-
   }
-
-
 
   goBack() {
-
     this.router.navigate(['/register']);
-
   }
 
-
-
-async subscribe() {
-
-  // 1️⃣ Vérifier si un plan est sélectionné
-
-  if (!this.selectedPlan) {
-
-    const alert = await this.alertController.create({
-
-      header: 'Information',
-
-      message: 'Veuillez sélectionner un plan pour continuer',
-
-      buttons: ['OK']
-
-    });
-
-    await alert.present();
-
-    return;
-
-  }
-
-  // 2️⃣ Mettre à jour les données avec le plan sélectionné
-
-  if (this.registrationData) {
-
-    const selectedPlan = this.plans.find(plan => plan.id === this.selectedPlan);
-
-    if (!selectedPlan) {
-
+  async subscribe() {
+    if (!this.selectedPlan) {
       const alert = await this.alertController.create({
-
-        header: 'Erreur',
-
-        message: 'Le plan sélectionné est invalide',
-
+        header: 'Information',
+        message: 'Veuillez sélectionner un plan pour continuer',
         buttons: ['OK']
-
       });
-
       await alert.present();
-
       return;
-
     }
 
-   // Calculer les dates de début et de fin
+    if (this.registrationData) {
+      const selectedPlan = this.plans.find(plan => plan.id === this.selectedPlan);
+      if (!selectedPlan) {
+        const alert = await this.alertController.create({
+          header: 'Erreur',
+          message: 'Le plan sélectionné est invalide',
+          buttons: ['OK']
+        });
+        await alert.present();
+        return;
+      }
 
-const startDate = new Date();
+      const startDate = new Date();
+      const endDate = new Date();
 
-const endDate = new Date();
+      if (selectedPlan.price === 0) {
+        endDate.setDate(startDate.getDate() + 30);
+      } else {
+        endDate.setMonth(startDate.getMonth() + selectedPlan.duration);
+      }
 
-// Vérifier si le plan est gratuit
+      this.registrationData.myPlan = {
+        id: selectedPlan.id,
+        name: selectedPlan.name,
+        price: selectedPlan.price,
+        period: selectedPlan.period,      
+        duration: selectedPlan.duration === 0 ? 30 : selectedPlan.duration,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        status: 'active',
+        features: selectedPlan.features
+      };
 
-if (selectedPlan.price === 0) {
-
-  // Pour le plan gratuit, définir une durée par défaut de 30 jours
-
-  endDate.setDate(startDate.getDate() + 30);
-
-} else {
-
-  // Pour les plans payants, utiliser la durée spécifiée (1 mois par défaut)
-
-  endDate.setMonth(startDate.getMonth() + 1);
-
-}
-
-// Mettre à jour myPlan avec la nouvelle structure
-
-this.registrationData.myPlan = {
-
-  id: selectedPlan.id,
-
-  name: selectedPlan.name,
-
-  price: selectedPlan.price,
-
-  period: selectedPlan.period,      
-
-  duration: selectedPlan.price === 0 ? 30 : 30, // 30 jours pour tous les plans
-
-  startDate: startDate.toISOString(),
-
-  endDate: endDate.toISOString(),
-
-  status:  'active',
-
-  features: selectedPlan.features
-
-};
-
-    
-
-    try {
-
-      const loading = await this.loadingController.create({
-        message:"Creation de compte...",
-        duration:7000,
-        spinner: "bubbles"
+      const modal = await this.modalController.create({
+        component: ModalPaymentComponent,
+        componentProps: {
+         OrderAmount: Number(selectedPlan.price)
+        },
+        cssClass: 'auto-height',
+        initialBreakpoint: 0.80,
+        breakpoints: [0, 0.80, 1],
+        handle: true
       });
 
-      loading.present();
+      await modal.present();
+    
+      const { data } = await modal.onDidDismiss();
+     
+       if (data?.paymentUrl) {;
+         const URL = data.paymentUrl as string;
+         const ORDERID = data.extra as string;
+         const result = await this.paymentGateway.processPayment(URL, data.method, ORDERID);
+         if (result.success) {
+          this.walletService.purchasePlan(
+  this.registrationData.myPlan,
+  this.registrationData.id,
+  data.method,
+  ORDERID
+).subscribe({
+  next: () => {
+    this.tryCreateAccount();
+  },
+  error: (err) => {
+    // ← ACTUELLEMENT ABSENT : l'erreur disparaît dans le vide
+    console.error('❌ purchasePlan a échoué:', err);
+    // Décide ici si tu veux quand même appeler tryCreateAccount()
+    // car le wallet est sauvegardé en localStorage via savePendingPlanTransaction()
+    this.tryCreateAccount();
+  }
+});
+          
+        } else {
+          // Afficher une alerte ou un toast avec result.error
+        console.error("Échec du paiement :", result.error);
+        }
+       }
+    }
+  }
 
-      // Utilisation propre du service Auth avec gestion d'erreurs
 
+
+  private async tryCreateAccount() {
+    this.isLoading = true;
+    try {
+      const loading = await this.loadingController.create({
+        message: "Création de compte...",
+        spinner: "bubbles",
+        duration: 6000
+      });
+      await loading.present();
+
+      
       const signupResponse = await firstValueFrom(this.auth.signup(this.registrationData));
       
       if (!signupResponse.success) {
-
         throw new Error(signupResponse.error || signupResponse.message || 'Échec de l\'inscription');
-        
       } else {
+        await loading.dismiss();
+
         
-      loading.dismiss();
-
-      // Notifier l'inscription réussie
-
-      if (this.registrationData?.id) {
-
-        await this.notificationManager.notifyWelcome(this.registrationData.id);
-
-      }
-      
-         // Rediriger vers la page default avec account-success et les extras
-      await this.router.navigate(['/default/account-success'], {
-        state: {
-          name: this.registrationData.name,
-          email: this.registrationData.email
+        if (signupResponse.user_id) {
+          await this.notificationManager.notifyWelcome(signupResponse.user_id);
         }
-      });
-      
-      
-     
-      // Réinitialiser les données du formulaire
-
-      this.registrationData.password_hash = "";
-
-      this.registrationData.QR_proof = "";
-
-      this.registrationData.status = "pending";
-
-      this.registrationData.first_name = "";
-
-      this.registrationData.last_name = "";
-
-      this.registrationData.gender = "";
-
-      this.registrationData.birthDate = new Date();
-
-      this.registrationData.age = 0;
-
-      this.registrationData.email = "";
-
-      this.registrationData.password = "";
-
-      this.registrationData.user_type = "fan";
-
-      this.registrationData.user_status = "other";
-
-      this.registrationData.registration_date = "";
-
+        
+        await this.router.navigate(['/default/account-success'], {
+          state: {
+            name: this.registrationData.name,
+            email: this.registrationData.email
+          }
+        });
+        
+        // Réinitialisation des données
+        this.registrationData = null;
       }
 
     } catch (error: any) {
-
       console.error('Erreur d\'inscription:', error);
-      
-      // Message d'erreur par défaut
-
       const errorMessage = error?.message || 'Une erreur est survenue lors de l\'inscription';
       
       const failureAlert = await this.alertController.create({
-
         header: 'Échec de la création',
-
         message: errorMessage,
-
         buttons: ['Recommencer']
-
       });
-
       await failureAlert.present();
       
     } finally {
-
       this.isLoading = false;
-
     }
-
   }
 
-}
-
-  /**
-
-   * Traduit les messages d'erreur du service Auth en messages utilisateur
-
-   */
-
-  private translateErrorMessage(error: any): string {
-
-    const message = error?.error || error;
-
-    console.log(message);
-
-    // Messages d'erreur spécifiques du service Auth
-
-    if (message.error === 'MISSING_CREDENTIALS') {
-
-      return 'Veuillez remplir tous les champs obligatoires';
-
-    }
-
-    if (message.error === 'INVALID_EMAIL') {
-
-      return 'Veuillez saisir un email valide';
-
-    }
-
-    if (message.error === 'PASSWORD_TOO_SHORT') {
-
-      return 'Le mot de passe doit contenir au moins 8 caractères';
-
-    }
-
-    if (message.error === 'EMAIL_ALREADY_EXISTS') {
-
-      return 'Cet email est déjà utilisé. Veuillez en choisir un autre.';
-
-    }
-
-    if (message.error === 'USERNAME_ALREADY_EXISTS') {
-
-      return 'Ce nom d\'utilisateur est déjà utilisé. Veuillez en choisir un autre.';
-
-    }
-
-    
-
-    // Message par défaut
-
-    return message || 'Une erreur est survenue lors de l\'inscription';
-
+  getIconByName(icon: string): string {
+    const name = icon.trim();
+    if (name === "Exhibition") return 'assets/icon/exhibition.png';
+    if (name === "Standard") return 'assets/icon/standard.png';
+    if (name === "Premium") return 'assets/icon/premium.png';
+    if (name === "Gold") return 'assets/icon/gold.png';
+    return 'assets/icon/value.png';
   }
-
 }

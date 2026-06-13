@@ -97,7 +97,7 @@
   <div class="avatar-dot"></div>
 </div>
 
-<ion-footer *ngIf="isMobile && !isMobileWeb">
+<ion-footer *ngIf="isMobile">
   <app-bottom-navigation
     (activeItemChange)="onNavigationChange($event)"
     [theme]="'dark'"

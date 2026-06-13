@@ -95,10 +95,8 @@ export class UserService {
      ===================== */
 
   updatePushToken(token: string, userId: string): Observable<any> {
-    return this.api.patch(`${this.resource}/push-token`, userId, {
-      pushToken: token,
-      deviceId: this.getDeviceId(),
-      platform: this.getPlatform()
+    return this.api.patch(`${this.resource}`, userId, {
+      "push-token": token
     });
   }
 

@@ -2,9 +2,10 @@ import { Component, OnInit, AfterViewInit, Input } from '@angular/core';
 import { IonHeader, IonButton, IonToolbar, IonTitle, IonButtons, IonIcon, IonContent, IonImg, ToastController, IonBadge } from "@ionic/angular/standalone";
 import { ModalController } from '@ionic/angular';
 import { NgIf } from '@angular/common';
-import { Browser } from '@capacitor/browser';
 import { firstValueFrom } from 'rxjs';
 import { PaymentService } from 'src/services/Service_payment/payment-service';
+import { closeOutline, cardOutline, logoPaypal} from 'ionicons/icons';
+import { addIcons } from 'ionicons';
 
 @Component({
   selector: 'app-modal-payment',
@@ -19,9 +20,12 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
   @Input() OrderAmount!: number;
   constructor(private modalCtrl: ModalController,
     private toastController: ToastController,
-    private paymentService: PaymentService) { }
+    private paymentService: PaymentService) { addIcons({
+    'close-outline': closeOutline,
+    'logo-paypal':logoPaypal
+  }); }
 
-  ngOnInit() { }
+  ngOnInit() {}
 
   ngAfterViewInit() {
 
@@ -43,10 +47,11 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
 
   async proceedToPayment() {
     if (!this.OrderAmount || this.OrderAmount <= 0) {
-      this.showToast(`valeur montant invalaide!`, 'error');
+      this.showToast(`valeur montant invalide!`, 'error');
       return;
     }
     let URL: string = '';
+    let ORDER_ID: string = '';
 
     try {
       if (this.selectedMethod === 'card') {
@@ -58,6 +63,7 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
         );
         this.paymentMessage = 'Redirection vers MonCash...';
         URL = paymentResponse.redirect_url;
+        ORDER_ID = paymentResponse.order_id;
       } else if (this.selectedMethod === 'paypal') {
         this.paymentMessage = 'Connexion à PayPal...';
         const paymentResponse = await firstValueFrom(
@@ -66,15 +72,9 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
         this.paymentMessage = 'Redirection vers PayPal...';
         URL = paymentResponse.approvalUrl;
       }
-
-      await Browser.open({
-        url: URL,
-        windowName: '_self',
-        presentationStyle: 'popover'
-      });
-      // Attendre un peu pour que le navigateur s'ouvre
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
+     
+        this.modalCtrl.dismiss({paymentUrl:URL, method:this.selectedMethod, extra:ORDER_ID});
+      
     } catch (error) {
       console.error('Payment error:', error);
       throw error;

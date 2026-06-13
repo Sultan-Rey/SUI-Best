@@ -1,6 +1,9 @@
 <app-header-component (currentSubscriptionStatus)="getSubscriptionStatus($event)" ></app-header-component>
+
 <ion-content [fullscreen]="false" class="exclusive-content">
+
 <div class="exclusive-wrapper">
+
  <!-- HEADER -->
   <div class="ex-header">
     <h1 class="ex-title">Exclusifs</h1>
@@ -63,7 +66,15 @@
             <div class="lock-icon-wrap">
               <ion-icon name="lock-closed-outline"></ion-icon>
             </div>
-            <span class="lock-price">{{ item.price }}HTG</span>
+            <span class="lock-price">
+              <span *ngIf="item.currency?.type === 'coin'">🪙</span>
+              <span *ngIf="item.currency?.type === 'coupon'">🎟️</span>
+              <span *ngIf="item.currency?.type === 'money'">💰</span>
+              {{ item.currency?.value }}
+              <span *ngIf="item.currency?.type === 'coin'">coins</span>
+              <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
+              <span *ngIf="item.currency?.type === 'money'">HTG</span>
+            </span>
           </div>
           <div class="card-duration-badge" *ngIf="item.media?.duration">
             <ion-icon name="time-outline"></ion-icon>
@@ -92,15 +103,21 @@
             *ngIf="item.locked"
             (click)="onBuy(item, $event)"
           >
-            Acheter {{ item.price }}HTG
+            <span *ngIf="item.currency?.type === 'coin'">🪙 Acheter</span>
+            <span *ngIf="item.currency?.type === 'coupon'">🎟️ Acheter</span>
+            <span *ngIf="item.currency?.type === 'money'">💰 Acheter</span>
+            {{ item.currency?.value }}
+            <span *ngIf="item.currency?.type === 'coin'">coins</span>
+            <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
+            <span *ngIf="item.currency?.type === 'money'">HTG</span>
           </button>
           <button
             class="btn-watch"
             *ngIf="!item.locked"
             (click)="onWatch(item, $event)"
           >
-            <span *ngIf="!item.series?.isSeries">Regarder</span>
-            <span *ngIf="item.series?.isSeries">Voir la série</span>
+            <span *ngIf="!item.series?.isSeries">🎬 Regarder</span>
+            <span *ngIf="item.series?.isSeries">📺 Voir la série</span>
           </button>
         </div>
       </div>
@@ -157,7 +174,15 @@
             <div class="lock-circle">
               <ion-icon name="lock-closed-outline"></ion-icon>
             </div>
-            <span class="lock-big-price">{{ item.price }}HTG</span>
+            <span class="lock-big-price">
+              <span *ngIf="item.currency?.type === 'coin'">🪙</span>
+              <span *ngIf="item.currency?.type === 'coupon'">🎟️</span>
+              <span *ngIf="item.currency?.type === 'money'">💰</span>
+              {{ item.currency?.value }}
+              <span *ngIf="item.currency?.type === 'coin'">coins</span>
+              <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
+              <span *ngIf="item.currency?.type === 'money'">HTG</span>
+            </span>
           </div>
           <div class="card-duration-badge top-right" *ngIf="item.media.duration">
             <ion-icon name="time-outline"></ion-icon>
@@ -165,7 +190,7 @@
           </div>
           <!-- Badge Épisode -->
           <div class="episode-badge" *ngIf="item.series?.episodeNumber">
-            Ép. {{ item.series?.episodeNumber }}
+            📺 Ép. {{ item.series?.episodeNumber }}
           </div>
         </div>
         <div class="content-info">
@@ -180,7 +205,13 @@
           </div>
         </div>
         <button class="btn-buy-full" (click)="onBuy(item, $event)">
-          Acheter {{ item.price }}$
+          <span *ngIf="item.currency?.type === 'coin'">🪙 Acheter</span>
+          <span *ngIf="item.currency?.type === 'coupon'">🎟️ Acheter</span>
+          <span *ngIf="item.currency?.type === 'money'">💰 Acheter</span>
+          {{ item.currency?.value }}
+          <span *ngIf="item.currency?.type === 'coin'">coins</span>
+          <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
+          <span *ngIf="item.currency?.type === 'money'">HTG</span>
         </button>
       </ng-container>
 
@@ -194,7 +225,7 @@
           </div>
           <!-- Badge Épisode -->
           <div class="episode-badge" *ngIf="item.series?.episodeNumber">
-            Ép. {{ item.series?.episodeNumber }}
+            📺 Ép. {{ item.series?.episodeNumber }}
           </div>
           <!-- Badge Série -->
           <div class="series-badge" *ngIf="item.series?.isSeries">
@@ -218,5 +249,5 @@
   </div>
 
 </div>
- 
+
 </ion-content>

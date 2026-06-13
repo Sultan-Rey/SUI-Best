@@ -1,18 +1,17 @@
 // discovery-view.component.ts
-import { Component, Input, OnInit, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectorRef, Output, EventEmitter, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { UserProfile } from 'src/models/User';
 import { CreationService } from 'src/services/Service_content/creation-service';
 import { ModalController, ToastController } from '@ionic/angular';
-import { map, filter, switchMap, forkJoin, of, take, finalize, catchError } from 'rxjs';
+import { map, switchMap, forkJoin, of, take, finalize, catchError } from 'rxjs';
 import { ProfileService } from 'src/services/Service_profile/profile-service';
 import { assignDiscoveryLayout } from 'src/app/utils/discovery-layout.utils';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
-import { FollowedViewComponent } from '../followed-panel/followed-view.component';
 import { Router } from '@angular/router';
-import { CommentService } from 'src/services/service_comment/comment-service';
+import { MediaCacheService } from 'src/services/Cache/media-cache-service';
 import { Segment } from 'src/models/Segment';
 export interface DiscoveryAuthor {
   name: string;
@@ -57,7 +56,7 @@ export interface Story {
   providers: [ModalController],
   imports: [CommonModule, FormsModule, IonicModule, MediaUrlPipe],
 })
-export class DiscoveryViewComponent implements OnInit {
+export class DiscoveryViewComponent implements OnInit, AfterViewInit {
   @Input() currentUserProfile!:UserProfile;
   searchOpen = false;
   searchQuery = '';
@@ -121,17 +120,22 @@ export class DiscoveryViewComponent implements OnInit {
     private profile: ProfileService, 
     private cdr: ChangeDetectorRef ,
     private router: Router,
-    private commentService: CommentService,
+    private mediaCache: MediaCacheService,
     private modalController: ModalController,
     private toastController: ToastController){}
-
-  ngOnInit(): void {
-    this.loadContent();
+  ngAfterViewInit(): void {
+     this.loadContent();
     this.loadTopArtists();
   }
 
-  loadContent(){
+  ngOnInit(): void {
     this.loadingContent = true;
+  }
+
+
+// 2. Modifie la méthode loadContent() ainsi :
+loadContent() {
+    
     this.creationService.getDiscoveryFeedContents(this.currentUserProfile).pipe(
       finalize(() => {
         this.loadingContent = false;
@@ -143,24 +147,19 @@ export class DiscoveryViewComponent implements OnInit {
         this.loadingContent = false;
         this.updateGlobalLoadingState();
         this.cdr.markForCheck();
-        return of([]); // Retourner un tableau vide en cas d'erreur
+        return of([]);
       }),
       switchMap((filteredContents) => {
-        // Créer les requêtes de profil pour chaque contenu filtré
         const profileRequests = filteredContents.map(content => 
           this.profile.getProfileById(content.userId).pipe(
-            map(profile => ({
-              content,
-              profile
-            }))
+            map(profile => ({ content, profile })),
+            catchError(() => of({ content, profile: null })) // Sécurité si un profil échoue
           )
         );
-        
-        // Attendre toutes les réponses des profils
         return forkJoin(profileRequests);
       }),
-      map((contentsWithProfilesAndComments) => 
-        contentsWithProfilesAndComments.map(({ content, profile }) => ({
+      map((contentsWithProfiles) => 
+        contentsWithProfiles.map(({ content, profile }) => ({
           id: content.id || '',
           title: content.description || 'Contenu sans titre',
           thumbnail: content.thumbnailUrl || content.fileUrl || '',
@@ -178,11 +177,33 @@ export class DiscoveryViewComponent implements OnInit {
             avatar: profile?.avatar || 'assets/avatar-default.png'
           },
           saved: false,
-          loading: false // ← Initialiser l'état de chargement individuel
+          loading: false
         }))
       )
-    ).subscribe((discoveryItems) => {
-      this.allItems = assignDiscoveryLayout(discoveryItems);
+    ).subscribe(async (discoveryItems) => {
+      // 1. On organise d'abord la disposition de la mosaïque
+      const laidOutItems = assignDiscoveryLayout(discoveryItems);
+      
+      // 2. On résout les chemins d'images en URLs réelles un par un (Séquentiel)
+      // Cela évite de harceler IndexedDB et le processeur graphique d'un seul coup
+      for (let item of laidOutItems) {
+        try {
+          // Si l'image existe et n'est pas déjà une URL complète (http...)
+          if (item.thumbnail && !item.thumbnail.startsWith('http')) {
+            item.thumbnail = await this.mediaCache.resolve(item.thumbnail);
+          }
+          
+          // Pareil pour l'avatar de l'auteur
+          if (item.author.avatar && !item.author.avatar.startsWith('http') && item.author.avatar !== 'assets/avatar-default.png') {
+            item.author.avatar = await this.mediaCache.resolve(item.author.avatar);
+          }
+        } catch (e) {
+          console.error("Échec de la préparation locale du média pour l'item :", item.id, e);
+        }
+      }
+
+      // 3. Une fois que toutes nos adresses d'images "blob://" sont prêtes, on donne la liste au HTML
+      this.allItems = laidOutItems;
       this.cdr.markForCheck();
     });
   }

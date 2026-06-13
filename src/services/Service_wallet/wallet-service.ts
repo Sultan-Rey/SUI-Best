@@ -56,7 +56,7 @@ export class WalletService {
         return isValid;
       });
       
-      console.log('✅ Coupons valides après filtrage:', filteredCoupons.length, filteredCoupons);
+      //console.log('✅ Coupons valides après filtrage:', filteredCoupons.length, filteredCoupons);
       return filteredCoupons;
     })
   );
@@ -170,7 +170,7 @@ export class WalletService {
 
     return this.api.create<Wallet>(this.WALLET_RESOURCE, newWallet).pipe(
       tap(wallet => {
-        console.log('✅ Wallet créé avec succès:', wallet.id);
+        //console.log('✅ Wallet créé avec succès:', wallet.id);
         this.walletSubject.next(wallet);
         this.balanceSubject.next(wallet.balance);
         this.saveWalletCache(wallet);
@@ -463,6 +463,141 @@ export class WalletService {
   getTransactions(): Transaction[] {
     return this.walletSubject.value?.transactions || [];
   }
+
+  /**
+ * Enregistre l'achat d'un plan dans le wallet
+ * Gère le cas où le wallet n'existe pas encore (paiement avant création de compte)
+ * 
+ * @param plan - Détails du plan acheté
+ * @param userId - ID de l'utilisateur (peut être temporaire)
+ * @param paymentMethod - Méthode de paiement utilisée
+ * @param orderId - ID de la commande (optionnel)
+ * @returns Observable<Wallet> - Le wallet mis à jour
+ */
+purchasePlan(plan: any, userId: string, paymentMethod: string, orderId?: string): Observable<Wallet> {
+  // Créer la transaction pour l'achat du plan
+  const transaction: Transaction = {
+    id: this.generateTransactionId(),
+    walletId: '', // Sera rempli quand le wallet sera disponible
+    type: 'purchase',
+    amount: plan.price,
+    itemType: 'subscription', // Nouveau type pour les plans
+    description: `Abonnement au plan ${plan.name} - ${plan.duration} ${plan.period}(s)`,
+    date: new Date().toISOString(),
+    price: plan.price,
+    paymentMethod,
+    metadata: {
+      planId: plan.id,
+      planName: plan.name,
+      duration: plan.duration,
+      period: plan.period,
+      features: plan.features,
+      orderId: orderId || `ORDER_${Date.now()}`,
+      subscriptionStartDate: new Date().toISOString(),
+      subscriptionEndDate: plan.endDate
+    }
+  };
+
+  // Sauvegarder la transaction en attente dans localStorage (cas pré-création de compte)
+  this.savePendingPlanTransaction(userId, transaction);
+
+  // Vérifier si le wallet existe déjà
+  const currentWallet = this.walletSubject.value;
+  
+  // Si wallet existe et correspond à l'utilisateur
+  if (currentWallet && currentWallet.userId === userId) {
+    return this.addPlanTransactionToExistingWallet(currentWallet, transaction);
+  }
+  
+  // Si le wallet n'existe pas encore (pré-création de compte)
+  // On retourne un observable qui va créer le wallet et ajouter la transaction
+  return this.createWallet(userId).pipe(
+    switchMap(newWallet => {
+      // Récupérer toutes les transactions en attente pour cet utilisateur
+      const pendingTransactions = this.getPendingPlanTransactions(userId);
+      
+      // Ajouter toutes les transactions en attente
+      let obs = of(newWallet);
+      for (const pendingTx of pendingTransactions) {
+        obs = obs.pipe(
+          switchMap(wallet => this.addPlanTransactionToExistingWallet(wallet, pendingTx))
+        );
+      }
+      
+      // Nettoyer les transactions en attente
+      this.clearPendingPlanTransactions(userId);
+      
+      return obs;
+    }),
+    catchError(error => {
+      console.error('❌ Erreur lors de l\'enregistrement de l\'achat du plan:', error);
+      return throwError(() => new Error(`Impossible d'enregistrer l'achat du plan: ${error.message}`));
+    })
+  );
+}
+
+/**
+ * Sauvegarde une transaction de plan en attente (cas où le wallet n'existe pas encore)
+ */
+private savePendingPlanTransaction(userId: string, transaction: Transaction): void {
+  try {
+    const pendingKey = `pending_plan_transactions_${userId}`;
+    const existing = localStorage.getItem(pendingKey);
+    const pendingTransactions: Transaction[] = existing ? JSON.parse(existing) : [];
+    
+    pendingTransactions.push(transaction);
+    localStorage.setItem(pendingKey, JSON.stringify(pendingTransactions));
+    
+    console.log(`✅ Transaction de plan en attente sauvegardée pour l'utilisateur ${userId}`);
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde de la transaction en attente:', error);
+  }
+}
+
+
+/**
+ * Récupère les transactions de plan en attente pour un utilisateur
+ */
+private getPendingPlanTransactions(userId: string): Transaction[] {
+  try {
+    const pendingKey = `pending_plan_transactions_${userId}`;
+    const existing = localStorage.getItem(pendingKey);
+    return existing ? JSON.parse(existing) : [];
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des transactions en attente:', error);
+    return [];
+  }
+}
+
+/**
+ * Efface les transactions de plan en attente pour un utilisateur
+ */
+clearPendingPlanTransactions(userId: string): void {
+  try {
+    const pendingKey = `pending_plan_transactions_${userId}`;
+    localStorage.removeItem(pendingKey);
+    console.log(`✅ Transactions de plan en attente effacées pour l'utilisateur ${userId}`);
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'effacement des transactions en attente:', error);
+  }
+}
+
+/**
+ * Ajoute une transaction de plan à un wallet existant
+ */
+ addPlanTransactionToExistingWallet(wallet: Wallet, transaction: Transaction): Observable<Wallet> {
+  // Mettre à jour l'ID du wallet dans la transaction
+  transaction.walletId = wallet.id;
+  
+  // Récupérer les transactions existantes
+  const currentTransactions = Array.isArray(wallet.transactions) ? wallet.transactions : [];
+  const updatedTransactions = [transaction, ...currentTransactions];
+  
+  // Mettre à jour le wallet via l'API
+  return this.updateWallet({
+    transactions: updatedTransactions
+  });
+}
 
   /**
    * Retourne les types de coupons disponibles avec les vrais comptes du wallet

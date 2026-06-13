@@ -38,7 +38,7 @@
 
         <!-- Plan Header -->
         <div class="plan-header" [style.background]="plan.color">
-          <ion-icon [name]="plan.icon" class="plan-icon"></ion-icon>
+          <ion-img [src]="getIconByName(plan.name)" class="plan-icon"></ion-img>
           <h2>{{ plan.name }}</h2>
         </div>
 
@@ -69,7 +69,7 @@
       <ion-button
         expand="block"
         class="subscribe-btn"
-        [disabled]="!selectedPlan"
+        [disabled]="!selectedPlan || isLoading"
         (click)="subscribe()"
       >
         <ion-icon name="rocket" slot="start"></ion-icon>

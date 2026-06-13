@@ -19,10 +19,10 @@ import {
   videocamOutline,
   imagesOutline,
 } from 'ionicons/icons';
-import { Observable, combineLatest, of } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { ExclusiveService } from '../../services/Service_exclusive_content/exclusive-service';
-import { ExclusiveContent, ExclusiveContentType, Series } from '../../models/Content';
+import { ExclusiveContent, ExclusiveContentStatus, ExclusiveContentType, Series } from '../../models/Content';
 import { Router } from '@angular/router';
 import { ModalPaymentComponent } from '../components/modal-payment/modal-payment.component';
 
@@ -92,15 +92,36 @@ export class ExclusivePage implements OnInit {
     this.loadData();
   }
 
-   getSubscriptionStatus(status: string) {
-  this.subscriptionStatus = status; // On stocke la valeur
-}
+  getSubscriptionStatus(status: string) {
+    this.subscriptionStatus = status; // On stocke la valeur
+  }
+
   // ── Data Loading ─────────────────────────────────────────────────────────────
 
   loadData(): void {
-    this.featuredItems$ = this.exclusiveService.getFeaturedContents();
-    this.allContents$ = this.exclusiveService.getAllContents();
-    this.series$ = this.exclusiveService.getSeries();
+    // 1. Récupérer les contenus mis en avant (featured) via le filtre par statut du service
+    this.featuredItems$ = this.exclusiveService.getByStatus('featured').pipe(
+      catchError(error => {
+        console.error('Erreur lors du chargement des contenus vedettes', error);
+        return of([]);
+      })
+    );
+
+    // 2. Récupérer tous les contenus publiés par défaut
+    this.allContents$ = this.exclusiveService.getByStatus('published').pipe(
+      catchError(error => {
+        console.error('Erreur lors du chargement de tous les contenus', error);
+        return of([]);
+      })
+    );
+
+    // 3. Récupérer toutes les séries (Le service gère en interne la ressource 'series')
+    this.series$ = this.exclusiveService.getAllSeries().pipe(
+      catchError(error => {
+        console.error('Erreur lors du chargement des séries', error);
+        return of([]);
+      })
+    );
   }
 
   // ── Filter ──────────────────────────────────────────────────────────────────
@@ -108,23 +129,33 @@ export class ExclusivePage implements OnInit {
   setFilter(filterId: string): void {
     this.activeFilter = filterId;
     
-    // Mettre à jour les observables avec les filtres
     if (filterId === 'series') {
-      // Afficher les séries (converties en contenus pour l'affichage)
-      this.featuredItems$ = this.exclusiveService.getSeries().pipe(
-        map(series => series.map(s => this.convertSeriesToContent(s)))
+      // Afficher uniquement les séries (converties en ExclusiveContent pour l'affichage unifié)
+      const unifiedSeries$ = this.exclusiveService.getAllSeries().pipe(
+        map(series => series.map(s => this.convertSeriesToContent(s))),
+        catchError(() => of([]))
       );
-      this.allContents$ = this.exclusiveService.getSeries().pipe(
-        map(series => series.map(s => this.convertSeriesToContent(s)))
-      );
+      
+      this.featuredItems$ = unifiedSeries$;
+      this.allContents$ = unifiedSeries$;
     } else {
-      // Filtrer les contenus par type (utilise les vues optimisées)
-      this.featuredItems$ = this.exclusiveService.getFeaturedContents().pipe(
-        map(contents => filterId === 'all' ? contents : contents.filter(c => c.type === filterId))
-      );
-      this.allContents$ = this.exclusiveService.getAllContents({ 
-        type: filterId === 'all' ? undefined : filterId as ExclusiveContentType 
-      });
+      // Filtrer dynamiquement les contenus selon leur type
+      if (filterId === 'all') {
+        // Retour aux données initiales non filtrées (publiées ou vedettes)
+        this.featuredItems$ = this.exclusiveService.getByStatus('archived').pipe(catchError(() => of([])));
+        this.allContents$ = this.exclusiveService.getByStatus('published').pipe(catchError(() => of([])));
+      } else {
+        // Appel aux méthodes natives de filtrage par type exposées par l'ExclusiveService
+        this.featuredItems$ = this.exclusiveService.getByType(filterId).pipe(
+          map(contents => contents.filter(c => c.status === ExclusiveContentStatus.ARCHIVED)),
+          catchError(() => of([]))
+        );
+        
+        this.allContents$ = this.exclusiveService.getByType(filterId).pipe(
+          map(contents => contents.filter(c => c.status === ExclusiveContentStatus.PUBLISHED)),
+          catchError(() => of([]))
+        );
+      }
     }
   }
 
@@ -148,15 +179,15 @@ export class ExclusivePage implements OnInit {
   async onBuy(item: ExclusiveContent, event: Event) {
     event.stopPropagation();
     const modal = await this.modalController.create({
-                  component: ModalPaymentComponent,
-                  cssClass: 'auto-height',
-                  componentProps:{OrderAmount: item.price},
-                  initialBreakpoint: 0.90,
-                  breakpoints: [0, 0.90, 1],
-                  handle: true
-                });
+      component: ModalPaymentComponent,
+      cssClass: 'auto-height',
+      componentProps: { OrderAmount: item.currency?.value },
+      initialBreakpoint: 0.90,
+      breakpoints: [0, 0.90, 1],
+      handle: true
+    });
                 
-                await modal.present();
+    await modal.present();
   }
 
   onWatch(item: ExclusiveContent, event: Event): void {
@@ -176,7 +207,7 @@ export class ExclusivePage implements OnInit {
   private convertSeriesToContent(series: Series): ExclusiveContent {
     return {
       id: series.id,
-      userId: 'current-user', // Sera rempli par le backend
+      viewCount: series.viewCount || 0,
       title: series.title,
       description: series.description || '',
       author: series.author,
@@ -194,7 +225,7 @@ export class ExclusivePage implements OnInit {
       
       // Monétisation
       locked: false, // Les séries sont généralement déverrouillées
-      price: series.price,
+      currency: {type:'coin', value: series.price || 0},
       isLive: false,
       
       // Série (pour l'affichage)

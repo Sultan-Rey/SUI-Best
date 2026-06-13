@@ -23,15 +23,64 @@
   flex-direction: column;
   gap: 0;
 
-  // < 375px (iPhone SE 1ère gen)
+  // Base (très petit écran, Android ancien)
   padding: 6px 12px 8px;
+  
+  // === GESTION DE LA STATUS BAR (Android & iOS) ===
+  // Fallback pour les vieux navigateurs
+  padding-top: max(6px, env(safe-area-inset-top));
+  
+  // Android >= 5.0 : la stat]us bar fait environ 24px
+  // On ajuste uniquement si safe-area-inset-top n'est pas défini ou trop petit
+  @supports not (padding-top: env(safe-area-inset-top)) {
+    @media (min-width: 360px) and (max-width: 767px) {
+      // Détection Android via JS? Sinon, compromise safe
+      padding-top: 20px; // plus que les 6px de base
+    }
+  }
 
-  @media screen and (min-width: 375px) { padding: 7px 14px 9px; }   // iPhone X–13 mini
-  @media screen and (min-width: 390px) { padding: 7px 16px 9px; }   // iPhone 14 / Pixel 7 / S22
-  @media screen and (min-width: 415px) { padding: 8px 18px 10px; }  // Pro Max / S Ultra
-  @media screen and (min-width: 768px) { padding: 10px 20px 12px; } // iPad Mini
-  @media screen and (min-width: 1024px){ padding: 12px 24px 14px; } // iPad Air / Pro
-  @media screen and (min-width: 1366px){ padding: 14px 32px 16px; } // iPad Pro 12.9"
+  // iOS avec safe area (notch)
+  @supports (padding-top: env(safe-area-inset-top)) {
+    padding-top: calc(6px + env(safe-area-inset-top));
+  }
+
+  // === TESTS MEDIA CLASSIQUES ===
+  @media screen and (min-width: 375px) { 
+    padding: 17px 14px 9px;
+    @supports (padding-top: env(safe-area-inset-top)) {
+      padding-top: calc(27px + env(safe-area-inset-top));
+    }
+  }
+  @media screen and (min-width: 390px) { 
+    padding: 17px 16px 9px;
+    @supports (padding-top: env(safe-area-inset-top)) {
+      padding-top: calc(27px + env(safe-area-inset-top));
+    }
+  }
+  @media screen and (min-width: 415px) { 
+    padding: 8px 18px 10px;
+    @supports (padding-top: env(safe-area-inset-top)) {
+      padding-top: calc(18px + env(safe-area-inset-top));
+    }
+  }
+  @media screen and (min-width: 768px) { 
+    padding: 10px 20px 12px;
+    @supports (padding-top: env(safe-area-inset-top)) {
+      padding-top: calc(20px + env(safe-area-inset-top));
+    }
+  }
+  @media screen and (min-width: 1024px) { 
+    padding: 12px 24px 14px;
+    @supports (padding-top: env(safe-area-inset-top)) {
+      padding-top: calc(22px + env(safe-area-inset-top));
+    }
+  }
+  @media screen and (min-width: 1366px) { 
+    padding: 14px 32px 16px;
+    @supports (padding-top: env(safe-area-inset-top)) {
+      padding-top: calc(24px + env(safe-area-inset-top));
+    }
+  }
 }
 
 .margin-right{
@@ -538,29 +587,6 @@
 .desktop-only { display: none !important; @media screen and (min-width: 1024px) { display: flex !important; } }
 
 // ─── Conteneur principal ──────────────────────────────────────────────────────
-
-.stats-container {
-  display: flex;
-  flex-direction: column;
-  padding: 6px 12px 0;
-
-  @media screen and (min-width: 375px)  { padding: 7px 14px 0; }
-  @media screen and (min-width: 390px)  { padding: 7px 16px 0; }
-  @media screen and (min-width: 415px)  { padding: 8px 18px 0; }
-  @media screen and (min-width: 768px)  { padding: 10px 20px 0; }
-
-  @media screen and (min-width: 1024px) {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 32px;
-    height: 60px;
-    gap: 16px;
-  }
-
-  @media screen and (min-width: 1366px) { padding: 0 48px; height: 64px; gap: 20px; }
-  @media screen and (min-width: 1920px) { padding: 0 64px; height: 72px; gap: 24px; }
-}
 
 // ─── Zones 3-colonnes desktop ────────────────────────────────────────────────
 

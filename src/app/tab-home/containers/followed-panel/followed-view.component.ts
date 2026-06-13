@@ -377,32 +377,62 @@ private polling?: FollowedViewPolling;
 
   }
 
+// 1. Ajoutez une méthode globale pour stopper et réinitialiser toutes les vidéos du conteneur
+private stopAllVideos() {
+  if (this.postsContainer?.nativeElement) {
+    const videos = this.postsContainer.nativeElement.querySelectorAll('video');
+    videos.forEach((video: HTMLVideoElement) => {
+      try {
+        video.pause();
+        video.currentTime = 0; // Remet la vidéo au début
+        // Optionnel : ne pas vider le .src ici si vous comptez y revenir sans recharger
+      } catch (e) {
+        console.error("Erreur stopAllVideos:", e);
+      }
+    });
+  }
+}
+
+// 2. Déclenché dès que l'utilisateur commence à naviguer hors de cette vue
+ionViewWillLeave() {
+  this.stopAllVideos();
+}
 
 
  ngOnDestroy() {
+  
+  this.intersectionObserver?.disconnect();
+  clearTimeout(this.snapRevealTimeout);
 
-    this.intersectionObserver?.disconnect();
-
-    clearTimeout(this.snapRevealTimeout);
-
-    
-    // Retirer le listener scroll en toute sécurité
-    if (this.postsContainer?.nativeElement) {
-      this.postsContainer.nativeElement.removeEventListener('scroll', this.onScroll);
-    }
-
-    // Nettoyer le listener de resize
-    if (this.resizeListener) {
-      window.removeEventListener('resize', this.resizeListener);
-    }
-    
-    // Arrêter le polling
-    this.polling?.stop();
-
-    
-    this.cleanup();
-
+  // --- AJOUT : Arrêter toutes les vidéos en cours de lecture ---
+  if (this.postsContainer?.nativeElement) {
+    const videos = this.postsContainer.nativeElement.querySelectorAll('video');
+    videos.forEach((video: HTMLVideoElement) => {
+      try {
+        video.pause();       // Met la vidéo en pause
+        video.src = '';      // Libère les ressources de flux vidéo
+        video.load();        // Force le rechargement pour appliquer le changement de source
+      } catch (e) {
+        console.error("Erreur lors de l'arrêt de la vidéo :", e);
+      }
+    });
   }
+  // -------------------------------------------------------------
+
+  // Retirer le listener scroll en toute sécurité
+  if (this.postsContainer?.nativeElement) {
+    this.postsContainer.nativeElement.removeEventListener('scroll', this.onScroll);
+  }
+
+  // Nettoyer le listener de resize
+  if (this.resizeListener) {
+    window.removeEventListener('resize', this.resizeListener);
+  }
+
+  // Arrêter le polling
+  this.polling?.stop();
+  this.cleanup();
+}
 
   //#endregion
 
@@ -1843,16 +1873,16 @@ showAccount(userId:string){
       const networkState = video.networkState;
       const readyState = video.readyState;
       
-      console.error('🎬 Video loading error details:', {
-        postId: post.id,
-        fileUrl: post.fileUrl,
-        errorCode,
-        errorMessage,
-        networkState,
-        readyState,
-        videoSrc: video.src,
-        currentSrc: video.currentSrc
-      });
+      // console.error('🎬 Video loading error details:', {
+      //   postId: post.id,
+      //   fileUrl: post.fileUrl,
+      //   errorCode,
+      //   errorMessage,
+      //   networkState,
+      //   readyState,
+      //   videoSrc: video.src,
+      //   currentSrc: video.currentSrc
+      // });
       
       // Essayer de déterminer la cause
       let cause = 'Unknown';
@@ -1863,7 +1893,7 @@ showAccount(userId:string){
         case 4: cause = 'MEDIA_ERR_SRC_NOT_SUPPORTED - Format not supported'; break;
       }
       
-      console.warn(`🎬 Video error cause: ${cause}`);
+      //console.warn(`🎬 Video error cause: ${cause}`);
     }
   }
 
@@ -1920,7 +1950,6 @@ showAccount(userId:string){
 
     });
 
-    
 
     if (this.intersectionObserver) {
 

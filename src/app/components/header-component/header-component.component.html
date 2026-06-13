@@ -60,7 +60,7 @@
     <!-- ── Ligne 2 : solde coins (toujours visible, jamais tronqué) ─────── -->
     <div class="header-row-balance">
 
-       <ion-buttons *ngIf="isMobileWeb">
+       <ion-buttons *ngIf="isMobileWeb && !isMobile">
           <ion-button (click)="toggleBurgerMenu()" fill="clear" size="small"><ion-icon color="dark" name="menu"></ion-icon></ion-button>  
         </ion-buttons>
         
@@ -99,12 +99,12 @@
          ZONE GAUCHE : back button OU xp/coupon chips
     ═══════════════════════════════════════════════════════ -->
     <div class="header-zone left-zone">
-<!--  
+ 
       <ion-buttons slot="start" >
         <ion-button  (click)="toggleMenuCollapse()">
           <ion-icon [name]="isMenuCollapsed ? 'chevron-forward' : 'chevron-back'"></ion-icon>
         </ion-button>
-      </ion-buttons> -->
+      </ion-buttons>
  
       <ng-container >
         <ion-badge color="warning" (click)="openRewardModal()">
@@ -215,7 +215,7 @@
 </ion-header>
 
 <app-menu-burger
-  *ngIf="isMobileWeb"
+  *ngIf="isMobileWeb && !isMobile"
   [isOpen]="isBurgerMenuOpen"
   [isCollapsed]="isMenuCollapsed"
   [theme]="'dark'"

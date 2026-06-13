@@ -388,73 +388,121 @@ export class CreationService {
    * triés par score décroissant (calculé par le cron PHP).
    */
   getFollowedFeedContents(
-    currentUserProfile: UserProfile,
-    page = 1,
-    limit = 10
-  ): Observable<Content[]> {
-    const followedIds = [...(currentUserProfile.myFollows ?? []), currentUserProfile.id];
+  currentUserProfile: UserProfile,
+  page = 1,
+  limit = 10
+): Observable<Content[]> {
+  // Liste des IDs suivis par l'utilisateur connecté + son propre ID
+  const followedIds = [...(currentUserProfile.myFollows ?? []), currentUserProfile.id];
+  
+  // Récupération de l'ID de l'école de l'utilisateur connecté
+  const userSchoolId = currentUserProfile.userInfo?.school?.id;
 
-    return this.api.filter<Content>(this.RESOURCE, {
-      filters: { status: ContentStatus.PUBLISHED, isPublic: true, category:ContentCategory.POST },
-      options: {
-        page,
-        per_page: limit * 2, // Récupérer plus pour compenser le filtrage
-        sort: { score: 'desc' },
-        include_meta: true,
-      }
-    }).pipe(
-      map(result => result.data
-        .filter(c => followedIds.includes(c.userId))
-        .slice(0, limit) // Limiter au nombre demandé
-      ),
-      tap(contents => {
-        page === 1
-          ? this.followedFeedSubject.next(contents)
-          : this.followedFeedSubject.next([...this.followedFeedSubject.value, ...contents]);
-      }),
-      catchError(err => {
-        console.error('[CreationService] getFollowedFeedContents:', err);
-        return of([]);
+  return this.api.filter<Content>(this.RESOURCE, {
+    filters: { status: ContentStatus.PUBLISHED, isPublic: true, category: ContentCategory.POST },
+    options: {
+      page,
+      per_page: limit * 3, // Compensation pour le filtrage local des challenges
+      sort: { score: 'desc' },
+      include_meta: true,
+    }
+  }).pipe(
+    map(result => result.data
+      .filter(c => {
+        // 1. Le créateur doit faire partie de followedIds (ou être l'utilisateur connecté)
+        if (!followedIds.includes(c.userId)) {
+          return false;
+        }
+
+        // 2. Si le contenu ne fait pas partie d'un challenge, il passe l'épreuve standard
+        if (!c.challengeId) {
+          return true;
+        }
+
+        // 3. Si c'est un challenge et que c'est le propre post de l'utilisateur connecté, il a le droit de le voir
+        if (c.userId === currentUserProfile.id) {
+          return true;
+        }
+
+        // 4. Si c'est le challenge de quelqu'un d'autre :
+        // si le post a été publié directement par le compte d'une école,
+        // c.userId est égal à l'ID de l'école. On valide si cette école est celle de l'élève connecté.
+        if (userSchoolId && c.userId === userSchoolId) {
+          return true;
+        }
+
+        // 5. Si le post de challenge est publié par un autre élève/créateur de la même école :
+        // Si ton backend injecte une propriété sur le modèle (ex: schoolId), on l'utilise.
+        // Sinon, si l'information de l'école n'est pas présente directement sur le modèle 'Content',
+        // le filtre n'autorisera par défaut que les challenges de son école-institution (point 4).
+        // if (userSchoolId && (c as any).schoolId && (c as any).schoolId === userSchoolId) {
+        //   return true;
+        // }
+
+        return false;
       })
-    );
-  }
+      .slice(0, limit) // Limitation finale au nombre demandé
+    ), 
+    tap(contents => {
+      page === 1
+        ? this.followedFeedSubject.next(contents)
+        : this.followedFeedSubject.next([...this.followedFeedSubject.value, ...contents]);
+    }),
+    catchError(err => {
+      console.error('[CreationService] getFollowedFeedContents:', err);
+      return of([]);
+    })
+  );
+}
 
   /**
    * Feed "Discovery" — contenus des utilisateurs non suivis,
    * triés par score décroissant.
    */
-  getDiscoveryFeedContents(
-    currentUserProfile: UserProfile,
-    page = 1,
-    limit = 10
-  ): Observable<Content[]> {
-    const excludedIds = [...(currentUserProfile.myFollows ?? []), currentUserProfile.id];
+ getDiscoveryFeedContents(
+  currentUserProfile: UserProfile,
+  page = 1,
+  limit = 10
+): Observable<Content[]> {
+  const excludedIds = [...(currentUserProfile.myFollows ?? []), currentUserProfile.id];
 
-    return this.api.filter<Content>(this.RESOURCE, {
-      filters: { status: ContentStatus.PUBLISHED, isPublic: true },
-      options: {
-        page,
-        per_page: limit * 2, // Récupérer plus pour compenser le filtrage
-        sort: { score: 'desc' },
-        include_meta: true,
-      }
-    }, {cache:true}).pipe(
-      map(result => result.data
-        .filter(c => !excludedIds.includes(c.userId))
-        .filter(c => c.category === ContentCategory.POST || c.category === ContentCategory.ADS_POST)
-        .slice(0, limit) // Limiter au nombre demandé
-      ),
-      tap(contents => {
-        page === 1
-          ? this.discoveryFeedSubject.next(contents)
-          : this.discoveryFeedSubject.next([...this.discoveryFeedSubject.value, ...contents]);
-      }),
-      catchError(err => {
-        console.error('[CreationService] getDiscoveryFeedContents:', err);
-        return of([]);
+  return this.api.filter<Content>(this.RESOURCE, {
+    filters: { status: ContentStatus.PUBLISHED, isPublic: true },
+    options: {
+      page,
+      per_page: limit * 2, // Récupérer plus pour compenser le filtrage
+      sort: { score: 'desc' },
+      include_meta: true,
+    }
+  }, {cache: true}).pipe(
+    map(result => result.data
+      .filter(c => {
+        // 1. Exclure les contenus créés par l'utilisateur lui-même ou ses follows
+        if (excludedIds.includes(c.userId)) {
+          return false;
+        }
+
+        // 2. RESTRICTION : Exclure impérativement tous les contenus qui font partie d'un challenge
+        if (c.challengeId) {
+          return false;
+        }
+
+        // 3. Filtrer par les catégories autorisées (POST ou ADS_POST)
+        return c.category === ContentCategory.POST || c.category === ContentCategory.ADS_POST;
       })
-    );
-  }
+      .slice(0, limit) // Limiter au nombre demandé
+    ),
+    tap(contents => {
+      page === 1
+        ? this.discoveryFeedSubject.next(contents)
+        : this.discoveryFeedSubject.next([...this.discoveryFeedSubject.value, ...contents]);
+    }),
+    catchError(err => {
+      console.error('[CreationService] getDiscoveryFeedContents:', err);
+      return of([]);
+    })
+  );
+}
 
   /**
    * Feed "Post Publicitaires" — contenus publicitaires de type Post,

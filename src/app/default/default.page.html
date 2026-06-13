@@ -1,175 +1,131 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>Best SUI</ion-title>
-  </ion-toolbar>
-</ion-header>
+<!-- default.page.html -->
+<ion-content class="ion-padding">
+  <div class="premium-container">
+    
+    <!-- Message de succès création compte -->
+    <div *ngIf="isAccountSuccess" class="premium-card">
+      <div class="icon-wrapper success">
+        <ion-icon [src]="checkmarkCircle" class="icon-large"></ion-icon>
+      </div>
+      
+      <h1 class="title">Bienvenue, <span class="highlight">{{ userName || 'membre' }}</span></h1>
+      
+      <p class="subtitle">
+        Votre compte a été créé avec succès
+      </p>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Best SUI</ion-title>
-    </ion-toolbar>
-  </ion-header>
+      <div class="info-row">
+        <ion-icon [src]="mailUnread" class="info-icon"></ion-icon>
+        <div>
+          <div class="info-label">Adresse email</div>
+          <div class="info-value">{{ userEmail }}</div>
+        </div>
+      </div>
 
-  <div class="ion-padding">
-    <!-- Account Success -->
-    <ion-card *ngIf="isAccountSuccess">
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon [icon]="checkmarkCircle" color="success"></ion-icon>
-          Compte créé avec succès!
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p *ngIf="hasAccountData">
-          Félicitations <strong>{{ userName }}</strong>! Votre nouveau compte a été créé avec succès.
-        </p>
-        <p *ngIf="!hasAccountData">
-          Félicitations! Votre nouveau compte a été créé avec succès.
-        </p>
-        <p>
-          <ion-icon [icon]="mailUnread" color="primary"></ion-icon>
-          <span *ngIf="hasAccountData">
-            Un email de vérification a été envoyé à <strong>{{ userEmail }}</strong>. 
-            Veuillez vérifier votre boîte de réception et cliquer sur le lien de vérification.
-          </span>
-          <span *ngIf="!hasAccountData">
-            Un email de vérification a été envoyé à votre adresse email. 
-            Veuillez vérifier votre boîte de réception et cliquer sur le lien de vérification.
-          </span>
-        </p>
-        <ion-button 
-          expand="block" 
-          fill="outline" 
-          [disabled]="!canResendEmail"
-          (click)="resendEmail()">
-          <ion-icon [icon]="mailUnread" slot="start"></ion-icon>
-          <span *ngIf="canResendEmail">Renvoyer l'email</span>
+      <div class="info-row">
+        <ion-icon [src]="lockClosed" class="info-icon"></ion-icon>
+        <div>
+          <div class="info-label">Statut</div>
+          <div class="info-value">En attente de vérification</div>
+        </div>
+      </div>
+
+      <div class="message-box">
+        <p>Nous avons envoyé un email de confirmation à <strong>{{ userEmail }}</strong>. 
+        Veuillez vérifier votre boîte de réception et cliquer sur le lien pour activer votre compte.</p>
+      </div>
+
+      <div class="action-group">
+        <ion-button expand="block" class="primary-button" (click)="goToLogin()">
+          Se connecter
+        </ion-button>
+
+        <button class="text-link" (click)="resendEmail()" [disabled]="!canResendEmail">
+          <span *ngIf="canResendEmail">Renvoyer l'email de confirmation</span>
           <span *ngIf="!canResendEmail">Renvoyer ({{ resendCountdown }}s)</span>
-        </ion-button>
-        <ion-button expand="block" fill="solid" (click)="goToLogin()" routerDirection="back">
-          Aller à la page de connexion
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
+        </button>
+      </div>
+    </div>
 
-    <!-- Password Reset Success -->
-    <ion-card *ngIf="isPasswordReset">
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon [icon]="checkmarkCircle" color="success"></ion-icon>
-          Mot de passe mis à jour!
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>
-          <ion-icon [icon]="lockClosed" color="primary"></ion-icon>
-          Votre mot de passe a été mis à jour avec succès.
-        </p>
-        <p>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
-        <ion-button expand="block" fill="solid" routerLink="/login">
-          Aller à la page de connexion
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
+    <!-- Message réinitialisation mot de passe -->
+    <div *ngIf="isPasswordReset" class="premium-card">
+      <div class="icon-wrapper primary">
+        <ion-icon [src]="mailUnread" class="icon-large"></ion-icon>
+      </div>
+      
+      <h1 class="title">Réinitialisation</h1>
+      
+      <p class="subtitle" *ngIf="!resetEmailSent">
+        Entrez votre email pour recevoir un lien de réinitialisation
+      </p>
 
-    <!-- Password Change Request -->
-    <ion-card *ngIf="isPasswordChange">
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon [icon]="lockClosed" color="primary"></ion-icon>
-          Réinitialiser le mot de passe
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p *ngIf="!resetEmailSent">
-          Entrez votre adresse email pour recevoir un lien de réinitialisation de mot de passe.
-        </p>
+      <p class="subtitle" *ngIf="resetEmailSent">
+        Vérifiez votre boîte de réception
+      </p>
+
+      <div *ngIf="!resetEmailSent" class="input-group">
+        <div class="input-wrapper">
+          <input 
+            type="email" 
+            [(ngModel)]="resetEmail" 
+            placeholder="email@exemple.com"
+            class="premium-input"
+            [class.error]="resetError"
+          >
+          <label class="input-label">Adresse email</label>
+        </div>
         
-        <!-- Messages d'erreur et de succès -->
-        <div *ngIf="resetError">
-          <ion-item color="danger">
-            <ion-icon [icon]="lockClosed" slot="start" color="danger"></ion-icon>
-            <ion-label>{{ resetError }}</ion-label>
-          </ion-item>
+        <div *ngIf="resetError" class="error-message">
+          {{ resetError }}
+        </div>
+        
+        <ion-button expand="block" class="primary-button" (click)="sendResetLink()">
+          Envoyer le lien
+        </ion-button>
+      </div>
+
+      <div *ngIf="resetEmailSent" class="success-state">
+        <div class="message-box success">
+          <p>{{ resetSuccess || 'Un email avec un lien de réinitialisation a été envoyé à votre adresse.' }}</p>
         </div>
 
-        <div *ngIf="resetSuccess">
-          <ion-item color="success">
-            <ion-icon [icon]="checkmarkCircle" slot="start" color="success"></ion-icon>
-            <ion-label>{{ resetSuccess }}</ion-label>
-          </ion-item>
-        </div>
-
-        <!-- Formulaire d'email -->
-        <div *ngIf="!resetEmailSent">
-          <ion-item>
-            <ion-label position="stacked">Adresse email</ion-label>
-            <ion-input 
-              type="email" 
-              [(ngModel)]="resetEmail" 
-              placeholder="votre@email.com"
-              required>
-            </ion-input>
-          </ion-item>
-          
-          <ion-button 
-            expand="block" 
-            fill="solid" 
-            (click)="sendResetLink()"
-            [disabled]="!resetEmail || !resetEmail.trim()">
-            <ion-icon [icon]="mailUnread" slot="start"></ion-icon>
-            Envoyer le lien de réinitialisation
+        <div class="action-group">
+          <ion-button expand="block" class="secondary-button" (click)="resetEmailSent = false; resetEmail = ''">
+            Modifier l'adresse email
           </ion-button>
-        </div>
 
-        <!-- Confirmation et renvoi -->
-        <div *ngIf="resetEmailSent">
-          <!-- Message d'erreur uniquement (le succès est déjà affiché ci-dessus) -->
-          <div *ngIf="resetError">
-            <ion-item color="danger">
-              <ion-icon [icon]="lockClosed" slot="start" color="danger"></ion-icon>
-              <ion-label>{{ resetError }}</ion-label>
-            </ion-item>
-          </div>
-
-          <p>
-            <ion-icon [icon]="checkmarkCircle" color="success"></ion-icon>
-            Un lien de réinitialisation a été envoyé à <strong>{{ resetEmail }}</strong>.
-          </p>
-          <p>
-            Veuillez vérifier votre boîte de réception et cliquer sur le lien pour réinitialiser votre mot de passe.
-          </p>
-          
-          <ion-button 
-            expand="block" 
-            fill="outline" 
-            [disabled]="!canResendResetEmail"
-            (click)="resendResetEmail()">
-            <ion-icon [icon]="mailUnread" slot="start"></ion-icon>
+          <button class="text-link" (click)="resendResetEmail()" [disabled]="!canResendResetEmail">
             <span *ngIf="canResendResetEmail">Renvoyer le lien</span>
             <span *ngIf="!canResendResetEmail">Renvoyer ({{ resendResetCountdown }}s)</span>
-          </ion-button>
+          </button>
         </div>
+      </div>
 
-        <ion-button expand="block" fill="clear"  (click)="goToLogin()" >
-          Retour à la connexion
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
+      <div class="footer-link">
+        <a (click)="goToLogin()">Retour à la connexion</a>
+      </div>
+    </div>
 
-    <!-- Default case (no valid arg) -->
-    <ion-card *ngIf="!isAccountSuccess && !isPasswordReset && !isPasswordChange">
-      <ion-card-header>
-        <ion-card-title>Page par défaut</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>Retourner a la page de connéxion S'il vous plait.</p>
-        <p>Aucun Arguments Valides Détectés</p>
-        <ion-button expand="block" fill="outline" routerLink="/login">
-          Retour à la connexion
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
+    <!-- Message changement mot de passe -->
+    <div *ngIf="isPasswordChange" class="premium-card">
+      <div class="icon-wrapper success">
+        <ion-icon [src]="checkmarkCircle" class="icon-large"></ion-icon>
+      </div>
+      
+      <h1 class="title">Mot de passe modifié</h1>
+      
+      <p class="subtitle">
+        Votre mot de passe a été mis à jour avec succès
+      </p>
+
+      <div class="message-box">
+        <p>Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
+      </div>
+
+      <ion-button expand="block" class="primary-button" (click)="goToLogin()">
+        Se connecter
+      </ion-button>
+    </div>
+
   </div>
 </ion-content>

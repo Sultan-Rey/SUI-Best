@@ -37,7 +37,7 @@
                   <div class="badge" *ngIf="pack.isBestValue">TOP</div>
                   
                   <div class="visual">
-                    <img [src]="(pack.icon | mediaUrl | async)" alt="coins">
+                    <img  [src]="getIconByPrice(pack.price)"  alt="coins">
                   </div>
 
                   <div class="info">
@@ -45,7 +45,7 @@
                     <span class="unit">Coins</span>
                   </div>
 
-                  <div class="price-tag">${{ pack.price }}</div>
+                  <div class="price-tag">HTG {{ pack.price }}</div>
                 </div>
               </div>
             </div>

@@ -1,402 +1,405 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, forkJoin, map, of, switchMap, throwError } from 'rxjs';
-import { ApiJSON } from '../API/api-json';
-import { ExclusiveContent, ExclusiveContentType, ExclusiveContentStatus, Series, Author, SeriesInfo, MediaInfo } from '../../models/Content';
+import { BehaviorSubject, Observable, catchError, concatMap, filter, forkJoin, from, map, of, switchMap, take, throwError } from 'rxjs';
+import { ApiJSON, FilterOptions, FilterResult } from '../API/api-json';
+import { ExclusiveContent, ExclusiveContentType, Series } from '../../models/Content';
 import { ProfileService } from '../Service_profile/profile-service';
+import { HttpEventType, HttpResponse } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ExclusiveService {
-  private readonly SERIES_RESOURCE = 'series';
-  private readonly EXCLUSIVE_CONTENT_RESOURCE = 'exclusive_contents';
-  private readonly SERIES_WITH_EPISODES_VIEW = 'series_with_episodes';
-  private readonly CONTENTS_WITH_SERIES_INFO_VIEW = 'contents_with_series_info';
+   private readonly resource = 'exclusive_contents';
+  private readonly seriesResource = 'series';
 
-  // Stores
-  private featuredSubject = new BehaviorSubject<ExclusiveContent[]>([]);
-  private allContentsSubject = new BehaviorSubject<ExclusiveContent[]>([]);
-  private seriesSubject = new BehaviorSubject<Series[]>([]);
+  constructor(private api: ApiJSON) {}
 
-  featured$ = this.featuredSubject.asObservable();
-  allContents$ = this.allContentsSubject.asObservable();
-  series$ = this.seriesSubject.asObservable();
-
-  constructor(
-    private api: ApiJSON,
-    private profileService: ProfileService
-  ) {}
-
-  // ─── SÉRIES ────────────────────────────────────────────────────────────────
+  // ── CRUD Operations ────────────────────────────────────────────────────────
 
   /**
-   * Récupère toutes les séries
+   * Upload une miniature et retourne son path
    */
-  getSeries(): Observable<Series[]> {
-    return this.api.get<Series[]>(this.SERIES_RESOURCE).pipe(
-      map(series => {
-        this.seriesSubject.next(series);
-        return series;
+  uploadThumbnail(file: File): Observable<string> {
+    return this.api.upload<any>(file, 'exclusives/thumbnails').pipe(
+      filter((event: { type: any; }) => event.type === HttpEventType.Response),
+      map(event => {
+        const body = (event as HttpResponse<any>).body;
+        if (body?.path) {
+          return body.path;
+        }
+        throw new Error('Thumbnail upload failed: no path returned');
       }),
-      catchError(err => {
-        console.error('[ExclusiveService] getSeries:', err);
-        return of([]);
+      take(1),
+      catchError(error => {
+        console.error('[ExclusiveContentService] Thumbnail upload error:', error);
+        return throwError(() => error);
       })
     );
   }
 
   /**
-   * Récupère une série par son ID avec ses épisodes (optimisé avec vue)
-   */
-  getSeriesById(seriesId: string): Observable<Series | null> {
-    // Utiliser la vue optimisée pour une seule requête
-    return this.api.getById<Series>(this.SERIES_WITH_EPISODES_VIEW, seriesId).pipe(
-      map(series => {
-        // La vue retourne déjà les episodes pré-calculés
-        return series;
-      }),
-      catchError(err => {
-        console.error('[ExclusiveService] getSeriesById (vue):', err);
-        // Fallback vers l'ancienne méthode si la vue n'existe pas
-        console.warn('[ExclusiveService] Fallback vers méthode classique');
-        return this.getSeriesByIdFallback(seriesId);
-      })
-    );
-  }
+     * Upload optimiste : thumbnail + vidéo SANS métadonnées ni création de Content
+     * Retourne juste les URLs quand elles sont prêtes
+     */
+    uploadVideoFilesOnly(
+      file: File, 
+      thumbnailBlob: Blob
+    ): Observable<{ progress: number; thumbnailUrl?: string; videoUrl?: string }> {
+      
+      const thumbFile = new File([thumbnailBlob], `thumb_${Date.now()}.webp`, { type: 'image/webp' });
+  
+      // 1. Upload du thumbnail (0-10%)
+      return this.uploadThumbnail(thumbFile).pipe(
+        map(thumbResponse => ({
+          progress: 10,
+          thumbnailUrl: thumbResponse,
+          videoUrl: undefined
+        })),
+        // 2. Upload de la vidéo (10-100%)
+        switchMap(thumbResult => {
+          return this.uploadVideoFileOnly(file).pipe(
+            map(videoResult => ({
+              progress: Math.round(10 + (videoResult.progress * 0.9)),
+              thumbnailUrl: thumbResult.thumbnailUrl,
+              videoUrl: videoResult.videoUrl
+            }))
+          );
+        })
+      );
+    }
 
-  /**
-   * Méthode fallback classique (2 requêtes)
-   */
-  private getSeriesByIdFallback(seriesId: string): Observable<Series | null> {
-    return this.api.getById<Series>(this.SERIES_RESOURCE, seriesId).pipe(
-      switchMap(series => {
-        if (!series) return of(null);
-        
-        // Récupérer les épisodes de la série
-        return this.getEpisodesBySeriesId(seriesId).pipe(
-          map(episodes => {
-            const episodeIds = episodes
-              .filter(ep => ep.id) // Filtrer les épisodes avec ID valide
-              .map(ep => ep.id!); // Extraire l'ID (non-null)
+    /**
+     * Upload vidéo seule SANS création de Content
+     */
+     uploadVideoFileOnly(file: File): Observable<{ progress: number; videoUrl?: string }> {
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2 Mo
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      const uuid = crypto.randomUUID();
+      const chunkIndices = Array.from({ length: totalChunks }, (_, i) => i);
+  
+      let finalPath: string | null = null;
+  
+      return from(chunkIndices).pipe(
+        concatMap(index => {
+          const start = index * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+  
+          return this.api.uploadChunk<any>(chunk, {
+            index,
+            total: totalChunks,
+            uuid,
+            filename: file.name
+          }).pipe(
+              filter(event => event.type === HttpEventType.Response),
+              map(event => {
+              const body = (event as HttpResponse<any>).body;
+              if (body?.path) {
+                finalPath = body.path;
+      
+              }
             
-            return {
-              ...series,
-              episodeIds
-            };
-          })
-        );
-      }),
-      catchError(err => {
-        console.error('[ExclusiveService] getSeriesById (fallback):', err);
-        return of(null);
-      })
-    );
+              const globalProgress = Math.round(((index + 1) / totalChunks) * 100);
+              
+              return { 
+                progress: globalProgress, 
+                videoUrl: undefined 
+              };
+            })
+          );
+        }),
+        concatMap((status: { progress: number; videoUrl?: string }) => {
+          if (status.progress < 100) {
+            return of(status);
+          }
+  
+          // Dernier chunk : retourner l'URL finale
+          if (!finalPath) {
+            return throwError(() => new Error('Upload failed: no file path returned'));
+          }
+  
+          return of({
+            progress: 100,
+            videoUrl: finalPath
+          });
+        })
+      );
+    }
+
+    deleteVideoWithThumbnail(videoPath?: string, thumbnailPath?: string): Observable<{ success: boolean; message: string }> {
+    // Si aucun paramètre fourni
+    if (!videoPath && !thumbnailPath) {
+      return throwError(() => new Error('No file paths provided'));
+    }
+
+    // Si seulement le thumbnail est fourni
+    if (!videoPath && thumbnailPath) {
+      return this.api.deleteFile(thumbnailPath).pipe(
+        map(() => ({ success: true, message: 'Thumbnail deleted successfully' })),
+        catchError((error) => {
+          console.error('[ExclusiveContentService] Error deleting thumbnail:', error);
+          return throwError(() => error);
+        })
+      );
+    }
+
+    // Si seulement la vidéo est fournie
+    if (videoPath && !thumbnailPath) {
+      return this.api.deleteFile(videoPath).pipe(
+        map(() => ({ success: true, message: 'Video deleted successfully' })),
+        catchError((error) => {
+          console.error('[ExclusiveContentService] Error deleting video:', error);
+          return throwError(() => error);
+        })
+      );
+    }
+
+    // Si les deux sont fournis
+    if (videoPath && thumbnailPath) {
+      return this.api.deleteFile(thumbnailPath).pipe(
+        switchMap((response) => {
+          if (response.success) {
+            return this.api.deleteFile(videoPath);
+          } else {
+            return throwError(() => new Error('Failed to delete thumbnail'));
+          }
+        }),
+        map(() => ({ success: true, message: 'Video and thumbnail deleted successfully' })),
+        catchError((error) => {
+          console.error('[ExclusiveContentService] Error deleting video with thumbnail:', error);
+          return throwError(() => error);
+        })
+      );
+    }
+
+    return throwError(() => new Error('Invalid parameters'));
   }
 
-  /**
-   * Récupère les épisodes d'une série (optimisé)
-   */
-  getEpisodesBySeriesId(seriesId: string): Observable<ExclusiveContent[]> {
-    // Utiliser la vue optimisée qui inclut déjà les infos de série
-    return this.api.filter<ExclusiveContent>(this.CONTENTS_WITH_SERIES_INFO_VIEW, {
-      filters: { 'seriesId': seriesId },
-      options: { sort: { 'episodeNumber': 'asc' } }
-    }).pipe(
-      map(result => result.data),
-      catchError(err => {
-        console.error('[ExclusiveService] getEpisodesBySeriesId (vue):', err);
-        // Fallback vers la méthode classique
-        return this.getEpisodesBySeriesIdFallback(seriesId);
-      })
-    );
-  }
+  // ── CRUD Operations ────────────────────────────────────────────────────────
 
   /**
-   * Méthode fallback classique pour les épisodes
+   * Récupère tous les contenus exclusifs
    */
-  private getEpisodesBySeriesIdFallback(seriesId: string): Observable<ExclusiveContent[]> {
-    return this.api.filter<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, {
-      filters: { 'series.seriesId': seriesId },
-      options: { sort: { 'series.episodeNumber': 'asc' } }
-    }).pipe(
-      map(result => result.data),
-      catchError(err => {
-        console.error('[ExclusiveService] getEpisodesBySeriesId (fallback):', err);
-        return of([]);
-      })
-    );
-  }
-
-  /**
-   * Crée une nouvelle série
-   */
-  createSeries(seriesData: Omit<Series, 'id' | 'created_at' | 'updated_at' | 'episodeIds' | 'viewCount' | 'likeCount'>): Observable<Series> {
-    const series: Omit<Series, 'id'> = {
-      ...seriesData,
-      created_at: new Date().toISOString(),
-      episodeIds: [],
-      viewCount: 0,
-      likeCount: 0
-    };
-
-    return this.api.create<Series>(this.SERIES_RESOURCE, series).pipe(
-      catchError(err => {
-        console.error('[ExclusiveService] createSeries:', err);
-        return throwError(() => err);
-      })
-    );
-  }
-
-  // ─── CONTENUS EXCLUSIFS ─────────────────────────────────────────────────────
-
-  /**
-   * Récupère les contenus featured (à la une)
-   */
-  getFeaturedContents(): Observable<ExclusiveContent[]> {
-    return this.api.filter<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, {
-      filters: { featured: true },
-      options: { sort: { created_at: 'desc' }, limit: 10 }
-    }).pipe(
-      map(result => {
-        this.featuredSubject.next(result.data);
-        return result.data;
-      }),
-      catchError(err => {
-        console.error('[ExclusiveService] getFeaturedContents:', err);
-        return of([]);
-      })
-    );
-  }
-
-  /**
-   * Récupère les contenus exclusifs avec filtres (optimisé avec vue pour les séries)
-   */
-  getAllContents(filters?: {
-    type?: ExclusiveContentType;
-    locked?: boolean;
-    seriesId?: string;
-    search?: string;
-  }): Observable<ExclusiveContent[]> {
-    const apiFilters: any = {};
-    
-    if (filters?.type) apiFilters.type = filters.type;
-    if (filters?.locked !== undefined) apiFilters.locked = filters.locked;
-    if (filters?.seriesId) apiFilters['seriesId'] = filters.seriesId;
-    if (filters?.search) apiFilters.search = filters.search;
-
-    // Utiliser la vue optimisée si on filtre par série
-    const resource = filters?.seriesId ? this.CONTENTS_WITH_SERIES_INFO_VIEW : this.EXCLUSIVE_CONTENT_RESOURCE;
-
-    return this.api.filter<ExclusiveContent>(resource, {
-      filters: apiFilters,
-      options: { sort: { created_at: 'desc' } }
-    }).pipe(
-      map(result => {
-        // Mapper les champs de la vue vers la structure attendue
-        const mappedData = result.data.map(content => ({
-          ...content,
-          series: content.series ? {
-            seriesId: content.series.seriesId,
-            seriesTitle: (content as any).parent_series_title,
-            episodeNumber: content.series?.episodeNumber,
-            totalEpisodes: (content as any).parent_series_total_episodes
-          } : undefined
-        }));
-        
-        this.allContentsSubject.next(mappedData);
-        return mappedData;
-      }),
-      catchError(err => {
-        console.error('[ExclusiveService] getAllContents:', err);
-        return of([]);
-      })
-    );
+  getAll(): Observable<ExclusiveContent[]> {
+    return this.api.get<ExclusiveContent[]>(this.resource);
   }
 
   /**
    * Récupère un contenu exclusif par son ID
    */
-  getContentById(contentId: string): Observable<ExclusiveContent | null> {
-    return this.api.getById<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentId).pipe(
-      catchError(err => {
-        console.error('[ExclusiveService] getContentById:', err);
-        return of(null);
-      })
-    );
+  getById(id: string): Observable<ExclusiveContent> {
+    return this.api.getById<ExclusiveContent>(this.resource, id);
   }
 
   /**
    * Crée un nouveau contenu exclusif
    */
- createExclusiveContent(contentData: Omit<ExclusiveContent, 'id' | 'created_at' | 'updated_at'>): Observable<ExclusiveContent> {
-  const seriesId = contentData.series?.seriesId;
-
-  // Si c'est une série, on vérifie d'abord son existence
-  if (seriesId) {
-    return this.getSeriesById(seriesId).pipe(
-      switchMap(existingSeries => {
-        if (!existingSeries) {
-          // LA SÉRIE N'EXISTE PAS : ON LA CRÉE
-          return this.createSeries({
-            title: contentData.series?.seriesTitle || 'Nouvelle Série',
-            description: contentData.description,
-            author: contentData.author,
-            thumbnail: (contentData.media.thumbnail as any), // Cast nécessaire selon votre erreur précédente
-            type: contentData.type as 'masterclass' | 'behind' | 'series',
-            totalEpisodes: contentData.series?.totalEpisodes || 1
-          }).pipe(
-            switchMap(() => this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentData))
-          );
-        }
-        // LA SÉRIE EXISTE : ON CRÉE JUSTE L'ÉPISODE
-        return this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentData);
-      }),
-      // Enfin, on met à jour les compteurs de la série (épisodes, IDs, etc.)
-      switchMap(newContent => this.updateSeriesEpisodes(seriesId).pipe(map(() => newContent)))
-    );
+  create(content: Partial<ExclusiveContent>): Observable<ExclusiveContent> {
+    return this.api.create<ExclusiveContent>(this.resource, content);
   }
 
-  // Cas standard (vidéo simple)
-  return this.api.create<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentData);
-}
+  
 
   /**
    * Met à jour un contenu exclusif
    */
-  updateExclusiveContent(contentId: string, updates: Partial<ExclusiveContent>): Observable<ExclusiveContent> {
-    return this.api.patch<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, contentId, updates).pipe(
-      catchError(err => {
-        console.error('[ExclusiveService] updateExclusiveContent:', err);
-        return throwError(() => err);
-      })
-    );
+  update(id: string, content: Partial<ExclusiveContent>): Observable<ExclusiveContent> {
+    return this.api.update<ExclusiveContent>(this.resource, id, content);
+  }
+
+  /**
+   * Met à jour partiellement un contenu exclusif
+   */
+  patch(id: string, content: Partial<ExclusiveContent>): Observable<ExclusiveContent> {
+    return this.api.patch<ExclusiveContent>(this.resource, id, content);
   }
 
   /**
    * Supprime un contenu exclusif
    */
-  deleteExclusiveContent(contentId: string): Observable<void> {
-    return this.api.delete(this.EXCLUSIVE_CONTENT_RESOURCE, contentId).pipe(
-      catchError(err => {
-        console.error('[ExclusiveService] deleteExclusiveContent:', err);
-        return throwError(() => err);
-      })
-    );
+  delete(id: string): Observable<void> {
+    return this.api.delete(this.resource, id);
   }
 
-  // ─── UTILITAIRES ─────────────────────────────────────────────────────────────
+  // ── Filtrage et Recherche ───────────────────────────────────────────────────
 
   /**
-   * Met à jour la liste des épisodes d'une série (optimisé)
+   * Filtre les contenus exclusifs selon divers critères
    */
-  updateSeriesEpisodes(seriesId: string): Observable<Series> {
-    // Utiliser la vue pour obtenir les épisodes déjà comptés
-    return this.api.getById<Series>(this.SERIES_WITH_EPISODES_VIEW, seriesId).pipe(
-      switchMap(seriesData => {
-        if (!seriesData) {
-          // Fallback si la vue ne fonctionne pas
-          return this.updateSeriesEpisodesFallback(seriesId);
-        }
-
-        // La vue retourne déjà les episodes pré-calculés
-        return this.api.patch<Series>(this.SERIES_RESOURCE, seriesId, {
-          episodeIds: (seriesData as any).episodeIds || [],
-          totalEpisodes: (seriesData as any).actual_episodes_count || 0
-        });
-      }),
-      catchError(err => {
-        console.error('[ExclusiveService] updateSeriesEpisodes (vue):', err);
-        return this.updateSeriesEpisodesFallback(seriesId);
-      })
-    );
+  filter(filters: FilterOptions): Observable<FilterResult<ExclusiveContent>> {
+    return this.api.filter<ExclusiveContent>(this.resource, filters);
   }
 
   /**
-   * Méthode fallback classique pour updateSeriesEpisodes
+   * Récupère les contenus par type
    */
-  private updateSeriesEpisodesFallback(seriesId: string): Observable<Series> {
-    return this.getEpisodesBySeriesIdFallback(seriesId).pipe(
-      switchMap(episodes => {
-        const episodeIds = episodes
-          .filter(ep => ep.id) // Filtrer les épisodes avec ID valide
-          .map(ep => ep.id!); // Extraire l'ID (non-null)
-        
-        return this.api.patch<Series>(this.SERIES_RESOURCE, seriesId, {
-          episodeIds,
-          totalEpisodes: episodes.length
-        });
-      })
-    );
-  }
-
-  // ─── NAVIGATION ENTRE ÉPISODES ─────────────────────────────────────────────
-
-  /**
-   * Récupère l'épisode suivant d'une série
-   */
-  getNextEpisode(currentEpisode: ExclusiveContent): Observable<ExclusiveContent | null> {
-    if (!currentEpisode.series?.seriesId || !currentEpisode.series?.episodeNumber) {
-      return of(null);
-    }
-
-    return this.api.filter<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, {
-      filters: {
-        'series.seriesId': currentEpisode.series.seriesId,
-        'series.episodeNumber': currentEpisode.series.episodeNumber + 1
-      }
+  getByType(type: string): Observable<ExclusiveContent[]> {
+    return this.filter({
+      filters: { type }
     }).pipe(
-      map(result => result.data[0] || null),
-      catchError(err => {
-        console.error('[ExclusiveService] getNextEpisode:', err);
-        return of(null);
-      })
+      // @ts-ignore
+      response => response.data
     );
   }
 
   /**
-   * Récupère l'épisode précédent d'une série
+   * Récupère les contenus par statut
    */
-  getPreviousEpisode(currentEpisode: ExclusiveContent): Observable<ExclusiveContent | null> {
-    if (!currentEpisode.series?.seriesId || !currentEpisode.series?.episodeNumber || currentEpisode.series.episodeNumber <= 1) {
-      return of(null);
-    }
-
-    return this.api.filter<ExclusiveContent>(this.EXCLUSIVE_CONTENT_RESOURCE, {
-      filters: {
-        'series.seriesId': currentEpisode.series.seriesId,
-        'series.episodeNumber': currentEpisode.series.episodeNumber - 1
-      }
+  getByStatus(status: string): Observable<ExclusiveContent[]> {
+    return this.filter({
+      filters: { status }
     }).pipe(
-      map(result => result.data[0] || null),
-      catchError(err => {
-        console.error('[ExclusiveService] getPreviousEpisode:', err);
-        return of(null);
-      })
+      // @ts-ignore
+      response => response.data
     );
   }
 
   /**
-   * Incrémente le nombre de vues d'un contenu
+   * Récupère les contenus d'un utilisateur
    */
-  incrementViewCount(contentId: string): Observable<ExclusiveContent> {
-    return this.getContentById(contentId).pipe(
-      switchMap(content => {
-        if (!content) return throwError(() => new Error('Content not found'));
-        
-        // Note: La nouvelle structure n'a pas de viewCount, 
-        // cette méthode pourrait être adaptée ou supprimée
-        console.warn('[ExclusiveService] incrementViewCount: viewCount non disponible dans la nouvelle structure');
-        return of(content);
-      })
+  getByUserId(userId: string): Observable<ExclusiveContent[]> {
+    return this.filter({
+      filters: { userId }
+    }).pipe(
+      // @ts-ignore
+      response => response.data
+    );
+  }
+
+  /**
+   * Récupère les contenus verrouillés/payants
+   */
+  getLockedContent(): Observable<ExclusiveContent[]> {
+    return this.filter({
+      filters: { locked: true }
+    }).pipe(
+      // @ts-ignore
+      response => response.data
+    );
+  }
+
+  /**
+   * Récupère les contenus gratuits
+   */
+  getFreeContent(): Observable<ExclusiveContent[]> {
+    return this.filter({
+      filters: { locked: false }
+    }).pipe(
+      // @ts-ignore
+      response => response.data
+    );
+  }
+
+  // ── Gestion des Séries ─────────────────────────────────────────────────────
+
+  /**
+   * Récupère toutes les séries
+   */
+  getAllSeries(): Observable<Series[]> {
+    return this.api.get<Series[]>(this.seriesResource);
+  }
+
+  /**
+   * Récupère une série par son ID
+   */
+  getSeriesById(id: string): Observable<Series> {
+    return this.api.getById<Series>(this.seriesResource, id);
+  }
+
+  /**
+   * Crée une nouvelle série
+   */
+  createSeries(series: Partial<Series>): Observable<Series> {
+    return this.api.create<Series>(this.seriesResource, series);
+  }
+
+  /**
+   * Met à jour une série
+   */
+  updateSeries(id: string, series: Partial<Series>): Observable<Series> {
+    return this.api.update<Series>(this.seriesResource, id, series);
+  }
+
+  /**
+   * Supprime une série
+   */
+  deleteSeries(id: string): Observable<void> {
+    return this.api.delete(this.seriesResource, id);
+  }
+
+  /**
+   * Récupère les épisodes d'une série
+   */
+  getSeriesEpisodes(seriesId: string): Observable<ExclusiveContent[]> {
+    return this.filter({
+      filters: { 'series.seriesId': seriesId }
+    }).pipe(
+      // @ts-ignore
+      response => response.data
+    );
+  }
+
+  // ── Opérations Spécifiques ───────────────────────────────────────────────────
+
+  /**
+   * Déverrouille un contenu pour un utilisateur
+   */
+  unlockContent(contentId: string, userId: string): Observable<ExclusiveContent> {
+    return this.api.request<ExclusiveContent>(
+      'POST',
+      `${this.resource}/${contentId}/unlock`,
+      { userId }
     );
   }
 
   /**
    * Vérifie si un utilisateur a accès à un contenu
    */
-  hasUserAccess(userId: string, content: ExclusiveContent): boolean {
-    if (!content.locked) return true;
-    // TODO: Implémenter la logique de vérification d'achat/abonnement
-    return false;
+  checkAccess(contentId: string, userId: string): Observable<{ hasAccess: boolean }> {
+    return this.getById(contentId).pipe(
+      // @ts-ignore
+      map(content => ({
+        hasAccess: content.watchers?.includes(userId) ?? false
+      }))
+    );
+  }
+
+ 
+
+ 
+
+  // ── Statistiques ─────────────────────────────────────────────────────────────
+
+  /**
+   * Récupère les statistiques d'un contenu
+   */
+  getContentStats(contentId: string): Observable<{
+    views: number;
+    likes: number;
+    shares: number;
+    revenue: number;
+    watchers: number;
+  }> {
+    return this.api.request<any>(
+      'GET',
+      `${this.resource}/${contentId}/stats`
+    );
+  }
+
+  /**
+   * Récupère les statistiques générales de l'utilisateur
+   */
+  getUserStats(userId: string): Observable<{
+    totalContent: number;
+    totalViews: number;
+    totalRevenue: number;
+    byType: Record<string, number>;
+    byStatus: Record<string, number>;
+  }> {
+    return this.api.request<any>(
+      'GET',
+      `${this.resource}/stats/${userId}`
+    );
   }
 }
+

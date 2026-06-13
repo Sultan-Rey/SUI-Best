@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.bestacademy.app',
-  appName: 'Best',
+  appName: 'StarInUniform',
   webDir: 'www',
   // Ajout de la configuration pour le plugin HTTP natif
   plugins: {
@@ -25,11 +25,19 @@ const config: CapacitorConfig = {
     },
     // Configuration des URL schemes pour les deep links
     server: {
-      iosScheme: 'bestacademy',
-      androidScheme: 'bestacademy',
+      iosScheme: 'starinuniform',
+      androidScheme: 'starinuniform',
       cleartext: true,
     },
+    SplashScreen: {
+      launchShowDuration: 3000,
+      launchAutoHide: false, // EMPECHE L'ECRAN BLANC D'APPARAITRE
+      backgroundColor: '#000000', // Utilisez la couleur sombre de votre thème
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false
+    }
   },
+  
 };
 
 export default config;

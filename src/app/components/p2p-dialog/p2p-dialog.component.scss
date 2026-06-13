@@ -1,0 +1,450 @@
+// p2p-dialog.component.scss
+
+// Variables
+$primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+$secondary-gradient: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+$dark-bg: #0f0f1a;
+$surface-bg: rgba(30, 30, 45, 0.8);
+$border-glow: rgba(99, 102, 241, 0.3);
+$text-primary: #ffffff;
+$text-secondary: rgba(255, 255, 255, 0.7);
+$text-tertiary: rgba(255, 255, 255, 0.5);
+
+.p2p-dialog-content {
+  --background: transparent;
+  --padding-bottom: 0;
+  --padding-end: 0;
+  --padding-start: 0;
+  --padding-top: 0;
+  
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  // Fond avec effet de flou
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    z-index: -1;
+  }
+}
+
+.dialog-container {
+  margin: 24px;
+  background: $surface-bg;
+  backdrop-filter: blur(40px);
+  border-radius: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+// Animation d'entrée
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Header
+.dialog-header {
+  text-align: center;
+  padding: 32px 24px 24px;
+  position: relative;
+  
+  .icon-wrapper {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    
+    .icon-backdrop {
+      position: absolute;
+      inset: 0;
+      background: $primary-gradient;
+      border-radius: 50%;
+      opacity: 0.15;
+      filter: blur(12px);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.15;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.25;
+        transform: scale(1.1);
+      }
+    }
+    
+    .header-icon {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      color: white;
+      filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+    }
+  }
+  
+  .dialog-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    background: $primary-gradient;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  
+  .dialog-subtitle {
+    font-size: 14px;
+    color: $text-secondary;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+// Section utilisateur
+.user-section {
+  text-align: center;
+  padding: 0 24px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  
+  .user-avatar-wrapper {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 16px;
+    
+    .avatar-ring {
+      position: absolute;
+      inset: -3px;
+      background: $primary-gradient;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    &:hover .avatar-ring {
+      opacity: 1;
+    }
+    
+    .user-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+      
+      &:hover {
+        transform: scale(1.05);
+        border-color: rgba(99, 102, 241, 0.5);
+      }
+    }
+    
+    .avatar-badge {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: $primary-gradient;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(30, 30, 45, 0.8);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      
+      ion-icon {
+        width: 18px;
+        height: 18px;
+        color: white;
+      }
+    }
+  }
+  
+  .user-name {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: $text-primary;
+    letter-spacing: -0.3px;
+  }
+  
+  .user-badges {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      color: $text-secondary;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
+      
+      ion-icon {
+        width: 14px;
+        height: 14px;
+      }
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        transform: translateY(-1px);
+      }
+      
+      &.badge-class ion-icon {
+        color: #8b5cf6;
+      }
+      
+      &.badge-school ion-icon {
+        color: #f59e0b;
+      }
+    }
+  }
+}
+
+// Question section
+.question-section {
+  padding: 32px 24px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+  }
+  
+  .question-mark {
+    margin-bottom: 16px;
+    
+    ion-icon {
+      width: 48px;
+      height: 48px;
+      color: #8b5cf6;
+      opacity: 0.8;
+    }
+  }
+  
+  .question-text {
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0 0 12px;
+    color: $text-primary;
+    
+    strong {
+      background: $primary-gradient;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+  
+  .question-hint {
+    font-size: 13px;
+    color: $text-tertiary;
+    margin: 0;
+    line-height: 1.5;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+}
+
+// Actions
+.actions-section {
+  padding: 24px 24px 20px;
+  display: flex;
+  gap: 12px;
+  
+  .action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 100px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    
+    ion-icon {
+      width: 20px;
+      height: 20px;
+    }
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    &:active::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+  
+  .action-btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-secondary;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+  }
+  
+  .action-btn-primary {
+    background: $primary-gradient;
+    color: white;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+    
+    .btn-spinner {
+      width: 20px;
+      height: 20px;
+      color: white;
+    }
+  }
+}
+
+// Footer
+.dialog-footer {
+  padding: 0 24px 32px;
+  
+  .disclaimer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 11px;
+    color: $text-tertiary;
+    margin: 0;
+    text-align: center;
+    
+    ion-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 380px) {
+  .dialog-container {
+    margin: 16px;
+    border-radius: 32px;
+  }
+  
+  .dialog-header {
+    padding: 24px 20px 20px;
+    
+    .icon-wrapper {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 16px;
+      
+      .header-icon {
+        width: 60px;
+        height: 60px;
+      }
+    }
+    
+    .dialog-title {
+      font-size: 24px;
+    }
+  }
+  
+  .user-section {
+    .user-avatar-wrapper {
+      width: 100px;
+      height: 100px;
+    }
+    
+    .user-name {
+      font-size: 20px;
+    }
+  }
+  
+  .question-section {
+    padding: 24px 20px;
+    
+    .question-text {
+      font-size: 18px;
+    }
+  }
+  
+  .actions-section {
+    flex-direction: column;
+    gap: 10px;
+    
+    .action-btn {
+      padding: 12px 16px;
+    }
+  }
+}

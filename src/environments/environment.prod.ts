@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   apiUrl: 'https://apis.majorware.net/best_academy_production_api',  // URL de votre API PHP
+  publicToken: 'star4vUm_Q2M.in.A0ZFKvihoNm4Dx.V596d7pMl.uniform2026',
   firebase: {
   apiKey: "AIzaSyCEFjACaqVbWIdxcnoZ080MlokHpF-uY7c",
   authDomain: "datafire-681e8.firebaseapp.com",

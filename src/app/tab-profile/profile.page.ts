@@ -75,6 +75,8 @@ import { RewardService } from 'src/services/Rewards/reward-service';
 import { LevelReward } from 'src/models/LevelReward';
 import { TransactionHistoryModalComponent } from '../components/modal-transaction-history/transaction-history-modal.component';
 import { CreationService } from 'src/services/Service_content/creation-service';
+import { P2p } from 'src/services/P2PIdentification/p2p';
+import { P2pDialogComponent } from '../components/p2p-dialog/p2p-dialog.component';
 
 @Component({
   selector: 'app-profile',
@@ -89,6 +91,8 @@ import { CreationService } from 'src/services/Service_content/creation-service';
   ]
 })
 export class ProfilePage implements OnInit {
+
+  
 
   // Définition des propriétés
   isOwnProfile: boolean = false;
@@ -110,6 +114,7 @@ export class ProfilePage implements OnInit {
     private router: Router,
     private profileService: ProfileService,
     private creationService: CreationService,
+    private p2pService: P2p,
     private userService: UserService,
     private authservice: Auth,
     private rewardService: RewardService,
@@ -243,7 +248,7 @@ export class ProfilePage implements OnInit {
       }
 
       if (result) {
-        console.log("result",result);
+      
         this.userProfile.isFollowing = !this.userProfile.isFollowing;
         if (result.profile) {
           this.userProfile.stats = this.userProfile.stats || { fans: 0, following: 0 };
@@ -296,6 +301,13 @@ export class ProfilePage implements OnInit {
         const myUserProfile = await this.profileService.getProfileById(this.currentUserId as string).toPromise();
         profile.isFollowing = myUserProfile?.myFollows.some((id) => id == profile.id) || false;
         this.isBlocked = myUserProfile?.myBlackList.some((id) => id == profile.id) || profile.myBlackList.some((id) => id == myUserProfile?.id) || false;
+        if(this.authservice.getCurrentUser()?.user_status == 'student' 
+            && profile.userInfo.school.id == myUserProfile?.userInfo.school.id
+            && profile.userInfo.school.level == myUserProfile.userInfo.school.level){
+              if(!this.p2pService.isMarkedProfile(profile.id)){
+                this.openP2PConfirmation(profile.confidence_level, profile.displayName || "user1", profile.userInfo.school.level, profile.userInfo.school.name, profile.id )
+              }
+            }
       }
 
       this.userProfile = profile;
@@ -329,6 +341,25 @@ export class ProfilePage implements OnInit {
     }
   }
 
+  async openP2PConfirmation(confiendeLevel: number, name:string, level:string, school: string, id:string ){
+     const modal = await this.modalCtrl.create({
+        component: P2pDialogComponent,
+        componentProps: {
+          confidence_level: Number(confiendeLevel),
+          username: name,
+          userAvatar: level,
+          className: level,
+          schoolName:school,
+          userId: id
+        },
+        cssClass: 'auto-height',
+        initialBreakpoint: 0.65,
+        breakpoints: [0, 0.65, 1],
+        handle: true
+      });
+
+      await modal.present();
+  }
   isVideo(post: Content): boolean {
       if (!post.fileUrl) return false;
       const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'];

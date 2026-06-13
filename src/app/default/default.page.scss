@@ -1,75 +1,308 @@
-// Default page styles
-ion-card {
-  margin: 16px;
-  border-radius: 12px;
+// default.page.scss
+.premium-container {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.premium-card {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32px auto;
   
-  ion-card-header {
-    ion-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1.2rem;
+  &.success {
+    background: rgba(52, 199, 89, 0.1);
+    
+    .icon-large {
+      color: #34c759;
+    }
+  }
+  
+  &.primary {
+    // Remplacement du fond bleu par un fond Or subtil (10% d'opacité)
+    background: rgba(212, 175, 55, 0.1);
+    
+    .icon-large {
+      // Teinte principale Or Premium
+      color: #d4af37;
+    }
+  }
+}
+
+.icon-large {
+  width: 40px;
+  height: 40px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 12px 0;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  
+  .highlight {
+    // Dégradé Or métallique lumineux (à la place du bleu/violet)
+    background: linear-gradient(135deg, #ffe066 0%, #d4af37 50%, #aa7c11 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.info-icon {
+  width: 24px;
+  height: 24px;
+  color: #d4af37; // Icônes d'information passées à l'or
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.message-box {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 24px 0;
+  border-left: 3px solid #d4af37; // Bordure gauche Or
+  
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #495057;
+    
+    strong {
+      color: #aa7c11; // Texte important en Or légèrement plus sombre pour la lisibilité
       font-weight: 600;
-      
-      ion-icon {
-        font-size: 1.5rem;
-      }
     }
   }
   
-  ion-card-content {
+  &.success {
+    background: rgba(52, 199, 89, 0.05);
+    border-left-color: #34c759;
+    
     p {
-      margin: 12px 0;
-      line-height: 1.5;
-      
-      ion-icon {
-        margin-right: 8px;
-        vertical-align: middle;
-      }
-    }
-    
-    ul {
-      margin: 12px 0;
-      padding-left: 20px;
-      
-      li {
-        margin: 8px 0;
-        
-        strong {
-          color: var(--ion-color-primary);
-        }
-      }
-    }
-    
-    ion-button {
-      margin-top: 16px;
-      
-      &[fill="outline"] {
-        margin-top: 12px;
-        margin-bottom: 8px;
-        
-        &:disabled {
-          opacity: 0.6;
-        }
-        
-        span[slot="start"] {
-          margin-right: 8px;
-        }
-      }
+      color: #1e7e34;
     }
   }
 }
 
-// Success state styling
-ion-card-header ion-card-title {
-  color: var(--ion-color-dark);
+.input-group {
+  margin: 24px 0;
 }
 
-// Icon styling
-ion-icon[color="success"] {
-  color: var(--ion-color-success);
+.input-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+  
+  .premium-input {
+    width: 100%;
+    padding: 16px 12px 8px 12px;
+    font-size: 1rem;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.3s ease;
+    background: white;
+    
+    &:focus {
+      border-color: #d4af37; // Focus de l'input en Or
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15); // Halo doré
+    }
+    
+    &.error {
+      border-color: #ff3b30;
+    }
+    
+    &:focus + .input-label,
+    &:not(:placeholder-shown) + .input-label {
+      transform: translateY(-12px);
+      font-size: 0.7rem;
+      color: #d4af37; // Label flottant actif en Or
+    }
+  }
+  
+  .input-label {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    color: #999;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    background: white;
+    padding: 0 4px;
+  }
 }
 
-ion-icon[color="primary"] {
-  color: var(--ion-color-primary);
+.error-message {
+  color: #ff3b30;
+  font-size: 0.8rem;
+  margin-top: -12px;
+  margin-bottom: 16px;
+  padding-left: 12px;
+}
+
+.action-group {
+  margin-top: 32px;
+}
+
+.primary-button {
+  --background: #d4af37; // Fond du bouton principal en Or
+  --background-hover: #b8952e; // Teinte Or au survol
+  --background-activated: #aa7c11; // Teinte Or au clic (active)
+  --border-radius: 14px;
+  --box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35); // Ombre portée dorée
+  margin-bottom: 16px;
+  height: 48px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.3px;
+}
+
+.secondary-button {
+  --background: transparent;
+  --background-hover: rgba(212, 175, 55, 0.05); // Survol doré très léger
+  --background-activated: rgba(212, 175, 55, 0.1);
+  --border-color: #d4af37; // Bordures dorées
+  --border-width: 1.5px;
+  --border-style: solid;
+  --color: #d4af37; // Texte doré
+  --border-radius: 14px;
+  margin-bottom: 16px;
+  height: 48px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.text-link {
+  background: none;
+  border: none;
+  color: #d4af37; // Liens textuels simples en Or
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 12px;
+  width: 100%;
+  text-align: center;
+  transition: opacity 0.2s ease;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.footer-link {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  
+  a {
+    color: #999;
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    
+    &:hover {
+      color: #d4af37; // Le lien du pied de page s'illumine en Or au survol
+    }
+  }
+}
+
+.success-state {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .premium-container {
+    padding: 16px;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .icon-wrapper {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 24px;
+    
+    .icon-large {
+      width: 32px;
+      height: 32px;
+    }
+  }
+  
+  .info-row {
+    padding: 12px 0;
+  }
 }

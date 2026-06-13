@@ -15,8 +15,8 @@ import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideStorage, getStorage } from '@angular/fire/storage';
 import { environment } from './environments/environment.prod';
 
-// ❌ SUPPRIMÉ : const app = initializeApp(environment.firebase);
-// Cette ligne créait une instance Firebase HORS contexte d'injection
+// ─── AJOUT DE L'IMPORT POUR LE NAVIGATEUR INTERNE ──────────────────
+import { InAppBrowser } from '@awesome-cordova-plugins/in-app-browser/ngx';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -25,6 +25,10 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(),
     importProvidersFrom(IonicStorageModule.forRoot({})),
+    
+    // ─── ENREGISTREMENT DU PROVIDER INAPPBROWSER ───────────────────
+    InAppBrowser, 
+
     provideLottieOptions({
       player: () => player,
     }),

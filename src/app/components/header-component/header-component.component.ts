@@ -1,7 +1,7 @@
-import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import {  Router, ActivatedRoute } from '@angular/router';
 import { IonHeader, IonIcon, IonLabel, IonText, IonImg, IonButtons, IonBackButton, IonModal, IonButton, IonBadge, IonAvatar } from "@ionic/angular/standalone";
-import { Observable, shareReplay, Subject, takeUntil } from 'rxjs';
+import { forkJoin, Observable, of, shareReplay, Subject, takeUntil } from 'rxjs';
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { addIcons } from 'ionicons';
 import { checkmark, ticketOutline, sparklesOutline, addCircle, trophy, search, menu } from 'ionicons/icons';
@@ -15,13 +15,16 @@ import { AnimationService } from 'src/services/Animation/animation-service';
 import { BuyCoinModalComponent } from '../modal-buy-coin/buy-coin-modal.component';
 import { ModalController, ToastController, AnimationController, Platform } from '@ionic/angular';
 import { UserBalance, WalletService } from 'src/services/Service_wallet/wallet-service';
+import { Transaction, Wallet } from 'src/models/Wallet';
 import { LottieComponent } from 'ngx-lottie';
 import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
 import { CurrencyPipe, AsyncPipe } from '@angular/common';
 import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { Segment } from 'src/models/Segment';
 import { MenuBurgerComponent } from "../menu-burger/menu-burger.component";
-import { SearchPage } from 'src/app/search/search.page';
+import { catchError, filter, first, timeout } from 'rxjs/operators';
+import { Pack } from 'src/interfaces/income.interfaces';
+
 @Component({
   selector: 'app-header-component',
   templateUrl: './header-component.component.html',
@@ -72,7 +75,7 @@ export class HeaderComponentComponent  implements OnInit {
    estWeekend = false;
    peutReclamerAujourdHui = false;
   constructor(private router: Router,
-      private route: ActivatedRoute, 
+      private cdr: ChangeDetectorRef,
      private profileService: ProfileService, 
       private authService: Auth,
       private rewardService: RewardService,
@@ -91,6 +94,72 @@ export class HeaderComponentComponent  implements OnInit {
         .subscribe(user => {
           if (user) {
             this.checkSubscriptionStatus();
+
+              this.performCoinPurchase();
+
+            // ✅ Récupérer les transactions en attente (tableau)
+                const pendingKey = `pending_plan_transactions_${user.id}`;
+                const pendingTransactionsJson = localStorage.getItem(pendingKey);
+                
+                if (pendingTransactionsJson) {
+                    try {
+                        const pendingTransactions: Transaction[] = JSON.parse(pendingTransactionsJson);
+                        
+                        if (pendingTransactions.length > 0) {
+                            // ✅ Attendre que le wallet soit chargé avant de transférer
+                            this.walletService.wallet$.pipe(
+                                // Ignorer les valeurs null et prendre la première valeur non-nulle
+                                filter(wallet => wallet !== null),
+                                // Prendre seulement la première valeur (évite les duplications)
+                                first(),
+                                // Timeout pour éviter d'attendre indéfiniment
+                                timeout(10000),
+                                // Gérer le timeout
+                                catchError(() => {
+                                    console.error('Timeout: Wallet non chargé après 10 secondes');
+                                    return of(null);
+                                })
+                            ).subscribe({
+                                next: (user_wallet) => {
+                                    if (user_wallet) {
+                                        // ✅ Transférer chaque transaction une par une
+                                        const transferObservables = pendingTransactions.map(transaction => 
+                                            this.walletService.addPlanTransactionToExistingWallet(user_wallet as Wallet, transaction)
+                                        );
+                                        
+                                        // Exécuter tous les transferts
+                                        forkJoin(transferObservables).subscribe({
+                                            next: () => {
+                                                console.log(`✅ ${pendingTransactions.length} transaction(s) de plan transférée(s) avec succès`);
+                                                // ✅ Nettoyer le localStorage APRÈS transfert réussi
+                                                localStorage.removeItem(pendingKey);
+                                            },
+                                            error: (error) => {
+                                                console.error('❌ Erreur lors du transfert des transactions:', error);
+                                                // ⚠️ Optionnel: Garder les transactions pour réessayer plus tard
+                                                // ou les marquer comme "failed" avec un timestamp
+                                                const failedKey = `failed_plan_transactions_${user.id}`;
+                                                localStorage.setItem(failedKey, JSON.stringify({
+                                                    transactions: pendingTransactions,
+                                                    failedAt: new Date().toISOString(),
+                                                    error: error.message
+                                                }));
+                                            }
+                                        });
+                                    } else {
+                                        console.warn('⚠️ Wallet introuvable, conservation des transactions en attente');
+                                    }
+                                },
+                                error: (error) => {
+                                    console.error('❌ Erreur lors de l\'abonnement au wallet:', error);
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('❌ Erreur lors du parsing des transactions en attente:', error);
+                    }
+                }
+
           } else {
             this.subscriptionStatus = 'inactive';
             this.currentSubscriptionStatus.emit(this.subscriptionStatus);
@@ -104,6 +173,15 @@ export class HeaderComponentComponent  implements OnInit {
     // Détecter la plateforme
    
     
+    this.updateBalance();
+      
+      // Initialiser les récompenses quotidiennes
+      this.initialiserRecompenses();
+
+      
+    }
+
+  updateBalance(){
     this.balance$ = this.walletService.balance$;
       this.balance$.subscribe(balance => {
         const previousCoins = this.userBalance.coins || 0;
@@ -116,11 +194,7 @@ export class HeaderComponentComponent  implements OnInit {
           setTimeout(() => this.showCoinAnimation = false, 800);
         }
       });
-      
-      // Initialiser les récompenses quotidiennes
-      this.initialiserRecompenses();
-    }
-
+  }
   /**
    * Détecte si l'application est sur mobile ou desktop
    */
@@ -209,6 +283,32 @@ onImageAvatarError(event: any) {
     await toast.present();
   }
 
+  performCoinPurchase(){
+        const raw = sessionStorage.getItem('payment_result');
+  if (!raw) return;
+
+  const { success, method, context } = JSON.parse(raw);
+  
+  sessionStorage.removeItem('payment_result');
+
+  if (success && context.reason === 'purchase_pack') {
+    // Reconstruit le Pack minimal depuis le contexte
+    const pack = context.pack as Pack;
+     console.log("wallet",context);
+    this.walletService.purchasePackCoins(pack, pack.itemType as "coins", method).subscribe({
+      next: (wallet) => {
+        // Mise à jour du wallet dans l'UI
+       
+        this.userBalance = wallet.balance;
+        this.showToast('Paiement réussi !', 'success');
+      },
+      error: (err) => {
+        console.error('Erreur livraison pack:', err);
+        this.showToast('Paiement reçu mais erreur de livraison.', 'error');
+      }
+    });
+  }
+  }
   // Acheter des coins
   async buyCoins() {
     const modal = await this.modalController.create({
@@ -225,7 +325,10 @@ onImageAvatarError(event: any) {
     modal.onDidDismiss().then((data) => {
       if (data.data && data.data.success) {
         // Forcer le rechargement du wallet pour mettre à jour la balance
+        this.performCoinPurchase();
         this.walletService.reloadWallet();
+        this.updateBalance();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -254,6 +357,8 @@ onImageAvatarError(event: any) {
     modal.onDidDismiss().then((data) => {
       // Recharger le wallet après la gestion des coupons
       this.walletService.reloadWallet();
+      this.updateBalance();
+      this.cdr.markForCheck();
     });
   }
   // Méthode pour gérer le retour

@@ -17,10 +17,6 @@ export const routes: Routes = [
     loadComponent: () => import('./login/login.page').then(m => m.LoginPage)
   },
   {
-    path: 'register',
-    loadComponent: () => import('./register/register.page').then( m => m.RegisterPage)
-  },
-  {
     path: 'settings',
     loadComponent: () => import('./settings/settings.page').then( m => m.SettingsPage),
     canActivate: [authGuard]
@@ -62,9 +58,20 @@ export const routes: Routes = [
     loadComponent: () => import('./default/default.page').then( m => m.DefaultPage)
   },
   {
+    path: 'registration',
+    loadComponent: () => import('./registration/registration.page').then( m => m.RegistrationPage)
+  },
+  {
+    path: 'payment-callback',
+    loadComponent: () => import('./payment-callback/payment-callback.page').then( m => m.PaymentCallbackPage)
+  },
+  {
     path: '**',
     redirectTo: 'home'
   }
+
+  
+
 
 
   

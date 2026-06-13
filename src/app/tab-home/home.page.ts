@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef, OnDestroy, AfterViewInit } from '@angular/core';
 import { NgIf, NgSwitch, NgSwitchCase, AsyncPipe } from '@angular/common';
 import {IonButton, IonIcon, IonContent, ToastController, IonFooter } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -54,7 +54,7 @@ import { Content } from 'src/models/Content';
   ]
 })
 
-export class HomePage implements OnInit, OnDestroy {
+export class HomePage implements OnInit, OnDestroy, AfterViewInit {
   selectedSegment!:Segment;
   activeNavItem: any = null;
   countUnreadMessages!: number;
@@ -190,36 +190,41 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Détecter la plateforme
-    this.detectPlatform();
-    
-    this.setupConnectionListeners();
-    this.setupAuthSubscription();
-    this.setupSwipeGesture();
-    this.unreadMessagesCount();
-    
-    // Charger les publicités avec probabilité : soit bannières soit posts
-    const shouldLoadBannerAds = Math.random() < this.adsLoadProbability;
-    if (shouldLoadBannerAds) {
-      this.loadBannerAds();
-      //console.log('[HomePage] Loading banner ads');
-    } else {
-      this.loadPostAds();
-     // console.log('[HomePage] Loading post ads');
-    }
-    
-    // Initialiser la vérification de bannière après le chargement du profil
+  this.selectedSegment = 'discovery';
+  this.setupConnectionListeners();
+ 
+  
+  // // Attendre que la plateforme soit prête avant de lancer les vérifications de bannières graphiques
+  this.platform.ready().then(() => {
+
+    // On laisse 2 secondes au DOM initial pour respirer et afficher le layout de base
     setTimeout(() => {
+       // Charger les publicités avec probabilité (soit bannières, soit posts)
+  const shouldLoadBannerAds = Math.random() < this.adsLoadProbability;
+  if (shouldLoadBannerAds) {
+    this.loadBannerAds();
+  } else {
+    this.loadPostAds();
+  }
       this.checkBannerDisplay();
-      // Démarrer la vérification toutes les 5 minutes (300000 ms)
+      
       this.bannerInterval = interval(300000).pipe(
         takeUntil(this.destroy$)
       ).subscribe(() => {
         this.checkBannerDisplay();
       });
-    }, 1000);
-  }
+    }, 2000);
+  });
+}
 
+ngAfterViewInit() {
+    // On initialise le geste une fois que la vue et ses éléments natifs sont prêts
+    setTimeout(() => {
+      this.setupAuthSubscription();
+      this.unreadMessagesCount();
+      this.setupSwipeGesture();
+    }, 500);
+  }
   /**
    * Détecte si l'application est sur mobile ou desktop
    */
@@ -526,14 +531,19 @@ export class HomePage implements OnInit, OnDestroy {
         });
       }
 
-      // Recharger les messages non lus
-      this.unreadMessagesCount();
+      // Recharger les messages non lu
+this.unreadMessagesCount();
 
-      // Recharger les bannières publicitaires
-      this.loadBannerAds();
+// Recharger UN SEUL type de publicité selon la probabilité pour éviter de surcharger le GPU
+const shouldLoadBannerAds = Math.random() < this.adsLoadProbability;
+if (shouldLoadBannerAds) {
+  this.loadBannerAds();
+} else {
+  this.loadPostAds();
+}
 
-      // Recharger les bannières publicitaires
-      this.loadPostAds();
+// Notifier les composants enfants de se recharger
+this.cdr.markForCheck();
 
       // Notifier les composants enfants de se recharger
       this.cdr.markForCheck();

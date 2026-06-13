@@ -73,6 +73,7 @@ export interface Content {
   score?:number;              // Score temporaire obtenus 
 }
 
+
 export interface Author {
   name: string;
   initials: string;
@@ -111,10 +112,15 @@ export interface MediaInfo {
   duration: number;
 }
 
+export interface Currency{
+    value:number;
+    type: 'coin' | 'coupon' | 'money';
+}
+
 export interface ExclusiveContent {
   // Identifiants système
   id?: string;
-  userId: string;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
   
@@ -124,15 +130,18 @@ export interface ExclusiveContent {
   author: Author;
   type: ExclusiveContentType;
   status: ExclusiveContentStatus;
-  
+  viewCount: number;
+  likeCount?: number;
+
   // Média
   media: MediaInfo;
   
   // Monétisation
   locked: boolean;
-  price?: number;
+  currency?: Currency;
   isLive?: boolean;
-  
+  watchers?: string[] //Ids des utilisateurs ayant obtenus l'access a ce contenus 
+
   // Série (optionnel)
   series?: SeriesInfo;
 }

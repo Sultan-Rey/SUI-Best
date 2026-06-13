@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, delay, map, tap, throwError, of, firstValueFrom } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, catchError, delay, map, tap, throwError, of, firstValueFrom, from, forkJoin } from 'rxjs';
+import { filter, first, switchMap, timeout } from 'rxjs/operators';
 import { ApiJSON } from '../API/api-json';
 import { User, UserProfile } from '../../models/User'
-import * as bcrypt from 'bcryptjs';
 import { ProfileService } from '../Service_profile/profile-service';
-import { stringify } from 'uuid';
 import { Router } from '@angular/router';
+import { isNullOrUndefined } from 'html5-qrcode/esm/core';
+
 
 
 export type AuthUser = Pick<
   User,
-  'id' | 'email' | 'user_type' | 'status' | 'readonly'
+  'id' | 'email' | 'user_type' | 'user_status' | 'status' | 'readonly'
 >;
 
 
@@ -48,80 +48,104 @@ export class Auth {
     
   constructor(private api: ApiJSON, private router: Router, private profileService:ProfileService) {} // ✅ Migration vers notre ApiJSON unifié
 
+  private generateUniqueId(): string {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID(); // Génère un UUID v4 standard (ex: "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed")
+  }
+  // Fallback si l'environnement ne supporte pas randomUUID
+  return Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+}
+
   /* ======================
      SIGNUP
      ====================== */
 
-  signup(userData: any): Observable<RegisterResponse> {
-    // Validation de base
-    if (!userData.email || !userData.password) {
-      return throwError(() => new Error('MISSING_CREDENTIALS'));
-    }
-
-    // Validation de l'email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(userData.email)) {
-      return throwError(() => new Error('INVALID_EMAIL'));
-    }
-
-    // Validation du mot de passe
-    if (userData.password.length < 8) {
-      return throwError(() => new Error('PASSWORD_TOO_SHORT'));
-    }
-
-    // Préparer les données pour le backend selon la structure attendue
-    const platformInfo = this.detectPlatform();
-    const payload = {
-      email: userData.email.toLowerCase().trim(),
-      password: userData.password,
-      displayName: userData.first_name+" "+userData.last_name || userData.email,
-      user_type: userData.user_type || 'fan',
-      user_status: userData.user_status,
-      platform: platformInfo.type,
-      device_info: platformInfo.info
-    };
-    // Utiliser la route d'inscription dédiée
-    return this.api.post<any>('auth/register', payload).pipe(
-      switchMap(async (response: any) => {
-        
-
-        // Le backend retourne: message et user_id
-        const userId = response.user_id;
-      
-        // Créer le profil utilisateur avec le même ID
-        try {
-         
-          const userProfile = await this.createUserProfileModel({
-            ...userData,
-            id: userId // Utiliser le même ID que l'utilisateur créé
-          });
-          
-          // Sauvegarder le profil dans la base de données
-          await firstValueFrom(this.profileService.createProfile(userProfile));
-          
-          /*console.log(' User profile created successfully:', {
-            userId: userId,
-            username: userProfile.username
-          });*/
-          
-        } catch (profileError: any) {
-          console.error(' Failed to create user profile:', profileError.message);
-          // Continuer quand même l'inscription même si le profil échoue
-        }
-
-        return {
-          success: true,
-          message: response.message || 'Compte créé avec succès',
-          user_id: userId
-        } as RegisterResponse;
-      }),
-      catchError((error: Error) => {
-        console.error('Signup error:', error.message);
-        return throwError(() => error);
-      })
-    );
+signup(userData: any): Observable<RegisterResponse> {
+  // 1. Validations de base obligatoires
+  if (!userData?.email || !userData?.password) {
+    return throwError(() => new Error('MISSING_CREDENTIALS'));
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(userData.email)) {
+    return throwError(() => new Error('INVALID_EMAIL'));
+  }
+
+  if (userData.password.length < 8) {
+    return throwError(() => new Error('PASSWORD_TOO_SHORT'));
+  }
+
+  // 🛠️ DEBUG SÉRIEUX : Normalisation et mise à plat de la structure des données
+  // Si les infos arrivent encapsulées dans userInfo (provenant du payload de registration.page)
+  // on les remonte à la racine pour satisfaire à la fois l'API et createUserProfileModel.
+  const info = userData.userInfo || {};
+  
+  const currentStatus = userData.user_status || userData.status;
+  const schoolData = info.school || userData.school || null;
+
+  // 2. Détermination de l'ID Unique de manière évocatrice
+  let generatedUserId = '';
+  if (currentStatus === 'student') {
+    generatedUserId = `STU_${this.generateUniqueId()}`;
+  } else if (currentStatus === 'university' || currentStatus === 'institution') {
+    const schoolId = schoolData?.id || this.generateUniqueId();
+    generatedUserId = `INS_${schoolId}`;
+  } else {
+    generatedUserId = `FAN_${this.generateUniqueId()}`;
+  }
+
+  // 📦 Reconstruction d'un objet userData parfait et "plat"
+  // Ainsi, createUserProfileModel trouvera userData.school.id ET userData.first_name sans planter !
+  const normalizedUserData = {
+    ...userData,
+    id: generatedUserId,
+    user_status: currentStatus || 'fan',
+    first_name: info.first_name || userData.first_name || '',
+    last_name: info.last_name || userData.last_name || '',
+    birthDate: info.birthDate || userData.birthDate || '',
+    age: info.age || userData.age || null,
+    school: {
+      id: schoolData?.id || '',
+      name: schoolData?.name || '',
+      level: schoolData?.level || ''
+    }
+  };
+
+  // 3. Transformation asynchrone pour générer le modèle de profil complet
+  return from(this.createUserProfileModel(normalizedUserData)).pipe(
+    switchMap((profileModel) => {
+      const platformInfo = this.detectPlatform();
+
+      // Extraction propre pour correspondre au format d'entrée strict attendu par ton API PHP
+      const payload = {
+        user_id: generatedUserId,
+        email: normalizedUserData.email.toLowerCase().trim(),
+        password: normalizedUserData.password,
+        qr_code: normalizedUserData.qr_proof || normalizedUserData.qr_code || '',
+        user_status: normalizedUserData.user_status,
+        user_type: normalizedUserData.type || 'fan',
+        displayName: profileModel?.displayName || `${normalizedUserData.first_name} ${normalizedUserData.last_name}`.trim() || normalizedUserData.email,
+        platform: platformInfo.type,
+        device_info: platformInfo.info,
+        profile_payload: profileModel 
+      };
+
+      // Un seul et unique appel HTTP vers ton contrôleur PHP
+      return this.api.post<any>('auth/register', payload);
+    }),
+    switchMap((response: any) => {
+      return [{
+        success: response?.success !== false,
+        message: response?.message || 'Compte créé avec succès.',
+        user_id: response?.user_id || generatedUserId
+      } as RegisterResponse];
+    }),
+    catchError((error: any) => {
+      console.error('❌ Erreur finale interceptée dans le flux de la méthode signup:', error.message || error);
+      return throwError(() => error);
+    })
+  );
+}
   private async createUserProfileModel(registrationData: any): Promise<UserProfile> {
      const { getRewardsForUserType } = await import('src/interfaces/levelReward.data');
         if (!registrationData) {
@@ -130,8 +154,8 @@ export class Auth {
     
         return {
           id: registrationData.id || '', // Utiliser l'ID fourni ou chaîne vide par défaut
-          type: registrationData.user_type,
-          myFollows: [],
+          type: registrationData.type,
+          myFollows: registrationData.follows,
           myFans: [],
           myBlackList: [],
           username: await this.generateUniqueUsername(
@@ -141,9 +165,9 @@ export class Auth {
           displayName: `${registrationData.first_name || ''} ${registrationData.last_name || ''}`.trim() || 'Utilisateur',
           avatar: 'default/avatar-default.png',
           coverImg: 'default/cover_image_default.png',
-          isVerified: false,
           level: 1,
-          xpPercent: 0,
+          xpPercent: 500,
+          confidence_level: 0,
           level_rewards: getRewardsForUserType(registrationData.user_type, 1, 0),
           stats: {
             posts: 0,
@@ -158,12 +182,9 @@ export class Auth {
             birthDate: registrationData.birthDate || new Date(),
             age: registrationData.age || 0,
             email: registrationData.email || '',
-            phone: registrationData.phone || '',
-            address: registrationData.address || '',
-            website: registrationData.website || '',
             memberShip: {date:registrationData.myPlan.startDate, plan: registrationData.myPlan.name},
             bio: registrationData.bio || '',
-            school:  { id: registrationData.school.id, name: registrationData.school.name }
+            school:  { id: registrationData.school.id, name: registrationData.school.name, level: registrationData.school.level }
           }
         };
       }
@@ -272,6 +293,7 @@ export class Auth {
                 email: user.email,
                 user_type: user.user_type,
                 status: user.status,
+                user_status: user.user_status,
                 readonly: user.readonly,
             };
 
@@ -307,10 +329,10 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
     
     // Sauvegarder dans localStorage
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(safeUserData));
-    localStorage.setItem('access_token', loginResponse.access_token)
-     localStorage.setItem('refresh_token', loginResponse.access_token)
+    localStorage.setItem('access_token', loginResponse.access_token);
+    localStorage.setItem('refresh_token', loginResponse.refresh_token);
+    this.permanentFollows(authUser);
     this.currentUserSubject.next(authUser);
- 
 }
 
 private recordFailedAttempt(email: string): void {
@@ -328,6 +350,61 @@ private recordFailedAttempt(email: string): void {
 
     console.warn(`Failed login attempt for ${email}. Attempt ${attempt.attempts}/${this.MAX_ATTEMPTS}`);
   }
+
+
+  /**
+ * Vérifie et force l'abonnement permanent à l'école et/ou à l'administrateur
+ * selon le statut de l'utilisateur (student ou university).
+ */
+private async permanentFollows(authUser: AuthUser): Promise<void> {
+
+  try {
+    // 1. Récupérer l'adminUID (via le flux Observable existant converti en Promesse)
+    const adminUID = await firstValueFrom(this.getAdminUID());
+
+    // 2. Récupérer le profil complet de l'utilisateur connecté pour inspecter 'myFollows'
+    const userProfile = await firstValueFrom(this.profileService.getProfileById(authUser.id));
+    if (!userProfile) return;
+
+    const myFollows = Array.isArray(userProfile.myFollows) ? userProfile.myFollows : [];
+    const promisesToExecute: Promise<any>[] = [];
+
+    // Cas 1 : L'utilisateur est un étudiant (student)
+    if (authUser.user_status === 'student') {
+      const schoolId = userProfile.userInfo?.school?.id;
+      
+      // Vérification et abonnement à l'école déclarée
+      if (schoolId && !myFollows.includes(schoolId)) {
+        console.log(`[PermanentFollow] Inscription de l'étudiant à son école : ${schoolId}`);
+        promisesToExecute.push(this.profileService.followProfile(authUser.id, schoolId));
+      }
+
+      // Vérification et abonnement à l'administrateur de la plateforme
+      if (adminUID && !myFollows.includes(adminUID)) {
+        console.log(`[PermanentFollow] Inscription de l'étudiant à l'admin : ${adminUID}`);
+        promisesToExecute.push(this.profileService.followProfile(authUser.id, adminUID));
+      }
+    }
+
+    // Cas 2 : L'utilisateur est une université / institution
+    if (authUser.user_status === 'university') {
+      // Vérification et abonnement à l'administrateur de la plateforme
+      if (adminUID && !myFollows.includes(adminUID)) {
+        console.log(`[PermanentFollow] Inscription de l'institution à l'admin : ${adminUID}`);
+        promisesToExecute.push(this.profileService.followProfile(authUser.id, adminUID));
+      }
+    }
+
+    // 3. Exécuter tous les abonnements requis en parallèle
+    if (promisesToExecute.length > 0) {
+      await Promise.all(promisesToExecute);
+      console.log('✅ Tous les abonnements permanents obligatoires ont été vérifiés/appliqués.');
+    }
+
+  } catch (error) {
+    console.error('❌ Erreur lors de l’exécution de permanentFollows:', error);
+  }
+}
 
   /* ======================
      PLATFORM DETECTION
@@ -678,29 +755,36 @@ private recordFailedAttempt(email: string): void {
  * Récupère l'adminUID depuis les profiles admin avec cache local
  */
 getAdminUID(): Observable<string> {
-  // Vérifier d'abord le cache local
+  // 1. Vérifier d'abord le cache local
   const cachedAdminUID = localStorage.getItem(this.ADMIN_UID_STORAGE_KEY);
+
   if (cachedAdminUID) {
+    // Si c'était stocké proprement en string simple, on le renvoie directement
     return of(cachedAdminUID);
   }
 
-  // Sinon, appeler l'API
-  return this.api.filter<string>('profiles', {filters: {type: 'admin'}}, {cache: false}).pipe(
+  // 2. Sinon, appeler l'API (on type temporairement avec 'any' ou ton interface d'objet si tu l'as)
+  return this.api.filter<any>('profiles', { filters: { type: 'admin' } }, { cache: false }).pipe(
     map(response => {
-      // Vérifier si response.data existe et contient des éléments
+      // Vérifier si response.data existe et contient des objets profils
       if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const adminUID = response.data[0];
-        // Sauvegarder dans le localStorage
-        localStorage.setItem(this.ADMIN_UID_STORAGE_KEY, adminUID);
-        return adminUID;
+        const adminProfile = response.data[0];
+        
+        const adminUID = adminProfile.id;
+        
+        if (adminUID) {
+          // Sauvegarder uniquement la string de l'ID dans le localStorage (pas besoin de JSON.stringify)
+          localStorage.setItem(this.ADMIN_UID_STORAGE_KEY, adminUID);
+          return adminUID;
+        }
       }
       
-      // Si aucun admin trouvé, retourner une chaîne vide
+      // Si aucun admin ou ID trouvé, retourner une chaîne vide
       return '';
     }),
     catchError(error => {
       console.error('❌ Erreur récupération adminUID:', error);
-      // En cas d'erreur, retourner une chaîne vide
+      // En cas d'erreur, retourner une chaîne vide dans le flux RxJS
       return of('');
     })
   );

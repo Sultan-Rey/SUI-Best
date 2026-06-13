@@ -1,0 +1,88 @@
+<!-- p2p-dialog.component.html -->
+<ion-content class="p2p-dialog-content">
+  <div class="dialog-container">
+    <!-- Header avec icône et effet de verre -->
+    <div class="dialog-header">
+      <div class="icon-wrapper">
+        <div class="icon-backdrop"></div>
+        <ion-icon name="people-circle-outline" class="header-icon"></ion-icon>
+      </div>
+      <h2 class="dialog-title">Nouveau camarade ?</h2>
+      <p class="dialog-subtitle">Connectez-vous avec votre communauté</p>
+    </div>
+
+    <!-- Section utilisateur -->
+    <div class="user-section">
+      <div class="user-avatar-wrapper">
+        <div class="avatar-ring"></div>
+        <img 
+          [src]="userAvatar || 'assets/default-avatar.png'" 
+          [alt]="userName"
+          class="user-avatar"
+          loading="lazy"
+        />
+        <div class="avatar-badge">
+          <ion-icon name="school-outline"></ion-icon>
+        </div>
+      </div>
+      
+      <h3 class="user-name">{{ userName }}</h3>
+      
+      <div class="user-badges">
+        <span class="badge badge-class">
+          <ion-icon name="people-outline"></ion-icon>
+          {{ className }}
+        </span>
+        <span class="badge badge-school">
+          <ion-icon name="business-outline"></ion-icon>
+          {{ schoolName }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Question principale -->
+    <div class="question-section">
+      <div class="question-mark">
+        <ion-icon name="help-circle-outline"></ion-icon>
+      </div>
+      <p class="question-text">
+        Connaissez-vous <strong>{{ userName }}</strong> ?
+      </p>
+      <p class="question-hint">
+        Cette personne fait partie de votre cercle scolaire.
+        Confirmer votre lien vous permettra de mieux interagir ensemble.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-section">
+      <button 
+        class="action-btn action-btn-secondary"
+        (click)="onDecline()"
+        [disabled]="isLoading"
+      >
+        <ion-icon name="close-outline"></ion-icon>
+        <span>Non, je ne connais pas</span>
+      </button>
+      
+      <button 
+        class="action-btn action-btn-primary"
+        (click)="onConfirm()"
+        [disabled]="isLoading"
+      >
+        <ion-icon *ngIf="!isLoading" name="checkmark-outline"></ion-icon>
+        <ion-spinner *ngIf="isLoading" name="dots" class="btn-spinner"></ion-spinner>
+        <span *ngIf="!isLoading">Oui, je le connais</span>
+        <span *ngIf="isLoading">Confirmation...</span>
+      </button>
+    </div>
+
+    <!-- Footer avec disclaimer -->
+    <div class="dialog-footer">
+      <p class="disclaimer">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        Cette information nous aide à personnaliser votre expérience et à vous connecter avec les bonnes personnes.
+      </p>
+    </div>
+  </div>
+</ion-content>

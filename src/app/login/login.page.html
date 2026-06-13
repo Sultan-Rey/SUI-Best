@@ -1,103 +1,72 @@
-<ion-content class="login-content">
-  <ion-loading 
-    [isOpen]="isLoading" 
-    message="Connexion..."
-    spinner="circles">
-  </ion-loading>
-  
-  <div class="login-layout">
+<ion-content [fullscreen]="true" class="fanlabel-content">
 
-    <!-- Panneau gauche branding (desktop uniquement) -->
-    <div class="brand-panel">
-      <div class="brand-inner">
-        <div class="brand-logo">
-          <img src="../../assets/logo/logo.png" alt="Logo"/>
+  <div class="overlay"></div>
+
+  <div class="album-scroll-wrapper">
+    <div class="album-track">
+      <div class="album-card" *ngFor="let cover of albumCovers" [style.background-image]="'url(' + cover.url + ')'"></div>
+      <div class="album-card" *ngFor="let cover of albumCovers" [style.background-image]="'url(' + cover.url + ')'"></div>
+    </div>
+  </div>
+
+  <div class="main-wrapper">
+
+    <div class="top-content">
+      <div class="header">
+        <div class="logo logo-icon">
+          <img src="assets/logo/logo-transparent.png" />
         </div>
-        <h1 class="brand-name">On est tous <span>Gagnant</span></h1>
-        <p class="brand-tagline">Révélez votre talent.<br/>Connectez-vous à votre avenir.</p>
-        <div class="brand-decoration"></div>
       </div>
-      <p class="brand-footer">© 2025 BestAcademy</p>
+
+      <div class="hero-section" *ngIf="!showLoginForm">
+        <div class="top-album-row">
+          <div class="album-thumb featured" *ngFor="let cover of topRowCovers" [style.background-image]="'url(' + cover + ')'"></div>
+        </div>
+
+        <div class="tagline">
+          <h1>tu penses avoir du <br>talent?</h1>
+        </div>
+      </div>
     </div>
 
-    <!-- Panneau droit formulaire -->
-    <div class="login-container">
-      
-      <!-- En-tête mobile uniquement -->
-      <div class="header-section">
-        <div class="logo-wrapper mobile-only">
-          <div class="logo-symbol"><img src="../../assets/logo/logo.png"/></div>
-          <h1 class="app-name">On est tous <span>Gagnant</span></h1>
-        </div>
+    <div class="prove-section">
+      <div *ngIf="!showLoginForm">
+        <h2 class="prove-text">prouve le.</h2>
+        <p class="platinum-text">
+          <strong>Nous offrons le podium, brille comme une star</strong><br>
+        </p>
+      </div>
+
+      <div *ngIf="showLoginForm" class="login-form-container">
+        <h2 class="login-title">connexion.</h2>
         
-        <h2 class="welcome-text">Connexion</h2>
-        <p class="subtitle">Accédez à votre espace talent</p>
-      </div>
-
-      <!-- Formulaire -->
-      <div class="form-section">
         <div class="input-group">
-          <div class="input-label">
-            <ion-icon name="mail-outline"></ion-icon>
-            <span>Email</span>
-          </div>
-          <ion-input
-            [(ngModel)]="email"
-            type="email"
-            placeholder="votre@email.com"
-            class="custom-input">
-          </ion-input>
+          <ion-icon name="mail-outline" class="input-icon"></ion-icon>
+          <ion-input type="email" placeholder="Email" [(ngModel)]="email" class="custom-input"></ion-input>
         </div>
 
         <div class="input-group">
-          <div class="input-label">
-            <ion-icon name="lock-closed-outline"></ion-icon>
-            <span>Mot de passe</span>
-          </div>
-          <div class="password-input-wrapper">
-            <ion-input
-              [(ngModel)]="password"
-              [type]="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              class="custom-input">
-            </ion-input>
-            <button 
-              (click)="togglePasswordVisibility()"
-              class="toggle-password-btn">
-              <ion-icon 
-                [name]="showPassword ? 'eye-off-outline' : 'eye-outline'">
-              </ion-icon>
-            </button>
-          </div>
+          <ion-icon name="lock-closed-outline" class="input-icon"></ion-icon>
+          <ion-input [type]="showPassword ? 'text' : 'password'" placeholder="Mot de passe" [(ngModel)]="password" class="custom-input"></ion-input>
+          <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'" class="toggle-password" (click)="togglePasswordVisibility()"></ion-icon>
         </div>
 
-        <div class="forgot-password">
-          <a (click)="navigateToForgotPassword()" class="forgot-link">
-            Mot de passe oublié ?
-          </a>
-        </div>
-
-        <ion-button 
-          expand="block" 
-          (click)="loginWithEmail()"
-          class="login-button">
-          Se connecter
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        </ion-button>
-
-        <div class="register-section">
-          <p class="register-text">Nouveau sur BEST SUI ?</p>
-          <button (click)="navigateToRegister()" class="register-btn">
-            Créer un compte
-          </button>
-        </div>
-      </div>
-
-      <!-- Footer mobile uniquement -->
-      <div class="footer mobile-only">
-        <p>© 2024 TalentShow. <a>Mentions légales</a></p>
+        <p class="forgot-password" (click)="navigateToForgotPassword()">Mot de passe oublié ?</p>
       </div>
     </div>
 
   </div>
+
+  <div class="auth-panel">
+    <ng-container *ngIf="!showLoginForm">
+      <button class="btn-auth btn-login" (click)="onLogin()">log in</button>
+      <button class="btn-auth btn-signup" (click)="onSignup()">sign up</button>
+    </ng-container>
+
+    <ng-container *ngIf="showLoginForm">
+      <button class="btn-auth btn-submit" (click)="loginWithEmail()">Se connecter</button>
+      <button class="btn-auth btn-back" (click)="showLoginForm = false">Retour</button>
+    </ng-container>
+  </div>
+
 </ion-content>

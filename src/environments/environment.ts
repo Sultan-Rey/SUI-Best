@@ -4,7 +4,8 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost/api',  // URL de votre API PHP
+  apiUrl: 'http://192.168.56.1/api',  // URL de votre API PHP
+  publicToken: 'star4vUm_Q2M.in.A0ZFKvihoNm4Dx.V596d7pMl.uniform2026'
 };
 
 /*

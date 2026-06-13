@@ -1,0 +1,203 @@
+<ion-content class="ion-padding premium-bg">
+  <div class="signup-container">
+    
+    <div class="brand-header">
+      <h1 class="title">StarInUniform</h1>
+      <p class="subtitle">Rejoignez l'élite des talents.</p>
+    </div>
+
+    <div class="stepper-dots">
+      <span [class.active]="step === 1"></span>
+      <span [class.active]="step === 2" *ngIf="form.status === 'student'"></span>
+      <span [class.active]="step === 3"></span>
+      <span [class.active]="step === 4"></span>
+    </div>
+
+    <div *ngIf="step === 1" class="fade-in">
+  <h2 class="step-title">Qui êtes-vous ?</h2>
+  
+  <div class="card-selector" (click)="selectStatus('student')" [class.selected]="form.status === 'student'">
+    <ion-icon name="school-outline"></ion-icon>
+    <div class="card-text">
+      <h3>Élève</h3>
+      <p>Pour voter, participer et briller.</p>
+    </div>
+  </div>
+
+  <div *ngIf="form.status === 'student'" class="type-selector-container fade-in">
+    <p class="selector-subtitle">Choisissez votre profil Star :</p>
+    <div class="type-chips">
+      <div class="type-chip" [class.active]="form.type === 'fan'" (click)="form.type = 'fan'">
+        <ion-icon name="heart-outline"></ion-icon>
+        <span>Fan</span>
+      </div>
+      <div class="type-chip" [class.active]="form.type === 'artist'" (click)="form.type = 'artist'">
+        <ion-icon name="mic-outline"></ion-icon>
+        <span>Artiste</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-selector" (click)="selectStatus('university')" [class.selected]="form.status === 'university'">
+    <ion-icon name="business-outline"></ion-icon>
+    <div class="card-text">
+      <h3>Institution</h3>
+      <p>Pour gérer vos talents et vos événements.</p>
+    </div>
+  </div>
+
+  <ion-button expand="block" class="btn-premium" (click)="next()" [disabled]="!isStep1Valid()">
+    Continuer
+  </ion-button>
+
+  <div class="login-redirect" (click)="goToLogin()">
+    Déjà un compte ? <span class="login-link">Connectez-vous</span>
+  </div>
+</div>
+
+   <div *ngIf="step === 2 && form.status === 'student'" class="fade-in">
+  <h2 class="step-title">Profil Académique</h2>
+  <p class="step-subtitle">Ces informations permettront à vos camarades de vous identifier.</p>
+  
+  <ion-item lines="none" class="premium-input">
+    <ion-icon name="person-outline" slot="start"></ion-icon>
+    <ion-input type="text" placeholder="Prénom" [(ngModel)]="form.first_name"></ion-input>
+  </ion-item>
+
+  <ion-item lines="none" class="premium-input">
+    <ion-icon name="person-outline" slot="start"></ion-icon>
+    <ion-input type="text" placeholder="Nom de famille" [(ngModel)]="form.last_name"></ion-input>
+  </ion-item>
+
+  <div class="gender-selector-container">
+    <div class="gender-option" [class.active]="form.gender === 'M'" (click)="form.gender = 'M'">
+      Masculin
+    </div>
+    <div class="gender-option" [class.active]="form.gender === 'F'" (click)="form.gender = 'F'">
+      Féminin
+    </div>
+  </div>
+
+ <ion-item lines="none" class="premium-input">
+  <ion-icon name="calendar-outline" slot="start"></ion-icon>
+  <ion-input 
+    type="date" 
+    placeholder="Date de naissance" 
+    [min]="minBirthDate" 
+    [max]="maxBirthDate"
+    [(ngModel)]="form.birthDate" 
+    (ionChange)="onBirthDateChange()">
+  </ion-input>
+</ion-item>
+
+  <div class="level-selector-container">
+    <label class="input-label">Niveau général</label>
+    <div class="scrollable-chips">
+      <div 
+        *ngFor="let lvl of availableLevels" 
+        class="custom-chip" 
+        [class.active]="selectedLevel === lvl"
+        (click)="selectedLevel = lvl; updateSchoolLevel()">
+        {{ lvl }}
+      </div>
+    </div>
+  </div>
+
+  <div class="level-selector-container" *ngIf="selectedLevel">
+    <label class="input-label">Division / Classe</label>
+    <div class="scrollable-chips sub-sections">
+      <div 
+        *ngFor="let sub of availableSubSections" 
+        class="custom-chip mini" 
+        [class.active]="selectedSubSection === sub"
+        (click)="selectedSubSection = sub; updateSchoolLevel()">
+        {{ sub }}
+      </div>
+    </div>
+  </div>
+
+  <div class="age-badge-info" *ngIf="form.age > 0">
+    <p>Âge calculé : <strong>{{ form.age }} ans</strong> 
+       <span *ngIf="form.school.level">| Classe : <strong>{{ form.school.level }}</strong></span>
+    </p>
+  </div>
+
+  <div class="button-group">
+    <ion-button fill="clear" class="btn-back" (click)="prev()">Retour</ion-button>
+    <ion-button expand="block" class="btn-premium" (click)="next()" [disabled]="!isIdentityValid()">
+      Continuer
+    </ion-button>
+  </div>
+</div>
+
+    <div *ngIf="step === 3" class="fade-in">
+      <div *ngIf="form.status === 'student'">
+        <h2 class="step-title">Scannez le QR Code</h2>
+        <p class="step-subtitle">Scannez le code affiché dans votre établissement pour localiser votre école.</p>
+        
+        <div class="qr-scanner-wrapper">
+          <div id="reader" style="width: 100%"></div>
+          <div class="scanner-laser" *ngIf="isScanning"></div>
+        </div>
+      </div>
+
+      <div *ngIf="form.status === 'university'">
+        <h2 class="step-title">Code Institution</h2>
+        <p class="step-subtitle">Saisissez l'identifiant officiel unique fourni à votre établissement.</p>
+       <ion-item lines="none" class="premium-input">
+        <ion-icon name="business-outline" slot="start"></ion-icon>
+          <ion-input type="text" (ngModelChange)="onCodeChange()" placeholder="EX: SIU-75001" [(ngModel)]="institutionCode"></ion-input>
+  
+            <ion-note *ngIf="isCodeError">
+              <ion-text color="danger">Code invalide ou école introuvable</ion-text>
+            </ion-note>
+        </ion-item>
+      </div>
+
+      <div class="button-group">
+        <ion-button fill="clear" class="btn-back" (click)="prev()">Retour</ion-button>
+        <ion-button expand="block" class="btn-premium" (click)="next()" [disabled]="form.status === 'student' ? !form.qr_proof : !institutionCode">
+          Vérifier
+        </ion-button>
+      </div>
+    </div>
+
+    <div *ngIf="step === 4" class="fade-in">
+      <h2 class="step-title">Sécurisez votre compte</h2>
+      <p class="step-subtitle">Dernière étape pour finaliser vos accès.</p>
+      
+      <ion-item lines="none" class="premium-input">
+        <ion-icon name="mail-outline" slot="start"></ion-icon>
+        <ion-input type="email" placeholder="Adresse Email" [(ngModel)]="form.email"></ion-input>
+      </ion-item>
+
+      <ion-item lines="none" class="premium-input">
+        <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+        <ion-input type="password" placeholder="Mot de passe" [(ngModel)]="form.password"></ion-input>
+      </ion-item>
+
+      <div class="waiting-notice validation-p2p-notice" *ngIf="form.status === 'student'">
+        <div class="notice-icon-wrapper">
+          <ion-icon name="sparkles-outline" class="animated-sparkle"></ion-icon>
+        </div>
+        <div class="notice-text">
+          <h3>Validation communautaire instantanée</h3>
+          <p>Dès votre inscription, vos camarades de <strong>{{ form.school.name }}</strong> recevront une alerte push pour certifier votre arrivée. Obtenez 2 certifications pour passer au niveau supérieur !</p>
+        </div>
+      </div>
+
+      <div class="waiting-notice" *ngIf="form.status === 'university'">
+        <ion-icon name="time-outline"></ion-icon>
+        <p>Votre demande d'accès institutionnel va être examinée par notre équipe support sous 24 heures.</p>
+      </div>
+
+      <div class="button-group">
+        <ion-button fill="clear" class="btn-back" (click)="prev()">Retour</ion-button>
+        <ion-button expand="block" class="btn-premium-final" (click)="submit()" [disabled]="!form.email || !form.password">
+          Créer mon profil
+        </ion-button>
+      </div>
+    </div>
+
+  </div>
+</ion-content>
