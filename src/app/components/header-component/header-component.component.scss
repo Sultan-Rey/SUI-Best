@@ -17,72 +17,67 @@
 }
 
 // ─── Conteneur principal ──────────────────────────────────────────────────────
-
 .stats-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-
-  // Base (très petit écran, Android ancien)
-  padding: 6px 12px 8px;
+  // Variables de base
+  --padding-top-base: 6px;
+  --padding-top-fallback: 24px;
+  --padding-right: 12px;
+  --padding-bottom: 8px;
+  --padding-left: 12px;
   
-  // === GESTION DE LA STATUS BAR (Android & iOS) ===
-  // Fallback pour les vieux navigateurs
-  padding-top: max(6px, env(safe-area-inset-top));
+  // Application du padding dynamique
+  padding: var(--padding-top-base) var(--padding-right) var(--padding-bottom) var(--padding-left);
+  padding-top: max(var(--padding-top-base), env(safe-area-inset-top, var(--padding-top-fallback)));
   
-  // Android >= 5.0 : la stat]us bar fait environ 24px
-  // On ajuste uniquement si safe-area-inset-top n'est pas défini ou trop petit
+  // Media queries responsives (mise à jour des variables uniquement)
+  @media screen and (min-width: 375px) {
+    --padding-top-base: 7px;
+    --padding-top-fallback: 26px;
+    --padding-right: 14px;
+    --padding-bottom: 9px;
+    --padding-left: 14px;
+  }
+  @media screen and (min-width: 390px) {
+    --padding-top-base: 7px;
+    --padding-top-fallback: 26px;
+    --padding-right: 16px;
+    --padding-bottom: 9px;
+    --padding-left: 16px;
+  }
+  @media screen and (min-width: 415px) {
+    --padding-top-base: 8px;
+    --padding-top-fallback: 28px;
+    --padding-right: 18px;
+    --padding-bottom: 10px;
+    --padding-left: 18px;
+  }
+  @media screen and (min-width: 768px) {
+    --padding-top-base: 10px;
+    --padding-top-fallback: 30px;
+    --padding-right: 20px;
+    --padding-bottom: 12px;
+    --padding-left: 20px;
+  }
+  @media screen and (min-width: 1024px) {
+    --padding-top-base: 12px;
+    --padding-top-fallback: 32px;
+    --padding-right: 24px;
+    --padding-bottom: 14px;
+    --padding-left: 24px;
+  }
+  @media screen and (min-width: 1366px) {
+    --padding-top-base: 14px;
+    --padding-top-fallback: 34px;
+    --padding-right: 32px;
+    --padding-bottom: 16px;
+    --padding-left: 32px;
+  }
+  
+  // Support vieux iOS
   @supports not (padding-top: env(safe-area-inset-top)) {
-    @media (min-width: 360px) and (max-width: 767px) {
-      // Détection Android via JS? Sinon, compromise safe
-      padding-top: 20px; // plus que les 6px de base
-    }
-  }
-
-  // iOS avec safe area (notch)
-  @supports (padding-top: env(safe-area-inset-top)) {
-    padding-top: calc(6px + env(safe-area-inset-top));
-  }
-
-  // === TESTS MEDIA CLASSIQUES ===
-  @media screen and (min-width: 375px) { 
-    padding: 17px 14px 9px;
-    @supports (padding-top: env(safe-area-inset-top)) {
-      padding-top: calc(27px + env(safe-area-inset-top));
-    }
-  }
-  @media screen and (min-width: 390px) { 
-    padding: 17px 16px 9px;
-    @supports (padding-top: env(safe-area-inset-top)) {
-      padding-top: calc(27px + env(safe-area-inset-top));
-    }
-  }
-  @media screen and (min-width: 415px) { 
-    padding: 8px 18px 10px;
-    @supports (padding-top: env(safe-area-inset-top)) {
-      padding-top: calc(18px + env(safe-area-inset-top));
-    }
-  }
-  @media screen and (min-width: 768px) { 
-    padding: 10px 20px 12px;
-    @supports (padding-top: env(safe-area-inset-top)) {
-      padding-top: calc(20px + env(safe-area-inset-top));
-    }
-  }
-  @media screen and (min-width: 1024px) { 
-    padding: 12px 24px 14px;
-    @supports (padding-top: env(safe-area-inset-top)) {
-      padding-top: calc(22px + env(safe-area-inset-top));
-    }
-  }
-  @media screen and (min-width: 1366px) { 
-    padding: 14px 32px 16px;
-    @supports (padding-top: env(safe-area-inset-top)) {
-      padding-top: calc(24px + env(safe-area-inset-top));
-    }
+    padding-top: max(var(--padding-top-base), constant(safe-area-inset-top, var(--padding-top-fallback)));
   }
 }
-
 .margin-right{
   margin-right: 10px;
 }
