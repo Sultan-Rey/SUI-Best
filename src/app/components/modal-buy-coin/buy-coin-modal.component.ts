@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
-import { MediaUrlPipe } from '../../utils/pipes/mediaUrlPipe/media-url-pipe';
+import { InAppBrowser } from '@awesome-cordova-plugins/in-app-browser/ngx';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonButtons, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { ModalController, ToastController, LoadingController, ActionSheetController } from '@ionic/angular';
@@ -8,12 +8,11 @@ import { Router } from '@angular/router';
 import { WalletService } from '../../../services/Service_wallet/wallet-service';
 import { IncomeService } from 'src/services/service_income/income-service';
 import { PaymentService } from '../../../services/Service_payment/payment-service';
-import { Pack, PaymentMethod } from 'src/interfaces/income.interfaces';
+import { Pack } from 'src/interfaces/income.interfaces';
 import { cardOutline, logoPaypal, cashOutline, chevronBack, chevronForward, close, closeOutline, alertCircle, refresh, cubeOutline, sparklesOutline, refreshOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
-import { firstValueFrom } from 'rxjs';
-import { Browser } from '@capacitor/browser';
 import { ModalPaymentComponent } from '../modal-payment/modal-payment.component';
+import { PaymentGatewayService } from 'src/services/Service_payment/payment-gateway-service';
 
 @Component({
   selector: 'app-buy-coin-modal',
@@ -23,11 +22,11 @@ import { ModalPaymentComponent } from '../modal-payment/modal-payment.component'
   imports: [
     CommonModule,
     FormsModule,
-    MediaUrlPipe,
     IonContent,
     NgIf,
     IonIcon
-  ]
+  ],
+  providers: [ModalController]
 })
 export class BuyCoinModalComponent implements OnInit {
   private returnUrl: string = '';
@@ -50,9 +49,10 @@ export class BuyCoinModalComponent implements OnInit {
     private loadingController: LoadingController,
     private actionSheetController: ActionSheetController,
     private router: Router,
+    private iab: InAppBrowser,
     private walletService: WalletService,
     private incomeService: IncomeService,
-    private paymentService: PaymentService
+    private paymentGateway: PaymentGatewayService
   ) {
     addIcons({closeOutline,sparklesOutline,refreshOutline,chevronBackOutline,chevronForwardOutline,chevronBack,chevronForward,close,alertCircle,refresh,cubeOutline,cardOutline,logoPaypal,cashOutline});
  
@@ -121,248 +121,77 @@ export class BuyCoinModalComponent implements OnInit {
     this.currentSlideIndex = index;
   }
 
-  async purchasePack(pack: Pack) {
-    if (this.isProcessingPayment) return;
-     const modal = await this.modalController.create({
-          component: ModalPaymentComponent,
-          cssClass: 'auto-height',
-          componentProps:{OrderAmount: pack.price},
-          initialBreakpoint: 0.90,
-          breakpoints: [0, 0.90, 1],
-          handle: true
-        });
-        
-        await modal.present();
-    //await this.showPaymentMethods(pack);
-  }
+ async purchasePack(pack: Pack) {
+  if (this.isProcessingPayment) return;
+  this.isProcessingPayment = true;
 
-  async showPaymentMethods(pack: Pack) {
-    const actionSheet = await this.actionSheetController.create({
-      header: 'Méthode de Paiement',
-      buttons: [
-        {
-          text: 'Carte Bancaire (in-app)',
-          icon: 'card-outline',
-          handler: () => this.processPayment(pack, 'gpay')
-        },
-        {
-          text: 'PayPal',
-          icon: 'logo-paypal',
-          handler: () => this.processPayment(pack, 'paypal')
-        },
-        {
-          text: 'MonCash',
-          icon: 'cash-outline',
-          handler: () => this.processPayment(pack, 'moncash')
-        },
-        {
-          text: 'Annuler',
-          icon: 'close-outline',
-          role: 'cancel'
-        }
-      ]
-    });
-
-    await actionSheet.present();
-  }
-
-  async processPayment(pack: Pack, paymentMethod: string) {
-    if (this.isProcessingPayment) return;
-
-    this.isProcessingPayment = true;
-    this.paymentStatus = 'preparing';
-    this.paymentMessage = 'Préparation de votre achat...';
-    
-    let loading: HTMLIonLoadingElement | null = null;
-    
-    try {
-      loading = await this.loadingController.create({
-        message: this.paymentMessage,
-        spinner: 'circles',
-        backdropDismiss: false
-      });
-      await loading.present();
-
-      if (paymentMethod === 'moncash') {
-        await this.processMonCashPayment(pack, loading);
-      } else if(paymentMethod == 'paypal') {
-        await this.processPaypalPayment(pack, loading);
-      }else{
-        
-      }
-    } catch (error) {
-      await this.handlePaymentError(error, loading);
-    } finally {
-      this.isProcessingPayment = false;
-      if (loading) {
-        await loading.dismiss();
-      }
-      
-      setTimeout(() => {
-        this.paymentStatus = 'idle';
-        this.paymentMessage = '';
-      }, 3000);
-    }
-  }
-
-  private async processMonCashPayment(pack: Pack, loading: HTMLIonLoadingElement): Promise<void> {
-    try {
-      this.paymentStatus = 'processing';
-      this.paymentMessage = 'Connexion à MonCash...';
-      
-      await loading.dismiss();
-      loading = await this.loadingController.create({
-        message: this.paymentMessage,
-        spinner: 'circles',
-        duration: 10000,
-        backdropDismiss: false
-      });
-      await loading.present();
-
-      const paymentResponse = await firstValueFrom(
-        this.paymentService.createValidatedPayment(pack.price)
-      );
-
-      this.paymentMessage = 'Redirection vers MonCash...';
-      await loading.dismiss();
-      console.log("reponse payment : ", paymentResponse);
-      
-      // Stocker l'URL actuelle dans le localStorage pour pouvoir y revenir après le paiement
-      this.returnUrl = this.router.url;
-      localStorage.setItem('moncash_return_url', this.returnUrl);
-      
-      // Ouvrir la page de paiement MonCash avec Capacitor Browser
-      await Browser.open({ 
-        url: paymentResponse.redirect_url,
-        windowName: '_self',
-        presentationStyle: 'popover'
-      });
-
-      // Attendre un peu pour que le navigateur s'ouvre
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-    } catch (error) {
-      console.error('MonCash payment error:', error);
-      throw error;
-    }
-  }
-
-  private async processPaypalPayment(pack: Pack, loading: HTMLIonLoadingElement): Promise<void> {
   try {
-    this.paymentStatus = 'processing';
-    this.paymentMessage = 'Connexion à PayPal...';
-
-    await loading.dismiss();
-    loading = await this.loadingController.create({
-      message: this.paymentMessage,
-      spinner: 'circles',
-      duration: 10000,
-      backdropDismiss: false
-    });
-    await loading.present();
-
-    const paymentResponse = await firstValueFrom(
-      this.paymentService.createPaypalOrder(pack.price)
-    );
-
-    this.paymentMessage = 'Redirection vers PayPal...';
-    await loading.dismiss();
-    console.log("reponse PayPal : ", paymentResponse);
-
-    // Ouvrir la page PayPal avec Capacitor Browser
-    await Browser.open({
-      url: paymentResponse.approvalUrl,
-      windowName: '_self',
-      presentationStyle: 'popover'
+    const modal = await this.modalController.create({
+      component: ModalPaymentComponent,
+      cssClass: 'auto-height',
+      componentProps: { OrderAmount: Number(pack.price) },
+      initialBreakpoint: 0.90,
+      breakpoints: [0, 0.90, 1],
+      handle: true
     });
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
 
-  } catch (error) {
-    console.error('PayPal payment error:', error);
-    throw error;
+    if (!data?.paymentUrl) return;
+
+    // ── Stocke le contexte métier complet avant toute redirection ──
+    sessionStorage.setItem('pending_order_id', data.extra);
+    sessionStorage.setItem('pending_payment_method', data.method);
+    sessionStorage.setItem('pending_payment_context', JSON.stringify({
+      reason: 'purchase_pack',
+      pack: {
+        id: pack.id,
+        name: pack.name,
+        amount: pack.amount,
+        itemType: pack.itemType,
+        couponType: pack.couponType,
+      },
+      redirectOnSuccess: '/home',
+      redirectOnFailure: '/home',
+    }));
+
+    // ── Ouvre la passerelle ──
+    const result = await this.paymentGateway.processPayment(data.paymentUrl, data.method, data.extra);
+    if (result.success) {
+          this.modalController.dismiss({success:true});
+         
+        }else{
+          this.errorMessage = "Payment of coins failed";
+        }
+  } finally {
+    this.isProcessingPayment = false;
   }
 }
 
 
 
+ 
 
  
 
-  private async processOtherPayment(pack: Pack, paymentMethod: string, loading: HTMLIonLoadingElement): Promise<void> {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      this.paymentStatus = 'processing';
-      this.paymentMessage = `Paiement de ${pack.amount} coins en cours...`;
-      
-      await loading.dismiss();
-      loading = await this.loadingController.create({
-        message: this.paymentMessage,
-        spinner: 'circles',
-        backdropDismiss: false
-      });
-      await loading.present();
-      
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
-      this.paymentMessage = 'Finalisation de votre achat...';
-      await loading.dismiss();
-      loading = await this.loadingController.create({
-        message: this.paymentMessage,
-        spinner: 'circles',
-        backdropDismiss: false
-      });
-      await loading.present();
-      
-      const updatedWallet = await firstValueFrom(this.walletService.purchasePackCoins(pack, 'coins', paymentMethod));
-      
-      if (updatedWallet) {
-        this.paymentStatus = 'success';
-        this.paymentMessage = `✅ ${pack.amount} coins ajoutés à votre compte!`;
-        await loading.dismiss();
-        loading = await this.loadingController.create({
-          message: this.paymentMessage,
-          spinner: 'circles',
-          backdropDismiss: false,
-          duration: 2000
-        });
-        await loading.present();
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        this.showToast(`Achat de ${pack.amount} coins réussi!`, 'success');
-        this.modalController.dismiss({ success: true, pack, wallet: updatedWallet });
-      } else {
-        throw new Error('Purchase failed - no wallet returned');
-      }
-  }
-
-  private async handlePaymentError(error: any, loading: HTMLIonLoadingElement | null): Promise<void> {
-    console.error('Payment error:', error);
-    this.paymentStatus = 'error';
-    
-    let errorMessage = 'Erreur lors du paiement. Veuillez réessayer.';
-    if (error instanceof Error && error.message?.includes('wallet')) {
-      errorMessage = 'Impossible de préparer votre compte. Veuillez réessayer.';
-    } else if (error instanceof Error && error.message?.includes('support')) {
-      errorMessage = 'Un problème technique est survenu. Contactez le support.';
-    } else if (error instanceof Error && error.message?.includes('MonCash')) {
-      errorMessage = 'Erreur lors de la communication avec MonCash. Veuillez réessayer.';
+ getIconByPrice(price: number): string {
+    if (price < 100) {
+      return 'assets/images/coins/coin_unit.png';
+    } else if (price < 200) {
+      return 'assets/images/coins/stack_coins.png';
+    } else if (price < 500) {
+      return 'assets/images/coins/bag_coins.png';
+    } else if (price < 1000) {
+      return 'assets/images/coins/one_gems.png';
+    } else if (price < 2000) {
+      return 'assets/images/coins/treasure-chest.png';
+    }else if (price < 5000) {
+      return 'assets/images/coins/two_diamonds.png';
     }
-    
-    this.paymentMessage = `❌ ${errorMessage}`;
-    
-    if (loading) {
-      await loading.dismiss();
-      const errorLoading = await this.loadingController.create({
-        message: this.paymentMessage,
-        spinner: 'circles',
-        backdropDismiss: false,
-        duration: 3000
-      });
-      await errorLoading.present();
+    else {
+      return 'assets/images/coins/diamond_bag.png';
     }
-    
-    this.showToast(errorMessage, 'error');
   }
 
   async showToast(message: string, type: 'success' | 'error' | 'warning' = 'success') {
