@@ -78,7 +78,7 @@
                 <!-- Pied du ticket -->
                 <div class="ticket-footer">
                   <div class="pack-price">
-                    <span>{{ pack.price }}</span>
+                    <span>{{ pack.priceInCoins }}</span>
                   <ion-img src="../../../assets/icon/coin-gold.png" ></ion-img>
                       
                   </div>
@@ -99,7 +99,7 @@
               <div class="pack-buy-section">
                 <button 
                   class="pack-buy-btn" 
-                  (click)="showPaymentMethods(pack)"
+                  (click)="buyCoupon(pack)"
                   [disabled]="isProcessingPayment"
                 >
                   <span>{{ isProcessingPayment ? 'Traitement...' : 'Acheter' }}</span>

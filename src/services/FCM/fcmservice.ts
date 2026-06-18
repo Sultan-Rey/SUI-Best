@@ -134,7 +134,7 @@ export class FCMService {
     const data = notification.data || {};
 
     // ✅ VÉRIFIER SI C'EST UNE NOTIFICATION DE NOUVEL UTILISATEUR (P2P)
-    if (data.type === 'new_classmate') {
+    if (data.type === 'classmate') {
       // Afficher une notification locale (optionnel)
       this.notificationManager.notifyNewMessage(
         title,
@@ -157,7 +157,10 @@ export class FCMService {
       this.notificationManager.notifyChallengeCreated(
         title, data.challengeId || 'unknown', data.userId || 'unknown'
       );
-    } else {
+    } else if (data.type == 'content' ){
+      this.notificationManager.notifyNewContent('content',data.count );
+    }
+     else {
       this.notificationManager.notifyNewMessage(title, body, 'system', 'system');
     }
   }
@@ -177,7 +180,7 @@ export class FCMService {
     }
 
     // CAS 2: Notification de nouvel utilisateur P2P (sans deeplink explicite)
-    if (type === 'new_classmate') {
+    if (type === 'classmate') {
       const newUserId = data.newUserId || data.userId;
       if (newUserId) {
         // Construire le chemin vers la page profil avec le userId

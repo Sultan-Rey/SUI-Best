@@ -1,5 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
-import { environment } from 'src/environments/environment.prod';
+import { environment } from 'src/environments/environment';
 import {
   HttpClient, HttpEvent, HttpHeaders, HttpParams, HttpErrorResponse
 } from '@angular/common/http';
@@ -79,8 +79,9 @@ export class ApiJSON {
     contents: 30 * 1000,       // 30 secondes pour les publications
     comments: 2 * 60 * 1000,    // 2 minutes pour les commentaires
     conversations: 5 * 1000,    // 5 secondes pour les conversations
-    challenges: 3 * 60 * 1000,  // 3 minutes pour les challenges
+    challenges: 1 * 60 * 1000,  // 3 minutes pour les challenges
     media: 30 * 60 * 1000,      // 30 minutes pour les médias
+    settings: 60 * 60 * 1000,   // 1hres pour les settings admin
     default: 10 * 60 * 1000     // 10 minutes par défaut
   };
   

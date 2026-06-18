@@ -39,7 +39,8 @@ export interface UserProfile {
   coverImg?: string;
   username: string;
   displayName ?: string;
-  userInfo: UserInfo,
+  userInfo: UserInfo;
+  memberShip?: any;
   type:  'fan'| 'artist'| 'admin' | 'creator';
   isVerified?: boolean;
   allowed_exclusive?:boolean;

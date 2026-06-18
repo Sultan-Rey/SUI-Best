@@ -125,7 +125,7 @@ export class NotificationManagerService {
     challenges: true,
     rewards: true,
     levelUps: true,
-    dailyReminders: false,
+    dailyReminders: true,
     quietHours: {
       enabled: false,
       start: '22:00',

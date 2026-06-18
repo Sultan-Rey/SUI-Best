@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { IonContent, IonImg, IonIcon, IonSpinner } from '@ionic/angular/standalone';
 import { ModalController, ToastController, LoadingController, ActionSheetController } from '@ionic/angular';
 import { UserBalance, WalletService } from '../../../services/Service_wallet/wallet-service';
@@ -14,6 +15,7 @@ import { ModalPaymentComponent } from '../modal-payment/modal-payment.component'
 // Interface pour les packs avec informations du propriétaire
 interface CouponPackWithOwner extends Pack {
   ownerName: string;
+  priceInCoins: number; // Prix converti en coins (price gourdes ÷ coin_conversion_rate)
 }
 
 @Component({
@@ -42,7 +44,6 @@ export class BuyCouponModalComponent implements OnInit {
     private modalController: ModalController,
     private toastController: ToastController,
     private loadingController: LoadingController,
-    private actionSheetController: ActionSheetController,
     private walletService: WalletService,
     private incomeService: IncomeService,
     private authService: Auth
@@ -60,12 +61,17 @@ export class BuyCouponModalComponent implements OnInit {
   loadCouponPacksFromAPI() {
     this.isLoading = true;
     this.loadingError = null;
-    
-    this.incomeService.getCouponsPacks().subscribe({
-      next: (packs: Pack[]) => {
+
+    forkJoin({
+      packs: this.incomeService.getCouponsPacks(),
+      conversionRate: this.walletService.getCoinConversionRate()
+    }).subscribe({
+      next: ({ packs, conversionRate }) => {
         this.couponPacks = packs.map(pack => ({
           ...pack,
-          ownerName: 'BEST Academy'
+          ownerName: 'BEST Academy',
+          // Arrondi au coin supérieur : ex. 150 gourdes ÷ 30 gourdes/coin = 5 coins
+          priceInCoins: Math.ceil(pack.price / conversionRate)
         }));
         this.isLoading = false;
       },
@@ -98,61 +104,12 @@ export class BuyCouponModalComponent implements OnInit {
     this.loadCouponPacksFromAPI();
   }
 
-  async showPaymentMethods(pack: CouponPackWithOwner) {
-    // const actionSheet = await this.actionSheetController.create({
-    //   header: 'Méthode de Paiement',
-    //   buttons: [
-    //     {
-    //       text: 'Gpay',
-    //       icon: 'card-outline',
-    //       handler: () => this.processPayment(pack, 'gpay')
-    //     },
-    //     {
-    //       text: 'PayPal',
-    //       icon: 'logo-paypal',
-    //       handler: () => this.processPayment(pack, 'paypal')
-    //     },
-    //     {
-    //       text: 'MonCash',
-    //       icon: 'cash-outline',
-    //       handler: () => this.processPayment(pack, 'moncash')
-    //     },
-    //     {
-    //       text: 'Annuler',
-    //       icon: 'close-outline',
-    //       role: 'cancel'
-    //     }
-    //   ]
-    // });
+  async buyCoupon(pack: CouponPackWithOwner){
 
-    // await actionSheet.present();
-
-     if (this.isProcessingPayment) return;
-         const modal = await this.modalController.create({
-              component: ModalPaymentComponent,
-              cssClass: 'auto-height',
-              componentProps:{OrderAmount: pack.price},
-              initialBreakpoint: 0.90,
-              breakpoints: [0, 0.90, 1],
-              handle: true
-            });
-            
-            await modal.present();
-  }
-
-  async processPayment(pack: CouponPackWithOwner, paymentMethod: string) {
-       if (this.isProcessingPayment) return;
-
-    // Vérifier si l'utilisateur a assez de coins
-    const currentBalance = this.walletService.getBalance();
-    const requiredCoins = pack.price;
-    
-    if (!currentBalance || currentBalance.coins < requiredCoins) {
-      const currentCoins = currentBalance?.coins || 0;
-      this.showToast(`Solde insuffisant: ${currentCoins} / ${requiredCoins} coins requis`, 'error');
+    if(this.balance.coins < pack.priceInCoins){
+      this.showToast("Quantite de coins insuffisant","warning");
       return;
     }
-
     this.isProcessingPayment = true;
     const loading = await this.loadingController.create({
       message: 'Traitement du paiement...',
@@ -161,12 +118,12 @@ export class BuyCouponModalComponent implements OnInit {
     });
     await loading.present();
 
-    try {
+     try {
       // Mise à jour du message de chargement pour plus de feedback
       loading.message = 'Communication avec le serveur...';
       
       // Utiliser walletService pour l'achat (il gère maintenant la mise à jour du pack)
-      this.walletService.purchasePack(pack, 'coupons', paymentMethod, String(this.currentUser.id)).subscribe({
+      this.walletService.purchasePack(pack, 'coupons', 'coins', String(this.currentUser.id)).subscribe({
         next: (updatedWallet) => {
           // Succès de l'achat
           loading.message = 'Achat réussi! Mise à jour du solde...';
@@ -213,7 +170,9 @@ export class BuyCouponModalComponent implements OnInit {
       this.showToast('Une erreur inattendue est survenue. Veuillez réessayer.', 'error');
       this.isProcessingPayment = false;
     }
+
   }
+
 
   async showToast(message: string, type: 'success' | 'error' | 'warning' = 'success') {
     const toast = await this.toastController.create({

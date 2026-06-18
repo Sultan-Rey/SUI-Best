@@ -1436,9 +1436,9 @@ onPressEnd(post: Content) {
 
   private getCurrentChallenge(post: Content) {
 
-    if (!post.challengeId) return;
+    if (!post.challengeId || post.challengeId == 'pending_acceptance') return;
 
-    
+  
 
     this.challengeService.getChallengeById(post.challengeId).pipe(
 
@@ -1776,7 +1776,7 @@ showAccount(userId:string){
 
   canParticipateInChallenge(post: Content): boolean {
 
-    const challenge = this.currentChallenge[post.challengeId];
+    const challenge = this.currentChallenge[post.challengeId || ''];
 
     if (!challenge || !this.currentUserProfile?.type) return false;
 

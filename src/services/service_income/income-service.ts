@@ -13,6 +13,7 @@ export class IncomeService {
    private readonly COUPON_RESOURCE = 'coupons';
   constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
+  
   // ============================================
   // PACKS API METHODS
   // ============================================

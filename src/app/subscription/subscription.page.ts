@@ -29,7 +29,7 @@ import {
   eyeOutline,
 } from 'ionicons/icons';
 import { SubscriptionService } from 'src/services/Service_subscription/subscription-service';
-import { User } from 'src/models/User';
+import { User, UserProfile } from 'src/models/User';
 import { firstValueFrom } from 'rxjs';
 import { Auth } from 'src/services/AUTH/auth';
 import { NotificationManagerService } from 'src/services/Notification/notification-manager-service';
@@ -37,6 +37,7 @@ import { ModalPaymentComponent } from '../components/modal-payment/modal-payment
 import { PaymentService } from 'src/services/Service_payment/payment-service';
 import { PaymentGatewayService } from 'src/services/Service_payment/payment-gateway-service';
 import { WalletService } from 'src/services/Service_wallet/wallet-service';
+import { ProfileService } from 'src/services/Service_profile/profile-service';
 
 @Component({
   selector: 'app-subscription',
@@ -66,12 +67,14 @@ export class SubscriptionPage implements OnInit {
   isLoading = false;
   error: string | null = null
   registrationData: any | null = null;
-  
+  renewalData: any | null = null;
+
   private router = inject(Router);
   private alertController = inject(AlertController);
   private loadingController = inject(LoadingController);
   private modalController = inject(ModalController);
   private subscriptionService = inject(SubscriptionService);
+  private profileService = inject(ProfileService);
   private auth = inject(Auth);
   private notificationManager = inject(NotificationManagerService);
   private paymentGateway = inject(PaymentGatewayService);
@@ -82,7 +85,10 @@ export class SubscriptionPage implements OnInit {
      addIcons({arrowBack,sparkles,flame,checkmarkCircle,rocket,'calendar':calendar,'trophy':trophy,'eyeOutline':eyeOutline,'diamondOutline':diamondOutline,'starOutline':starOutline,'trophyOutline':trophyOutline,});
 
   if(this.router.getCurrentNavigation()?.extras.state?.['registrationData']) {
-    this.registrationData = this.router.getCurrentNavigation()?.extras.state?.['registrationData'] as User;
+    this.registrationData = this.router.getCurrentNavigation()?.extras.state?.['registrationData'] as UserProfile;
+  }
+  if(this.router.getCurrentNavigation()?.extras.state?.['renewalData']) {
+    this.renewalData = this.router.getCurrentNavigation()?.extras.state?.['renewalData'] as any;
   }
 
    if (!this.registrationData) {
@@ -101,22 +107,30 @@ export class SubscriptionPage implements OnInit {
       message: "chargement...",
       spinner: 'dots',
       animated: true,
-      duration: 8000
+      duration: 10000
     });
     await loading.present();
     this.error = null;
     
     this.subscriptionService.getAvailablePlans().subscribe({
-      next: (plans) => {
-        this.plans = plans;
-        loading.dismiss();
-      },
-      error: (error) => {
-        console.error('💥 Erreur lors du chargement des plans:', error);
-        this.error = 'Impossible de charger les plans disponibles';
-        loading.dismiss();
-      }
-    });
+  next: (plans) => {
+    // Si renewalData existe et que son plan est 'Exhibition'
+    if (this.renewalData && this.renewalData.plan.trim() === 'Exhibition') {
+      // On NE GARDE QUE les plans qui n'ont PAS l'id 'Exhibition'
+      plans = plans.filter(plan => plan.name.trim() !== 'Exhibition');
+    }
+    if(this.registrationData && this.registrationData.type.trim() == 'creator'){
+      plans = plans.filter(plan => plan.name.trim() !== 'Exhibition');
+    }
+    this.plans = plans;
+    loading.dismiss();
+  },
+  error: (error) => {
+    console.error('💥 Erreur lors du chargement des plans:', error);
+    this.error = 'Impossible de charger les plans disponibles';
+    loading.dismiss();
+  }
+});
   }
 
   selectPlan(planId: string) {
@@ -170,7 +184,7 @@ export class SubscriptionPage implements OnInit {
         status: 'active',
         features: selectedPlan.features
       };
-
+      if(selectedPlan.price > 0){
       const modal = await this.modalController.create({
         component: ModalPaymentComponent,
         componentProps: {
@@ -181,12 +195,12 @@ export class SubscriptionPage implements OnInit {
         breakpoints: [0, 0.80, 1],
         handle: true
       });
-
+      
       await modal.present();
     
       const { data } = await modal.onDidDismiss();
      
-       if (data?.paymentUrl) {;
+       if (data?.paymentUrl) {
          const URL = data.paymentUrl as string;
          const ORDERID = data.extra as string;
          const result = await this.paymentGateway.processPayment(URL, data.method, ORDERID);
@@ -198,13 +212,60 @@ export class SubscriptionPage implements OnInit {
   ORDERID
 ).subscribe({
   next: () => {
-    this.tryCreateAccount();
+    if (this.registrationData.id && this.renewalData?.date) {
+
+      const payload: Partial<UserProfile> = {
+        userInfo: {
+          memberShip: {
+            plan: selectedPlan.name,
+            date: endDate
+          }
+        } as any
+      };
+
+      this.profileService.updateProfile(
+        this.registrationData.id,
+        payload
+      ).subscribe({
+        next: async () => {
+          this.profileService['api'].clearCache();
+
+          const alert = await this.alertController.create({
+            header: '🎉 Bienvenue parmi les VIP !',
+            message: `
+              Félicitations ! Votre adhésion <strong>${this.renewalData.plan}</strong> est maintenant active.
+              <br><br>
+              Vous faites désormais partie de nos membres VIP et bénéficiez des avantages exclusifs dans la communauté.
+            `,
+            backdropDismiss: false,
+            buttons: [
+              {
+                text: 'Continuer le vibe',
+                handler: () => {
+                  this.router.navigate(['/home']);
+                }
+              }
+            ]
+          });
+
+          await alert.present();
+        },
+        error: (error) => {
+          console.error('❌ Erreur lors de la mise à jour du profil :', error);
+          this.tryCreateAccount();
+        }
+      });
+
+    } else {
+      this.tryCreateAccount();
+    }
   },
+
   error: (err) => {
-    // ← ACTUELLEMENT ABSENT : l'erreur disparaît dans le vide
     console.error('❌ purchasePlan a échoué:', err);
-    // Décide ici si tu veux quand même appeler tryCreateAccount()
-    // car le wallet est sauvegardé en localStorage via savePendingPlanTransaction()
+
+    // Le wallet est sauvegardé localement,
+    // on poursuit le processus de création de compte.
     this.tryCreateAccount();
   }
 });
@@ -214,8 +275,13 @@ export class SubscriptionPage implements OnInit {
         console.error("Échec du paiement :", result.error);
         }
        }
+      }else{
+        this.tryCreateAccount();
+      }
     }
   }
+
+  
 
 
 

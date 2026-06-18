@@ -157,6 +157,7 @@ signup(userData: any): Observable<RegisterResponse> {
           type: registrationData.type,
           myFollows: registrationData.follows,
           myFans: [],
+          memberShip: registrationData.myPlan,
           myBlackList: [],
           username: await this.generateUniqueUsername(
             registrationData.first_name || 'user',

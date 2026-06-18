@@ -264,6 +264,8 @@ export class RankingPage implements OnInit, OnDestroy {
     try {
       // 1- Récupérer le profil utilisateur courant
       const currentUser = this.auth.getCurrentUser();
+      //2- Recuperer l'UID de l'admin 
+      const adminUID = await this.auth.getAdminUID().toPromise();
       if (!currentUser) {
         this.isLoading = false;
         return;
@@ -273,9 +275,9 @@ export class RankingPage implements OnInit, OnDestroy {
       this.currentUserProfile = currentProfile as UserProfile;
       
       // 2- Récupérer les challenges actifs des créateurs suivis
-      const challenges = await this.challengeService.getActiveChallenges().toPromise();
+      const challenges = await this.challengeService.getActiveChallenges(this.currentUserProfile.userInfo.school.id, adminUID || '-').toPromise();
       const followedCreatorIds = this.currentUserProfile?.myFollows || [];
-      const filteredChallenges = challenges?.filter(challenge => 
+      const filteredChallenges = challenges?.data.filter(challenge => 
         followedCreatorIds.includes(challenge.creator_id)
       );
       

@@ -174,27 +174,32 @@ export class HeaderComponentComponent  implements OnInit {
    
     
     this.updateBalance();
-      
       // Initialiser les récompenses quotidiennes
       this.initialiserRecompenses();
 
-      
     }
 
-  updateBalance(){
-    this.balance$ = this.walletService.balance$;
-      this.balance$.subscribe(balance => {
-        const previousCoins = this.userBalance.coins || 0;
-        
-        this.userBalance = balance || { coins: 0, coupons: 0 };
-        
-        // Trigger animation if values changed
-        if (previousCoins !== this.userBalance.coins) {
-          this.showCoinAnimation = true
-          setTimeout(() => this.showCoinAnimation = false, 800);
-        }
-      });
-  }
+  updateBalance() {
+  // S'abonner une seule fois aux changements de balance
+  this.balance$ = this.walletService.balance$;
+  
+  // Gérer la souscription pour éviter les fuites mémoire
+  this.walletService.balance$.pipe(
+    takeUntil(this.destroy$)
+  ).subscribe(balance => {
+    const previousCoins = this.userBalance.coins || 0;
+    
+    this.userBalance = balance || { coins: 0, coupons: 0 };
+    
+    // Trigger animation if values changed
+    if (previousCoins !== this.userBalance.coins) {
+      this.showCoinAnimation = true;
+      setTimeout(() => this.showCoinAnimation = false, 800);
+    }
+    
+    this.cdr.markForCheck();
+  });
+}
   /**
    * Détecte si l'application est sur mobile ou desktop
    */
@@ -269,7 +274,7 @@ onImageAvatarError(event: any) {
 
   // Callback pour l'animation Lottie
   onCoinAnimationCreated(animationItem: any) {
-    console.log('Coin Lottie animation created:', animationItem);
+    //console.log('Coin Lottie animation created:', animationItem);
   }
 
    private async showToast(message: string, type: 'success' | 'error' | 'warning' = 'success') {
@@ -327,7 +332,6 @@ onImageAvatarError(event: any) {
         // Forcer le rechargement du wallet pour mettre à jour la balance
         this.performCoinPurchase();
         this.walletService.reloadWallet();
-        this.updateBalance();
         this.cdr.markForCheck();
       }
     });
@@ -355,10 +359,11 @@ onImageAvatarError(event: any) {
     await modal.present();
     
     modal.onDidDismiss().then((data) => {
+      if (data.data && data.data.success) {
       // Recharger le wallet après la gestion des coupons
       this.walletService.reloadWallet();
-      this.updateBalance();
       this.cdr.markForCheck();
+      }
     });
   }
   // Méthode pour gérer le retour

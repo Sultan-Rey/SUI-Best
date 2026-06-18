@@ -205,7 +205,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
       is_active: [true],
 
       // Acceptance
-      is_acceptance_automatique: [true],
+      //is_acceptance_automatique: [true],
       
       // Type de participants
       allowed_participants: [ParticipantType.ALL, Validators.required]
@@ -284,7 +284,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
         ? new Date(this.challenge.start_date).toISOString() 
         : this.today,
       is_active: this.challenge.is_active !== false,
-      is_acceptance_automatique: this.challenge.is_acceptance_automatic,
+      //is_acceptance_automatique: this.challenge.is_acceptance_automatic,
       allowed_participants: this.challenge.allowed_participants || ParticipantType.ALL
     });
 
@@ -497,7 +497,7 @@ export class ChallengeFormComponent implements OnInit, OnDestroy {
     end_date: endDate,
     is_active: formValue.is_active,
     coupon_required: formValue.coupon_required,
-    is_acceptance_automatic: formValue.is_acceptance_automatique,
+    //is_acceptance_automatic: formValue.is_acceptance_automatique,
     allowed_participants: formValue.allowed_participants,
     entries_count:  formValue.entries_count == null ? 'illimite' : formValue.entries_count,
       };

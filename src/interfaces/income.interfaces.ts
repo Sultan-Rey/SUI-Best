@@ -7,6 +7,7 @@ export interface Pack {
   name: string;
   amount: number;
   price: number;
+  priceInCoins?:number;
   icon: string;
   couponType: CouponType;
   itemType: 'coins' | 'coupons' | 'gift';

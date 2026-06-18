@@ -27,7 +27,7 @@ export interface Content {
   // Identifiants
   id?: string;                // ID unique généré par la base de données
   userId: string;             // ID de l'utilisateur créateur
-  challengeId: string;       // Optionnel : ID du défi associé
+  challengeId?: string;       // Optionnel : ID du défi associé
   commentIds: string[];      // IDs des commentaires associés à ce contenu
   likedIds?:string[];        // IDs des likes associés à ce contenu
   giftIds?:string[];         // IDs des donateurs associés à ce contenu

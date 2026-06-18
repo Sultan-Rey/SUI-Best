@@ -382,7 +382,7 @@ ion-modal {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 0 16px 4px;
+  padding: 0 16px 8px;
 }
 
 // === CHALLENGE CARD ===
@@ -622,30 +622,134 @@ ion-modal {
   }
 }
 
-// === FLOATING ACTION BUTTON ===
-ion-fab {
-  bottom: 29%;
-  position: absolute;
-  z-index: 1000;
-  ion-fab-button {
-    --background: #ffffff;
-    --color: var(--color-purple);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-    --border-radius: 50%;
-    --padding-start: 0;
-    --padding-end: 0;
-    width: 56px;
-    height: 56px;
-  
+// === NOUVEAU BLOC : HEADER ACTIONS & BARRE DE RECHERCHE PREMIUM ===
+.header-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px 12px 16px;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 18px;
+    color: var(--color-muted);
+    pointer-events: none;
+  }
+}
+
+.premium-search-bar {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px 0 42px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.04);
+  border: none;
+  border-radius: 22px;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+
+  &::placeholder {
+    color: var(--color-muted);
+    opacity: 0.8;
+  }
+
+  &:focus {
+    background: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 0 0 1.5px var(--color-purple);
+  }
+}
+
+// Mode sombre pour la barre de recherche
+:host-context(.ion-palette-dark) {
+  .premium-search-bar {
+    background: rgba(255, 255, 255, 0.07);
     
-    ion-icon {
-      font-size: 28px;
+    &:focus {
+      background: rgba(255, 255, 255, 0.1);
     }
-    
-    &:active {
-      transform: scale(0.92);
-      --box-shadow: 0 1px 12px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.creator-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(107, 105, 105, 0.04);
+  color: whitesmoke;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+
+  ion-icon {
+    font-size: 22px;
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  // Version Bouton Principal (Création)
+  &.primary-action {
+    background: var(--color-purple);
+    color: #ffffff;
+
+    &:hover {
+      opacity: 0.9;
     }
+  }
+
+  // Badge notifications incrusté
+  .notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #ff3b30; // Rouge iOS natif
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--color-card-bg);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    animation: badgePop 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  }
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+:host-context(.ion-palette-dark) {
+  .action-icon-btn:not(.primary-action) {
+    background: rgba(255, 255, 255, 0.07);
   }
 }
 

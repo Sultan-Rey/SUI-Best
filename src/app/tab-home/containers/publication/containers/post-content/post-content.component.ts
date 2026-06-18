@@ -22,7 +22,10 @@ import { ChallengeService } from 'src/services/Service_challenge/challenge-servi
 import { UserProfile } from 'src/models/User';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 import { SystemMessenger } from 'src/services/Service_message/system-messenger';
-import { lastValueFrom, Observable } from 'rxjs';
+import { lastValueFrom, Observable, switchMap } from 'rxjs';
+import { Auth } from 'src/services/AUTH/auth';
+import { ParticipantRequest, RequestStatus } from 'src/models/ParticipantRequest';
+import { generateUUID } from 'src/app/utils/uuid';
 
 @Component({
   selector: 'app-post-content',
@@ -96,8 +99,8 @@ export class PostContentComponent implements OnInit, OnDestroy {
     private creationService:  CreationService,
     private challengeService: ChallengeService,
     private profileService:   ProfileService,
+    private authService: Auth,
     private systemMessenger:  SystemMessenger,
-    private loadingCtrl:      LoadingController,
     private alertCtrl:        AlertController,
     private toastCtrl:        ToastController,
     private cdr:              ChangeDetectorRef
@@ -130,21 +133,26 @@ export class PostContentComponent implements OnInit, OnDestroy {
   }
 
   loadChallenges(): void {
-    const creatorIds = [
-      this.CurrentUserProfile?.['id'] || '',
-      ...(this.CurrentUserProfile?.['myFollows'] || [])
-    ];
-    this.challengeService.getChallengesByCreator(creatorIds).subscribe({
-      next: challenges => {
-        this.challenges = challenges.filter(c =>
-          c.end_date && new Date(c.end_date) >= new Date()
-        );
-        this.cdr.markForCheck();
-      },
-      error: () => this.showError('Tableau des défis vide')
-    });
-  }
+  const creatorId = this.CurrentUserProfile?.['userInfo']['school']['id'] || '';
 
+  this.authService.getAdminUID().pipe(
+    switchMap(adminUID => this.challengeService.getActiveChallenges(creatorId, adminUID))
+  ).subscribe({
+    next: result => {
+      // is_active=1 et end_date >= now sont déjà filtrés côté API,
+      // donc plus besoin de re-filtrer ici
+      this.challenges = result.data;
+      this.cdr.markForCheck();
+    },
+    error: () => this.showError('Tableau des défis vide')
+  });
+}
+
+  
+
+  /**
+   * Démarre l'upload optimiste (sans métadonnées)
+   */
   /**
    * Démarre l'upload optimiste (sans métadonnées)
    */
@@ -154,26 +162,16 @@ export class PostContentComponent implements OnInit, OnDestroy {
     const file = this.activeMedia.file;
     const thumbBlob = await this.cameraService.generateThumbnail(file);
     
-    // Démarrer l'upload optimiste
-    this.backgroundUploadUuid = crypto.randomUUID();
+    // 💡 Remplacement sécurisé pour éviter le crash TypeError
+    this.backgroundUploadUuid = generateUUID();
     this.isBackgroundUploadActive = true;
-    
-    //console.log('[PostContent] Starting optimistic upload:', this.backgroundUploadUuid);
     
     // S'abonner à la progression
     this.creationService.uploadVideoFilesOnly(file, thumbBlob).subscribe({
       next: (result) => {
         this.backgroundUploadProgress = result.progress;
-        
-        if (result.thumbnailUrl) {
-          this.uploadedThumbnailUrl = result.thumbnailUrl;
-        }
-        
-        if (result.videoUrl) {
-          this.uploadedVideoUrl = result.videoUrl;
-        }
-        
-       // console.log('[PostContent] Upload progress:', result.progress + '%');
+        if (result.thumbnailUrl) this.uploadedThumbnailUrl = result.thumbnailUrl;
+        if (result.videoUrl) this.uploadedVideoUrl = result.videoUrl;
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -186,6 +184,11 @@ export class PostContentComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  /**
+   * Générateur de UUIDv4 compatible tout environnement (Http, Https, Native Webview)
+   */
+  
 
   /**
    * Arrête l'upload optimiste
@@ -224,29 +227,35 @@ export class PostContentComponent implements OnInit, OnDestroy {
     }
   }
 
-  async pickFromGallery(): Promise<void> {
-    this.isPickingMedia = true;
-    this.cdr.markForCheck();
-    
-    try {
-      // Utiliser la nouvelle méthode pickMedias qui supporte les vidéos ET les images
-      const mediaFiles = await this.cameraService.pickMultiple();
-      
-      if (mediaFiles.length > 0) {
-        // Prendre le premier média pour l'instant
-        this.setMedia(mediaFiles);
-        this.content.source = ContentSource.GALLERY;
-      }
-    } catch (error: any) {
-      if (error?.message?.includes('User cancelled')) {
-        return; // Annulation silencieuse
-      }
-      this.showError('Interruption du chargement de la galerie');
-    } finally {
-      this.isPickingMedia = false;
-      this.cdr.markForCheck();
+ async pickFromGallery(): Promise<void> {
+  this.isPickingMedia = true;
+  this.cdr.markForCheck();
+
+  try {
+    // Appeler la sélection unique mixte
+    const mediaFile = await this.cameraService.pickSingle();
+
+    if (mediaFile) {
+      // Puisque votre logique de gestion ou d'affichage (setMedia ou selectedMedia) 
+      // attend probablement un tableau, on lui passe le média unique dans un tableau `[mediaFile]`
+      this.setMedia([mediaFile]); 
+      this.content.source = ContentSource.GALLERY;
     }
+  } catch (error: any) {
+    console.error('[PostContent] Galerie error:', error);
+
+    // Éviter d'afficher une alerte si l'utilisateur a simplement fait "Retour"
+    if (error?.message?.includes('cancelled') || error?.message?.includes('cancel')) {
+      return;
+    }
+
+    this.showError('Impossible de charger le média depuis la galerie.');
+  } finally {
+    // Sécurité essentielle : enlever le loader quoi qu'il arrive
+    this.isPickingMedia = false;
+    this.cdr.markForCheck();
   }
+}
 
   async pickFromRecentGallery(): Promise<void> {
     this.isPickingMedia = true;
@@ -550,7 +559,7 @@ async submit(): Promise<void> {
       isPublic:       this.isPublic,
       allowDownloads: this.content.allowDownloads ?? true,
       allowComments:  this.content.allowComments ?? false,
-      challengeId:    this.selectedChallenge?.id ?? '',
+      challengeId:    this.selectedChallenge?.id ?  'pending_acceptance':'',
       cadrage:        'default',
       width:          this.activeMedia?.width,
       height:         this.activeMedia?.height,
@@ -683,7 +692,7 @@ private async handleSuccess(content: Content): Promise<void> {
 
   // 2. Gestion spécifique si c'est une participation à un challenge
   // Utilise la logique de notification et de compteur de participants
-  await this.manageChallengeContent();
+  await this.manageChallengeContent(content);
 
   // 3. Réinitialisation complète de l'interface
   this.resetForm();
@@ -714,20 +723,28 @@ try {
         } catch { /* non bloquant */ }
   }
 
-  private async manageChallengeContent(){
-if(this.isChallenging && this.selectedChallenge && this.selectedChallenge.participants_count){
-        this.selectedChallenge.participants_count +=1;
-        this.challengeService.updateChallenge(this.selectedChallenge.id, this.selectedChallenge)
+  private async manageChallengeContent(content:Content){
+
+if(this.selectedChallenge && this.selectedChallenge.id !=='' && this.selectedChallenge.creator_id.trim() !== this.CurrentUserProfile.id.trim() ){
        
-        if(!this.selectedChallenge.is_acceptance_automatic)
-        this.systemMessenger.sendParticipationRequired_msg(`${this.CurrentUserProfile.displayName} souhaite participer a ${this.selectedChallenge.name} cliquer pour plus d'options`, this.selectedChallenge.creator_id, this.CurrentUserProfile.username);
-        const alert = await this.alertCtrl.create({
+        const participationRequest: ParticipantRequest = {
+          challenge_id: this.selectedChallenge.id,
+          user_id: this.CurrentUserProfile.id,
+          content_id: content.id || '',
+          status: 'pending'
+        }
+       
+        this.challengeService.createParticipationRequest(participationRequest).subscribe({
+          next:async()=>{
+          const alert = await this.alertCtrl.create({
           header:    'Participation au défi',
           subHeader: 'Acceptation en cours de traitement',
           message:   'Attendez de recevoir votre ticket d\'acceptation.',
           buttons:   ['Merci !']
         });
         await alert.present();
+          }
+        });   
 
     } else {
         this.showSuccess('Contenu publié avec succès !');

@@ -85,3 +85,16 @@
     }
   }
 }
+
+.dialog-modal {
+  // 1. On surcharge les variables CSS natives d'Ionic pour les modals
+  --width: 90%;          // Largeur du dialogue sur mobile
+  --max-width: 400px;    // Largeer max pour éviter qu'il soit immense sur tablette/desktop
+  --height: auto;        // S'adapte automatiquement à la taille du contenu HTML
+  --border-radius: 16px; // Pour des jolis bords arrondis style "Cercle VIP"
+
+  // 2. On s'assure que le wrapper respecte la hauteur automatique
+  .modal-wrapper {
+    min-height: auto;
+  }
+}

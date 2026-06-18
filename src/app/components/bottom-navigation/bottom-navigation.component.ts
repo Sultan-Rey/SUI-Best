@@ -32,7 +32,7 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
       idx: 0,
       page: 'challenges',
       label: 'Challenges',
-      emoji: '⭐',
+      emoji: '✨',
       route: '/challenges',
       iconPath: `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>`,
     },
@@ -80,6 +80,14 @@ export class BottomNavigationComponent implements OnInit, AfterViewInit, OnDestr
   }
   get theme(): 'dark' | 'light' { return this._theme; }
   private _theme: 'dark' | 'light' = 'dark';
+
+
+  @Input() set requestCount(value: boolean | undefined){
+      const challengeItem = this.navItems.find(item => item.page === 'challenges');
+      if (challengeItem) {
+      challengeItem.star = value && value == true ? value : undefined;
+    }
+  }
 
   @Input() set unreadCount(value: number | undefined) {
     const messagesItem = this.navItems.find(item => item.page === 'messages');

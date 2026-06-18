@@ -25,3 +25,12 @@ export interface Transaction {
     paymentMethod?: string;
     metadata?: Record<string, any>;
 }
+
+export interface Setting{
+    admin_validation_limit:number;
+    collaborator_payout_limit:number;
+    email_notification:boolean;
+    two_factor_authentication:boolean;
+    profile_visibility:boolean;
+    coin_conversion_rate:number;
+}

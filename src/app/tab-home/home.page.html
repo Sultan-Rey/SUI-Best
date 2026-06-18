@@ -2,6 +2,7 @@
 ... (inchangé) -->
 
 <app-header-component 
+  style="margin-top: calc(10px + env(safe-area-inset-top));"
   [goBackTarget]="goBackTarget" 
   (goBack)="onGoBack($event)"
   [UserCanPublish] = "currentUserProfile.type!=='fan'"
@@ -13,6 +14,8 @@
 
 <!-- Contenu Ionic simplifié -->
 <ion-content [fullscreen]="false" class="home-content" #contentRef>
+  
+
   <div class="content-spacer"></div>
   
   <!-- Section Bannières Publicitaires Superposée -->
@@ -84,7 +87,7 @@
 </ion-content>
 
 <!-- Floating Avatar Button -->
-<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id && (isMobile && !isMobileWeb) && isOnline">
+<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id && isMobile">
   <!-- Affiche même offline pour accès au profil cached -->
   <img 
   [src]="currentUserProfile.avatar | mediaUrl | async" 
@@ -98,11 +101,12 @@
 </div>
 
 <ion-footer *ngIf="isMobile">
-  <app-bottom-navigation
-    (activeItemChange)="onNavigationChange($event)"
-    [theme]="'dark'"
-    [canPublish] = "currentUserProfile.type!=='fan'"
-    [allowedToExclusive] = "currentUserProfile.allowed_exclusive"
-    [unreadCount]="countUnreadMessages">
-  </app-bottom-navigation>
+ <app-bottom-navigation
+  (activeItemChange)="onNavigationChange($event)"
+  [theme]="'dark'"
+  [canPublish]="currentUserProfile.type !== 'fan'"
+  [allowedToExclusive]="currentUserProfile.allowed_exclusive"
+  [unreadCount]="countUnreadMessages"
+  [requestCount]="(participationRequestCount() | async) ?? false">
+</app-bottom-navigation>
 </ion-footer>

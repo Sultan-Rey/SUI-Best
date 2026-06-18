@@ -12,7 +12,7 @@ import { DiscoveryViewComponent } from "./containers/discovery-panel/discovery-v
 import { FollowedViewComponent } from "./containers/followed-panel/followed-view.component";
 import { MessagesComponent } from './containers/messages/messages.component';
 import { GestureController } from '@ionic/angular';
-import { switchMap, filter, takeUntil, Subject, interval } from 'rxjs';
+import { switchMap, filter, takeUntil, Subject, interval, map, Observable, of } from 'rxjs';
 import { Auth } from 'src/services/AUTH/auth';
 import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import { BottomNavigationComponent } from '../components/bottom-navigation/bottom-navigation.component';
@@ -27,6 +27,7 @@ import { NotificationManagerService } from 'src/services/Notification/notificati
 import { Platform } from '@ionic/angular';
 import { CreationService } from 'src/services/Service_content/creation-service';
 import { Content } from 'src/models/Content';
+import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 
 @Component({
   selector: 'app-home',
@@ -172,6 +173,7 @@ export class HomePage implements OnInit, OnDestroy, AfterViewInit {
     private authService: Auth,
     private profileService: ProfileService,
     private messageService: MessageService,
+    private challengeService: ChallengeService,
     private cdr: ChangeDetectorRef,
     private gestureCtrl: GestureController,
     private toastController: ToastController,
@@ -273,6 +275,19 @@ ngAfterViewInit() {
       }
     });
   }
+
+  participationRequestCount(): Observable<boolean> {
+  if (!this.currentUserProfile?.id) {
+    return of(false);
+  }
+  if (!this.currentUserProfile?.type || this.currentUserProfile?.type !== 'creator' ) {
+    return of(false);
+  }
+
+  return this.challengeService.pendingRequestsCount$.pipe(
+    map(count => (count ?? 0) > 0)
+  );
+}
 
   private setupAuthSubscription(): void {
     this.authService.currentUser$.pipe(

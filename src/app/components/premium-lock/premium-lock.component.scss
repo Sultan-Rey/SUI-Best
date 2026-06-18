@@ -1,0 +1,123 @@
+#premium-lock-modal {
+  --background: transparent;
+  --width: 92%;
+  --max-width: 360px;
+  --height: auto;
+  --border-radius: 32px;
+  align-items: center;
+
+  &::part(content) {
+    border-radius: 32px;
+    background: transparent;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+.paywall-container {
+  width: 100%;
+  padding: 32px 24px 24px 24px;
+  background: rgba(18, 18, 26, 0.82); 
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  .exclusive-pill {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: #00ffcc; // Point néon actif
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ffcc;
+    }
+  }
+
+  .visual-wrapper {
+    margin: 28px 0;
+    width: 120px;
+    height: 120px;
+    
+    .neon-animation {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  .text-group {
+    margin-bottom: 32px;
+
+    .headline {
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 0 0 10px 0;
+    }
+
+    .subhead {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0 8px;
+    }
+  }
+
+  .action-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    .cta-button {
+      width: 100%;
+      height: 54px;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); // Dégradé bleu électrique / cyan cyber
+      color: #000000; // Texte sombre pour un contraste maximal et lisible
+      border: none;
+      border-radius: 18px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(79, 172, 254, 0.35);
+      transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+
+      &:active {
+        transform: scale(0.96); // Effet enfoncé au clic tactile
+      }
+    }
+
+    .dismiss-link {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px;
+      transition: color 0.2s ease;
+      cursor: pointer;
+
+      &:active {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+  }
+}

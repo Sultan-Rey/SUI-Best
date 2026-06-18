@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.bestacademy.app',
-  appName: 'StarInUniform',
+  appName: 'StarInu',
   webDir: 'www',
   // Ajout de la configuration pour le plugin HTTP natif
   plugins: {

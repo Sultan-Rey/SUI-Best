@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { tap, catchError, switchMap, map } from 'rxjs/operators';
-import { Wallet, Transaction } from '../../models/Wallet';
+import { Wallet, Transaction, Setting } from '../../models/Wallet';
 import { Coupon, CouponType } from '../../models/Coupon';
 import { ApiJSON } from '../API/api-json';
 import { IncomeService } from '../service_income/income-service';
@@ -22,6 +22,7 @@ export class WalletService {
  
   private readonly STORAGE_KEY = 'best_user_wallet_cache';
   private readonly WALLET_RESOURCE = 'wallets';
+  private readonly CONVERSION_SETTING = 'settings'
   
   // BehaviorSubjects for reactive updates
   private walletSubject = new BehaviorSubject<Wallet | null>(null);
@@ -898,17 +899,21 @@ clearPendingPlanTransactions(userId: string): void {
       date: new Date().toISOString(),
       price: pack.price,
       paymentMethod,
-      metadata: { packId: pack.id }
+      metadata: { status:"completed", packId: pack.id }
     };
 
     // Mettre à jour le wallet avec la nouvelle transaction et générer les coupons
     const currentTransactions = Array.isArray(currentWallet.transactions) ? currentWallet.transactions : [];
     const updatedTransactions = [transaction, ...currentTransactions];
     
+    if(!pack.priceInCoins){
+      pack.priceInCoins = 0;
+    }
     const updatedBalance = {
-      coins: (currentWallet.balance.coins || 0) - pack.price,
+      coins: (currentWallet.balance.coins || 0) - pack.priceInCoins,
       coupons: (currentWallet.balance.coupons || 0) + pack.amount
     };
+  
 
     return this.generateIndividualCoupons(pack, currentWallet).pipe(
       switchMap(walletWithCoupons => {
@@ -1005,5 +1010,27 @@ createCouponUsageTransaction(
   // Ajouter cette transaction au wallet de l'admin
   return this.updateAdminWalletTransactions([transaction], false);
 }
+
+/**
+   * Récupère la configuration globale (ID fixe 1)
+   */
+  getSettings(): Observable<Setting> {
+    // Comme il n'y a qu'une ligne, on récupère l'ID 1
+    return this.api.getById<Setting>(this.CONVERSION_SETTING, '1');
+  }
+
+/*
+  * spécifiquement le taux de conversion des Coins vers HTG.
+   */
+  getCoinConversionRate(): Observable<number> {
+    return this.getSettings().pipe(
+      map(settings => {
+        // Sécurité : si le taux est présent et valide (> 0), on le renvoie, sinon fallback à 5
+        return settings && settings.coin_conversion_rate > 0 
+          ? settings.coin_conversion_rate 
+          : 5;
+      })
+    );
+  }
 
 }

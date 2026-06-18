@@ -1,0 +1,353 @@
+:host {
+  --premium-bg-light: #f8f9fa;
+  --premium-card-bg-light: #ffffff;
+  --premium-border-light: rgba(0, 0, 0, 0.05);
+  --premium-text-main-light: #1c1c1e;
+  --premium-text-muted-light: #8e8e93;
+
+  --premium-bg-dark: #000000;
+  --premium-card-bg-dark: #1c1c1e;
+  --premium-border-dark: rgba(255, 255, 255, 0.08);
+  --premium-text-main-dark: #ffffff;
+  --premium-text-muted-dark: #aeaeac;
+
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+// Variables dynamiques par défaut
+.premium-header, .premium-content {
+  --background: var(--premium-bg-light);
+  color: var(--premium-text-main-light);
+}
+
+.premium-header {
+  ion-toolbar {
+    --background: var(--premium-bg-light);
+    --border-width: 0;
+    padding: 8px 8px 0 8px;
+  }
+  ion-title {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    text-align: center;
+  }
+}
+
+.close-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--premium-text-main-light);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  
+  ion-icon { font-size: 18px; }
+  &:active { transform: scale(0.95); }
+}
+
+.premium-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+}
+
+// Liste des challenges sous forme de "Stack"
+.challenges-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.challenge-group-card {
+  background: var(--premium-card-bg-light);
+  border: 1px solid var(--premium-border-light);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  &.is-expanded {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    border-color: rgba(124, 58, 237, 0.2); // Légère teinte violette sur le focus
+  }
+}
+
+.challenge-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  cursor: pointer;
+
+  .challenge-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .challenge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-purple, #7c3aed);
+  }
+
+  .challenge-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  .challenge-meta {
+    margin: 2px 0 0 0;
+    font-size: 13px;
+    color: var(--premium-text-muted-light);
+  }
+
+  .expand-icon {
+    font-size: 18px;
+    color: var(--premium-text-muted-light);
+    transition: transform 0.2s ease;
+  }
+}
+
+// Zone dépliante contenant les profils des candidats
+.candidates-expansion-zone {
+  border-top: 1px solid var(--premium-border-light);
+  background: rgba(0, 0, 0, 0.01);
+  animation: slideDown 0.25s ease-out;
+}
+
+.candidates-list {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 16px 16px;
+  gap: 16px;
+}
+
+.candidate-card {
+  background: var(--premium-card-bg-light);
+  border: 1px solid var(--premium-border-light);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .candidate-profile-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .premium-avatar {
+    width: 36px;
+    height: 36px;
+    border: 1.5px solid var(--premium-border-light);
+  }
+
+  .candidate-meta {
+    display: flex;
+    flex-direction: column;
+    
+    .candidate-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .candidate-handle {
+      font-size: 12px;
+      color: var(--premium-text-muted-light);
+    }
+  }
+}
+
+// Box premium pour prévisualiser le média envoyé (vidéo/audio)
+.submitted-content-preview {
+  display: flex;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+  padding: 8px;
+  align-items: center;
+
+  .preview-media-box {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #e5e5ea;
+
+    .media-placeholder {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      filter: brightness(0.8);
+    }
+
+    .media-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      gap: 2px;
+
+      ion-icon { font-size: 20px; }
+      span { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;}
+    }
+  }
+
+  .preview-text-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .content-caption {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
+      font-style: italic;
+      color: #3a3a3c;
+    }
+    .content-date {
+      font-size: 11px;
+      color: var(--premium-text-muted-light);
+    }
+  }
+}
+
+// Boutons d'actions minimalistes et Premium
+.action-buttons-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+
+  .btn-action {
+    flex: 1;
+    height: 38px;
+    border: none;
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    ion-icon { font-size: 16px; }
+
+    &.decline {
+      background: rgba(255, 59, 48, 0.08);
+      color: #ff3b30;
+      &:active { background: rgba(255, 59, 48, 0.15); transform: scale(0.98); }
+    }
+
+    &.approve {
+      background: #1c1c1e;
+      color: #ffffff;
+      &:active { opacity: 0.85; transform: scale(0.98); }
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+}
+
+// --- ÉTATS VIDES & ANIMATIONS ---
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+
+  .empty-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(124, 58, 237, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    color: var(--color-purple, #7c3aed);
+    ion-icon { font-size: 36px; }
+  }
+
+  h3 { margin: 0; font-size: 17px; font-weight: 600; }
+  p { margin: 6px 0 0 0; font-size: 14px; color: var(--premium-text-muted-light); }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+  --color: var(--color-purple, #7c3aed);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// === GESTION DU MODE SOMBRE PREMIUM (MAMP/IONIC) ===
+:host-context(.ion-palette-dark) {
+  .premium-header, .premium-content {
+    --background: var(--premium-bg-dark);
+    color: var(--premium-text-main-dark);
+  }
+  .premium-header ion-toolbar { --background: var(--premium-bg-dark); }
+  
+  .close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--premium-text-main-dark);
+  }
+  
+  .challenge-group-card {
+    background: var(--premium-card-bg-dark);
+    border-color: var(--premium-border-dark);
+  }
+  .challenge-header-row .challenge-meta { color: var(--premium-text-muted-dark); }
+  
+  .candidates-expansion-zone {
+    border-top-color: var(--premium-border-dark);
+    background: rgba(255, 255, 255, 0.01);
+  }
+
+  .candidate-card {
+    background: #2c2c2e;
+    border-color: var(--premium-border-dark);
+    
+    .candidate-meta .candidate-handle { color: var(--premium-text-muted-dark); }
+    .submitted-content-preview {
+      background: rgba(255, 255, 255, 0.03);
+      .preview-text-box .content-caption { color: #e5e5ea; }
+    }
+  }
+
+  .action-buttons-row .btn-action.approve {
+    background: #ffffff;
+    color: #000000;
+  }
+  
+  .empty-state p { color: var(--premium-text-muted-dark); }
+}

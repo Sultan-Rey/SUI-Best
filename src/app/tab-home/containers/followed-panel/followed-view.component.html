@@ -43,9 +43,9 @@
                   <ion-item lines="none"
                     *ngIf="hasActiveChallenge(post) && canParticipateInChallenge(post) && post.userId !== currentUserProfile.id"
                     class="challenge-item-cyclic">
-                    <ion-label>{{ currentChallenge[post.challengeId]?.name }}</ion-label>
+                    <ion-label>{{ currentChallenge[post.challengeId || '']?.name }}</ion-label>
                     <ion-button slot="end" color="dark"
-                      (click)="presentParticipateOptions(currentChallenge[post.challengeId])">Participer <ion-icon
+                      (click)="presentParticipateOptions(currentChallenge[post.challengeId || ''])">Participer <ion-icon
                         name="arrow-forward"></ion-icon></ion-button>
                   </ion-item>
                   <div class="profile-header">

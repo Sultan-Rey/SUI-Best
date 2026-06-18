@@ -177,11 +177,11 @@ private async buildActions() {
           componentProps: {
             artistName: post.username || 'Utilisateur',
             artistAvatar: this.UserAvatars[post.userId] || 'assets/avatar-default.png',
-            challengeName: this.CurrentChallenge[post.challengeId]?.name || 'Challenge',
+            challengeName: this.CurrentChallenge[post.challengeId || '']?.name || 'Challenge',
             postId: post.id,
             userId: this.CurrentUserProfile?.id,
             challengeId: post.challengeId,
-            usageRule: this.CurrentChallenge[post.challengeId]?.vote_rule, 
+            usageRule: this.CurrentChallenge[post.challengeId || '']?.vote_rule, 
             mode: CouponModalMode.VOTE,
           }
         });

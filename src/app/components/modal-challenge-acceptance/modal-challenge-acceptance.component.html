@@ -1,0 +1,88 @@
+<ion-header class="ion-no-border premium-header">
+  <ion-toolbar>
+    <ion-title>Demandes d'inscription</ion-title>
+    <ion-buttons slot="end">
+      <button class="close-btn" (click)="dismissModal()" aria-label="Fermer la modale">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="premium-content">
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
+  </div>
+
+  <div *ngIf="!isLoading && creatorChallengesWithRequests.length === 0" class="empty-state">
+    <div class="empty-icon-wrapper">
+      <ion-icon name="checkmark-done-circle-outline"></ion-icon>
+    </div>
+    <h3>Tout est à jour</h3>
+    <p>Vous n'avez aucune demande de participation en attente pour le moment.</p>
+  </div>
+
+  <div *ngIf="!isLoading && creatorChallengesWithRequests.length > 0" class="challenges-stack">
+    
+    <div *ngFor="let item of creatorChallengesWithRequests; trackBy: trackByChallengeId" class="challenge-group-card" [class.is-expanded]="selectedChallengeId === item.challenge.id">
+      
+      <div class="challenge-header-row" (click)="toggleChallengeExpand(item.challenge.id)">
+        <div class="challenge-info">
+          <div class="challenge-dot"></div>
+          <div>
+            <h4 class="challenge-name">{{ item.challenge.name }}</h4>
+            <p class="challenge-meta">{{ item.requests.length }} demande{{ item.requests.length > 1 ? 's' : '' }} en attente</p>
+          </div>
+        </div>
+        <ion-icon [name]="selectedChallengeId === item.challenge.id ? 'chevron-up-outline' : 'chevron-down-outline'" class="expand-icon"></ion-icon>
+      </div>
+
+      <div class="candidates-expansion-zone" *ngIf="selectedChallengeId === item.challenge.id">
+        <div class="candidates-list">
+          
+          <div *ngFor="let request of item.requests; trackBy: trackByRequestId" class="candidate-card">
+            <div class="candidate-profile-row">
+              <ion-avatar class="premium-avatar">
+                <img [src]="request.userProfile?.avatar || 'assets/images/default-avatar.png'" alt="Avatar de {{ request.userProfile?.username }}" />
+              </ion-avatar>
+              <div class="candidate-meta">
+                <span class="candidate-name">{{ request.userProfile?.displayName || request.userProfile?.username }}</span>
+                <span class="candidate-handle">@{{ request.userProfile?.username }}</span>
+              </div>
+            </div>
+
+            <div class="submitted-content-preview" *ngIf="request.content">
+              <div class="preview-media-box" (click)="previewSubmittedMedia(request.content)">
+                <div class="media-overlay">
+                  <ion-icon name="play-circle-outline"></ion-icon>
+                  <span>Voir la vibe</span>
+                </div>
+                <div class="media-placeholder" [style.background-image]="'url(' + request.content.thumbnailUrl"></div>
+              </div>
+              <div class="preview-text-box">
+                <p class="content-caption" *ngIf="request.content.description">« {{ request.content.description }} »</p>
+                <time class="content-date">Soumis {{ request.created_at | date:'shortDate' }}</time>
+              </div>
+            </div>
+
+            <div class="action-buttons-row">
+              <button class="btn-action decline" (click)="rejectCandidate(item.challenge, request)" [disabled]="isProcessingAction">
+                <ion-icon name="close-circle-outline"></ion-icon>
+                <span>Refuser</span>
+              </button>
+              
+              <button class="btn-action approve" (click)="approveCandidate(item.challenge, request)" [disabled]="isProcessingAction">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+                <span>Accepter</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</ion-content>

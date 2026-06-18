@@ -21,7 +21,9 @@ import {
   flame,
   timeOutline,
   checkmarkCircle,
+  checkmarkCircleOutline,
   chevronForward,
+  chevronDown,
   arrowForward,
   close,
   helpCircleOutline,
@@ -127,6 +129,8 @@ export class CouponModalComponent implements OnInit, OnDestroy {
       flame,
       timeOutline,
       checkmarkCircle,
+      checkmarkCircleOutline,
+      chevronDown,
       chevronForward,
       arrowForward,
       close,
@@ -252,11 +256,11 @@ export class CouponModalComponent implements OnInit, OnDestroy {
       nextBatch.push(...remainingCoupons.slice(0, remainingNeeded));
     }
 
-    console.log('Chargement lot par types:', {
-      batchSize: nextBatch.length,
-      typesInBatch: nextBatch.map(c => c.type),
-      batchDetails: nextBatch.map(c => ({ id: c.id, name: c.name, type: c.type }))
-    });
+    // console.log('Chargement lot par types:', {
+    //   batchSize: nextBatch.length,
+    //   typesInBatch: nextBatch.map(c => c.type),
+    //   batchDetails: nextBatch.map(c => ({ id: c.id, name: c.name, type: c.type }))
+    // });
 
     // Ajouter le nouveau lot aux coupons disponibles
     this.availableCoupons = [...this.availableCoupons, ...nextBatch];

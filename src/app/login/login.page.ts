@@ -132,7 +132,7 @@ private readonly DEFAULT_AVATARS = [
       }
       this.fcmService.initializeFCM();
       await loading.dismiss();
-      await this.router.navigateByUrl('/home');
+      await this.router.navigateByUrl('/home', {replaceUrl:true});
       
     } catch (error: any) {
       console.error('Erreur de connexion:', error);

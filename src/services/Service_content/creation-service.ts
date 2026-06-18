@@ -5,6 +5,7 @@ import { Content, ContentCategory, ContentSource, ContentStatus } from '../../mo
 import { UserProfile } from '../../models/User';
 import { ProfileService } from '../Service_profile/profile-service';
 import { HttpEvent, HttpEventType, HttpResponse } from '@angular/common/http';
+import { generateUUID } from 'src/app/utils/uuid';
 
 @Injectable({ providedIn: 'root' })
 export class CreationService {
@@ -99,7 +100,7 @@ export class CreationService {
  
     const CHUNK_SIZE = 2 * 1024 * 1024; // 2 Mo
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const uuid = crypto.randomUUID();
+    const uuid = generateUUID();
     
     const chunkIndices = Array.from({ length: totalChunks }, (_, i) => i);
  
@@ -159,7 +160,7 @@ export class CreationService {
           created_at: new Date().toISOString(),
         };
  
-        console.log('[ContentService] Creating content with data:', contentData);
+        //console.log('[ContentService] Creating content with data:', contentData);
  
         return this.api.create<Content>(this.RESOURCE, contentData).pipe(
           map(content => {
@@ -241,7 +242,7 @@ export class CreationService {
     private uploadVideoFileOnly(file: File): Observable<{ progress: number; videoUrl?: string }> {
       const CHUNK_SIZE = 2 * 1024 * 1024; // 2 Mo
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      const uuid = crypto.randomUUID();
+      const uuid = generateUUID();
       const chunkIndices = Array.from({ length: totalChunks }, (_, i) => i);
   
       let finalPath: string | null = null;
@@ -395,7 +396,7 @@ export class CreationService {
   // Liste des IDs suivis par l'utilisateur connecté + son propre ID
   const followedIds = [...(currentUserProfile.myFollows ?? []), currentUserProfile.id];
   
-  // Récupération de l'ID de l'école de l'utilisateur connecté
+  // Récupé'ration de l'ID de l'école de l'utilisateur connecté
   const userSchoolId = currentUserProfile.userInfo?.school?.id;
 
   return this.api.filter<Content>(this.RESOURCE, {

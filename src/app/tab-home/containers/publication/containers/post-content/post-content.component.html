@@ -157,15 +157,15 @@
           </div>
           <ion-toggle [(ngModel)]="content.allowDownloads" class="setting-toggle"></ion-toggle>
         </div>
-        <div class="setting-row">
+        <!-- <div class="setting-row">
           <div class="setting-info">
             <span class="setting-title">Publicité</span>
             <span class="setting-desc">Type de contenu publicitaire</span>
           </div>
           <ion-toggle [(ngModel)]="isAdvertisement" [disabled]="isLocked" class="setting-toggle"></ion-toggle>
-        </div>
+        </div> -->
         <!-- Options de publicité -->
-        <div class="advertisement-options" *ngIf="isAdvertisement">
+        <!-- <div class="advertisement-options" *ngIf="isAdvertisement">
           <ion-radio-group [(ngModel)]="advertisementType" (ngModelChange)="onAdvertisementTypeChange()">
             <div class="radio-option">
               <ion-radio value="ads_post" [disabled]="isLocked"></ion-radio>
@@ -176,7 +176,7 @@
               <label for="ads_banner">Bannière publicitaire</label>
             </div>
           </ion-radio-group>
-        </div>
+        </div> -->
       </div>
 
     </div>

@@ -47,6 +47,10 @@
 /* ==================== */
 /*   CONTENU FULL       */
 /* ==================== */
+app-header-component {
+  display: block; // Assure que le composant se comporte comme un bloc pour appliquer les marges
+  padding-top: calc(10px + env(safe-area-inset-top)); 
+}
 .home-content {
   background: var(orbital-primary);
   --padding-top: 10px;
@@ -433,7 +437,7 @@ ion-footer {
   .floating-avatar-btn {
     width: 44px;
     height: 44px;
-    bottom: 10vh;
+    bottom: 13vh;
     right: 12px;
   }
 }

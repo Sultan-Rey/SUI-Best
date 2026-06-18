@@ -276,7 +276,7 @@ private verifierInstitutionApresScan(decodedText: string) {
       if (school) {
         // L'institution existe bien ET son accès est valide
         this.form.qr_proof = decodedText;
-        this.form.school.id = school.id || '';
+        this.form.school.id = 'INS_'+school.access_code || '';
         this.form.school.name = school.name;
         this.next(); // Changement d'étape sécurisé, les données sont injectées !
       } else {
