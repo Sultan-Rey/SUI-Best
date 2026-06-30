@@ -13,24 +13,24 @@ import { ModalController } from '@ionic/angular';
         <h2 class="title">Confirmation d'achat</h2>
         
         <p class="description">
-          Voulez-vous utiliser <strong>{{ coinCost }}</strong> coins
+          Voulez-vous utiliser <strong>{{ coinCost | number:'1.0-2' }}</strong> coins
           pour débloquer <strong>"{{ contentTitle }}"</strong> ?
         </p>
         
         <div class="balance-info">
           <span class="label">Solde actuel :</span>
-          <span class="value">{{ currentBalance }} coins</span>
+          <span class="value">{{ currentBalance | number:'1.0-2' }} coins</span>
         </div>
         
         <div class="balance-info" [class.insufficient]="isInsufficient">
           <span class="label">Coût :</span>
-          <span class="value">{{ coinCost }} coins</span>
+          <span class="value">{{ coinCost | number:'1.0-2' }} coins</span>
         </div>
         
         <div class="balance-info" [class.insufficient]="isInsufficient">
           <span class="label">Reste :</span>
           <span class="value" [style.color]="isInsufficient ? '#ff4444' : '#4CAF50'">
-            {{ currentBalance - coinCost }} coins
+            {{ remainingBalance | number:'1.0-2' }} coins
           </span>
         </div>
 
@@ -45,7 +45,8 @@ import { ModalController } from '@ionic/angular';
   `,
   styles: [`
     .coin-confirmation-modal {
-      --background: #1a1a1a;
+      background: #1a1a1a;
+      --background: #d6cfcf;
       --border-radius: 16px;
       padding: 24px;
     }
@@ -70,6 +71,7 @@ import { ModalController } from '@ionic/angular';
 
     .title {
       color: #fff;
+      --color: #000
       font-size: 20px;
       font-weight: 600;
       margin: 0;
@@ -77,6 +79,7 @@ import { ModalController } from '@ionic/angular';
 
     .description {
       color: #ddd;
+      --color: #e0e0
       font-size: 15px;
       text-align: center;
       margin: 0;
@@ -165,6 +168,10 @@ export class CoinConfirmationComponent {
 
   get isInsufficient(): boolean {
     return this.currentBalance < this.coinCost;
+  }
+
+  get remainingBalance(): number {
+    return this.currentBalance - this.coinCost;
   }
 
   dismiss(confirmed: boolean) {

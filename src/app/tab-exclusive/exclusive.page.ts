@@ -167,7 +167,7 @@ export class ExclusivePage implements OnInit {
 private async presentCoinConfirmation(item: ExclusiveContent): Promise<boolean> {
   const modal = await this.modalController.create({
     component: CoinConfirmationComponent,
-    cssClass: 'coin-confirmation-modal',
+    cssClass: 'dialog-modal',
     componentProps: {
       contentTitle: item.title,
       coinCost: item.currency?.value || 0,
