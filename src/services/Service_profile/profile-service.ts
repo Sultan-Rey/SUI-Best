@@ -1,7 +1,7 @@
 // src/app/services/PROFILE_SERVICE/profile.service.ts
 import { EventEmitter, Injectable } from '@angular/core';
 import { Observable, of, EMPTY, throwError, BehaviorSubject, from } from 'rxjs';
-import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError, expand, reduce, takeWhile, scan, filter } from 'rxjs/operators';
+import { map, switchMap, debounceTime, distinctUntilChanged, startWith, catchError, expand, reduce, takeWhile, scan, filter, last } from 'rxjs/operators';
 import { ApiJSON } from '../API/api-json';
 import { UserProfile } from '../../models/User';
 import { User } from 'firebase/auth';
@@ -16,8 +16,8 @@ export class ProfileService {
   private readonly uploadResource = 'storage/profiles';
   private searchQuery$ = new BehaviorSubject<string>('');
   private searchResults$ = new BehaviorSubject<UserProfile[]>([]);
-   // EventEmitter pour les erreurs de connexion
-  public connectionError = new EventEmitter<boolean>();
+  
+  
   /**
    * Configure le flux de recherche en temps réel
    */
@@ -33,10 +33,6 @@ export class ProfileService {
 
   constructor(private api: ApiJSON) { // ✅ Migration vers notre ApiJSON unifié
     this.setupSearchStream();
-    // Écouter les événements de connexion du service API
-    this.api.connectionError.subscribe((isConnected: boolean) => {
-      this.connectionError.emit(isConnected);
-    });
     
    }
 
@@ -405,6 +401,8 @@ async followProfile(userId: string, profileIdToFollow: string): Promise<{ user: 
   } catch (error) {
     console.error('Erreur followProfile:', error);
     throw error;
+  }finally{
+    this.api.clearCache();
   }
 }
 
@@ -450,6 +448,8 @@ async unfollowProfile(userId: string, profileIdToUnfollow: string): Promise<{ us
   } catch (error) {
     console.error('Erreur unfollowProfile:', error);
     throw error;
+  }finally{
+     this.api.clearCache();
   }
 }
 
@@ -491,6 +491,8 @@ async blackListProfile(userId: string, profileIdToBlackList: string): Promise<an
   } catch (error) {
     console.error('Erreur blackListProfile:', error);
     throw error;
+  }finally{
+     this.api.clearCache();
   }
 }
 
@@ -514,6 +516,8 @@ async unblackListProfile(userId: string, profileIdToUnblackList: string): Promis
   } catch (error) {
     console.error('Erreur unblackListProfile:', error);
     throw error;
+  }finally{
+     this.api.clearCache();
   }
 }
 
@@ -772,68 +776,71 @@ getTopFans(limit: number = 10): Observable<UserProfile[]> {
    * @param pageSize Nombre de résultats par page (défaut: 10)
    * @returns Observable qui émet les résultats progressivement avec pagination
    */
-  searchUserIdInMyFollows(targetUserId: string, pageSize: number = 10): Observable<{
+searchUserIdInMyFollows(targetUserId: string, pageSize: number = 10): Observable<{
+  results: UserProfile[];
+  hasMore: boolean;
+  currentPage: number;
+  totalCount: number;
+  found: boolean;
+}> {
+  type SearchResult = {
     results: UserProfile[];
     hasMore: boolean;
     currentPage: number;
     totalCount: number;
     found: boolean;
-  }> {
-    type SearchResult = {
-      results: UserProfile[];
-      hasMore: boolean;
-      currentPage: number;
-      totalCount: number;
-      found: boolean;
-    };
+  };
 
-    type ExpandedResult = SearchResult & {
-      allProfiles: UserProfile[];
-    };
+  return this.getProfiles().pipe(
+    map(profiles => {
+      // Filtrer les profils qui ont des myFollows et qui contiennent le targetUserId
+      const profilesMatching = (profiles || [])
+        .filter(profile => profile?.myFollows?.includes(targetUserId) || false);
 
-    return this.getProfiles().pipe(
-      map(profiles => {
-        // Filtrer les profils qui ont des myFollows et qui contiennent le targetUserId
-        const profilesMatching = profiles.filter(profile => 
-          Array.isArray(profile.myFollows) && 
-          profile.myFollows.includes(targetUserId)
-        );
-
-        return {
-          allProfiles: profilesMatching,
-          totalCount: profilesMatching.length
-        };
-      }),
-      expand(({ allProfiles, totalCount }) => {
-        // Si nous avons déjà traité tous les profils, arrêter l'expansion
-        if (allProfiles.length === 0) {
-          return of({ results: [], hasMore: false, currentPage: 0, totalCount, found: totalCount > 0 });
-        }
-
-        // Prendre la prochaine page de résultats
-        const nextPage = allProfiles.slice(0, pageSize);
-        const remainingProfiles = allProfiles.slice(pageSize);
-
+      return {
+        results: [],
+        allProfiles: profilesMatching,
+        totalCount: profilesMatching.length,
+        hasMore: profilesMatching.length > pageSize,
+        currentPage: 0,
+        found: profilesMatching.length > 0
+      };
+    }),
+    expand((state) => {
+      // Si plus de profils à traiter
+      if (state.allProfiles && state.allProfiles.length > 0) {
+        const nextPage = state.allProfiles.slice(0, pageSize);
+        const remaining = state.allProfiles.slice(pageSize);
+        
         return of({
           results: nextPage,
-          hasMore: remainingProfiles.length > 0,
-          currentPage: Math.floor((totalCount - remainingProfiles.length) / pageSize),
-          totalCount,
-          found: totalCount > 0,
-          allProfiles: remainingProfiles
-        } as ExpandedResult);
-      }),
-      map((result: ExpandedResult | SearchResult): SearchResult => {
-        // Retourner seulement les propriétés SearchResult
-        if ('allProfiles' in result) {
-          const { allProfiles, ...searchResult } = result;
-          return searchResult;
-        }
-        return result;
-      })
-    );
-  }
-
+          allProfiles: remaining,
+          totalCount: state.totalCount,
+          hasMore: remaining.length > 0,
+          currentPage: state.currentPage + 1,
+          found: state.totalCount > 0
+        });
+      }
+      
+      // Terminal : plus de profils à traiter
+      return of({
+        results: [],
+        allProfiles: [],
+        totalCount: state.totalCount || 0,
+        hasMore: false,
+        currentPage: state.currentPage || 0,
+        found: (state.totalCount || 0) > 0
+      });
+    }),
+    // Prendre le dernier résultat (celui avec tous les résultats)
+    last(),
+    map((finalState) => {
+      // Retourner le résultat final sans la propriété allProfiles
+      const { allProfiles, ...result } = finalState;
+      return result;
+    })
+  );
+}
   /**
    * Version simplifiée qui retourne seulement les profiles contenant le UserId
    * @param targetUserId L'ID de l'utilisateur à rechercher

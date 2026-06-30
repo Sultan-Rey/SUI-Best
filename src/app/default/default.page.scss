@@ -281,6 +281,40 @@
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.loading-content {
+  --background: #ffffff;
+}
+
+.loading-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-top-color: var(--ion-color-primary);
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-container p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Responsive
 @media (max-width: 480px) {
   .premium-container {
@@ -304,5 +338,175 @@
   
   .info-row {
     padding: 12px 0;
+  }
+}
+
+// Styles pour le cas d'erreur (échec de création)
+.premium-card {
+  &.error-card {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.icon-wrapper {
+  &.error {
+    background: rgba(255, 59, 48, 0.1);
+    
+    .icon-large {
+      color: #ff3b30;
+    }
+  }
+}
+
+.title {
+  .highlight-error {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff3b30 50%, #cc0000 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+.info-row {
+  &.error-row {
+    border-bottom: 1px solid rgba(255, 59, 48, 0.1);
+    
+    .info-icon {
+      color: #ff3b30;
+    }
+  }
+}
+
+.message-box {
+  &.error-box {
+    background: rgba(255, 59, 48, 0.05);
+    border-left-color: #ff3b30;
+    
+    p {
+      color: #8b1a1a;
+    }
+  }
+}
+
+// Styles pour le bouton de réessayer
+.primary-button {
+  &.error-button {
+    --background: #ff3b30;
+    --background-hover: #e6352b;
+    --background-activated: #cc0000;
+    --box-shadow: 0 4px 14px rgba(255, 59, 48, 0.35);
+  }
+}
+
+.secondary-button {
+  &.error-outline {
+    --border-color: #ff3b30;
+    --color: #ff3b30;
+    --background-hover: rgba(255, 59, 48, 0.05);
+    --background-activated: rgba(255, 59, 48, 0.1);
+  }
+}
+
+.text-link {
+  &.error-link {
+    color: #ff3b30;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
+// Animation pour l'erreur (secousse légère)
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.error-card {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1), shakeError 0.5s ease 0.6s;
+}
+
+// Version compacte pour mobile
+@media (max-width: 480px) {
+  .premium-card.error-card {
+    .icon-wrapper {
+      width: 64px;
+      height: 64px;
+      
+      .icon-large {
+        width: 32px;
+        height: 32px;
+      }
+    }
+    
+    .title {
+      font-size: 1.5rem;
+    }
+    
+    .message-box {
+      padding: 16px;
+      margin: 16px 0;
+      
+      p {
+        font-size: 0.85rem;
+      }
+    }
+  }
+  
+  .primary-button.error-button {
+    height: 44px;
+    font-size: 0.95rem;
+  }
+  
+  .secondary-button.error-outline {
+    height: 44px;
+    font-size: 0.95rem;
+  }
+}
+
+// Version desktop
+@media (min-width: 768px) {
+  .premium-card.error-card {
+    max-width: 520px;
+    
+    .message-box {
+      padding: 24px;
+      
+      p {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+// Dark mode support (optionnel)
+@media (prefers-color-scheme: dark) {
+  .premium-card.error-card {
+    .title {
+      background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .info-value {
+      color: #ffffff;
+    }
+    
+    .info-row.error-row {
+      border-bottom: 1px solid rgba(255, 59, 48, 0.2);
+    }
+    
+    .message-box.error-box {
+      background: rgba(255, 59, 48, 0.1);
+      
+      p {
+        color: #ff6b6b;
+      }
+    }
   }
 }

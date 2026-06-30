@@ -19,6 +19,7 @@ import {
   volumeMuteOutline, volumeHighOutline, imageOutline, peopleOutline,
   videocamOutline, micOutline, paperPlaneOutline, checkmarkCircle, star, diamond
 } from 'ionicons/icons';
+import { Auth } from 'src/services/AUTH/auth';
 
 @Component({
   selector: 'app-messages',
@@ -42,6 +43,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
 
   constructor(
     private messageService: MessageService,
+    private auth:Auth,
     private modalController: ModalController,
     private cdr: ChangeDetectorRef
   ) {
@@ -192,11 +194,17 @@ export class MessagesComponent implements OnInit, OnDestroy {
   }
 
   async createGroupe(): Promise<void> {
-    const modal = await this.modalController.create({
+    this.subscriptions.push(
+    this.auth.currentProfile$.subscribe(async user => {
+      const modal = await this.modalController.create({
       component: ModalCreateChatGroupComponent,
+      componentProps: {  CurrentUser: user },
       handle: true
     });
     await modal.present();
+    })
+    
+  );
   }
 
   // ==============================================================

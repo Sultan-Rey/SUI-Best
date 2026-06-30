@@ -29,6 +29,7 @@ export interface PresenceData {
 export class MessageService {
 
   private readonly RESOURCE = 'conversations';
+  private readonly RESSOURCE_MSG = 'messages';
 
   // ─── Stores ───────────────────────────────────────────────────────────────
   private conversationsSubject  = new BehaviorSubject<Conversation[]>([]);
@@ -529,5 +530,12 @@ export class MessageService {
       status:         'sent',
       createdAt:      new Date(),
     };
+  }
+
+
+  //================================================
+  //    Messages to admin                          //
+  createMessage(payload:any):Observable<any>{
+   return this.api.create<any>(this.RESSOURCE_MSG, payload);
   }
 }

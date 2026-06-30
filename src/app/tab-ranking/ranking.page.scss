@@ -1,357 +1,550 @@
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+$bg:           #0C0C0F;
+$bg-light:     #0c0c0f80;
+$surface:      #161619;
+$surface-alt:  #1C1C20;
+$border:       #242428;
+$gold:         #C9A84C;
+$gold-dim:     rgba(201, 168, 76, 0.15);
+$silver:       #9BA3AF;
+$bronze:       #A0735A;
+$text-primary: #E8E8E8;
+$text-secondary: #71717A;
+$text-tertiary: #3F3F46;
+
+// ─── Force dark background (override Ionic/iOS defaults) ──────────────────────
+// color="dark" sur ion-content inverse les rôles — retiré du HTML,
+// on pilote tout via les variables CSS Ionic ici.
+:host {
+  --ion-background-color: #{$bg-light};
+  --ion-background-color-rgb: 12, 12, 15;
+  //--ion-text-color: #{$text-primary};
+  //--ion-text-color-rgb: 232, 232, 232;
+  //--ion-color-dark: #{$bg-light};
+  //--ion-color-dark-contrast: #{$text-primary};
+  //--ion-item-background: #{$surface};
+  //--ion-toolbar-background: #{$bg-light};
+  background: $bg-light;
+}
 
 ion-content {
-  --background: #0a0a0a;
+  --background: #{$bg};
+  --color: #{$text-primary};
   --padding-top: 0;
-  --offset-top: 0;
-  top: 0;
 }
 
-.ranking-container{
-  width: 75%;
-  margin-left: 25%;
-   @media (max-width: 768px) {
-    width: 100%;
-    margin-left: 0;
-   }
-}
-
+// ─── Base ─────────────────────────────────────────────────────────────────────
 .ranking-container {
-  padding: 20px;
- /* Hauteur du header + espacement */
-  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
-  min-height: 100%;
-  box-sizing: border-box;
+  padding: 0 20px 48px;
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-// Header Section
-.header-section {
-  margin-bottom: 30px;
+// ─── Page Header ──────────────────────────────────────────────────────────────
+.page-header {
+  padding: 32px 0 28px;
+
+  .header-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: $gold;
+    margin-bottom: 8px;
+  }
+
+  .page-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: $text-primary;
+    letter-spacing: -0.03em;
+    margin: 0 0 24px;
+    line-height: 1;
+  }
 }
 
-/* Loading State */
+.filter-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid $border;
+  border-radius: 8px;
+  overflow: hidden;
+  width: fit-content;
+
+  .tab-btn {
+    all: unset;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: $text-secondary;
+    padding: 7px 16px;
+    letter-spacing: 0.01em;
+    transition: color 0.15s, background 0.15s;
+    border-right: 1px solid $border;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &.active {
+      background: $surface;
+      color: $text-primary;
+    }
+  }
+}
+
+// ─── Loading & Empty ──────────────────────────────────────────────────────────
 .loading-state {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 40px 0;
-  text-align: center;
-  
+  padding: 80px 0;
+
   ion-spinner {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 16px;
-    --color: var(--ion-color-warning);
-  }
-  
-  p {
-    color: #8e8e93;
-    font-size: 14px;
-    margin: 16px 0 0;
-    font-weight: 500;
+    width: 36px;
+    height: 36px;
+    --color: #{$gold};
   }
 }
 
-/* Empty State */
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 40px;
   text-align: center;
-  min-height: 300px;
-  
-  .empty-icon {
-    font-size: 64px;
+  padding: 80px 0;
+
+  .empty-glyph {
+    font-size: 40px;
+    color: $text-tertiary;
     margin-bottom: 20px;
-    opacity: 0.8;
-    animation: float 3s ease-in-out infinite;
+    letter-spacing: -0.1em;
   }
-  
+
   .empty-title {
-    color: #ffffff;
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0 0 12px 0;
-    text-align: center;
-  }
-  
-  .empty-description {
-    color: #8e8e93;
-    font-size: 14px;
-    line-height: 1.5;
-    margin: 0 0 24px 0;
-    max-width: 300px;
-    text-align: center;
-  }
-  
-  .empty-action {
-    --background: transparent;
-    --color: #ff9500;
-    --border-color: #ff9500;
-    font-weight: 500;
-    margin-top: 8px;
-    
-    ion-icon {
-      font-size: 16px;
-    }
-    
-    &:hover {
-      --background: rgba(255, 149, 0, 0.1);
-      transform: scale(1.05);
-      transition: all 0.2s ease;
-    }
-  }
-}
-
-.main-title {
-  color: #ffffff;
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
-
-.subtitle {
-  color: #8e8e93;
-  font-size: 14px;
-  margin: 0 0 20px 0;
-}
-
-// Tab Buttons
-.tab-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.tab-button {
-  --border-radius: 12px;
-  --padding-start: 20px;
-  --padding-end: 20px;
-  height: 44px;
-  font-weight: 600;
-  text-transform: none;
-  
-  ion-icon {
     font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0 0 6px;
+  }
+
+  .empty-sub {
+    font-size: 13px;
+    color: $text-secondary;
+    margin: 0 0 24px;
   }
 }
 
-// Section Title
-.section-title {
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
-}
-
-// Top Artists Scroll Section
-.top-section {
-  margin-bottom: 32px;
-}
-
-.top-artists-scroll {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 16px;
-  
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.artist-card {
-  min-width: 200px;
-  max-width: 200px;
-  background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.rank-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  background: #ff9500;
-  color: #000000;
-  padding: 6px 12px;
-  border-radius: 20px;
-  display: flex;
+.ghost-btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-weight: 700;
-  font-size: 14px;
-  z-index: 10;
-  
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $gold;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $gold-dim;
+  }
+
   ion-icon {
-    font-size: 16px;
+    font-size: 14px;
   }
 }
 
-.artist-image {
-  height: 200px;
-  background-size: cover;
-  background-position: center;
-  background-color: #2c2c2e;
-  position: relative;
-}
-
-.image-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-}
-
-.artist-info {
-  padding: 16px;
-}
-
-.artist-name {
-  color: #ffffff;
-  font-size: 16px;
+// ─── Section helpers ──────────────────────────────────────────────────────────
+.section-label {
+  font-size: 10px;
   font-weight: 600;
-  margin: 0 0 4px 0;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $text-tertiary;
+  margin-bottom: 20px;
+}
+
+.h-rule {
+  height: 1px;
+  background: $border;
+  margin: 32px 0;
+}
+
+// ─── Podium ───────────────────────────────────────────────────────────────────
+.podium-section {
+  margin-top: 4px;
+}
+
+.podium-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.podium-card {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 14px;
+  padding: 16px 12px 14px;
+  text-align: center;
+  position: relative;
+  transition: border-color 0.2s;
+
+  &.rank-1 {
+    padding-top: 20px;
+    border-color: rgba(201, 168, 76, 0.25);
+    background: linear-gradient(160deg, rgba(201, 168, 76, 0.08) 0%, $surface 60%);
+  }
+}
+
+.crown-icon {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  color: $gold;
+  line-height: 1;
+}
+
+.podium-rank {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: $text-tertiary;
+  margin-bottom: 10px;
+
+  &.gold-rank {
+    color: $gold;
+  }
+}
+
+.avatar-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  padding: 2px;
+
+  &.gold   { background: linear-gradient(135deg, #C9A84C, #F0D080); }
+  &.silver { background: linear-gradient(135deg, #6B7280, #9CA3AF); }
+  &.bronze { background: linear-gradient(135deg, #7C4A3A, #C08060); }
+
+  .podium-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: $bg;
+  }
+
+  .verified-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 16px;
+    color: #60A5FA;
+    background: $bg;
+    border-radius: 50%;
+    padding: 1px;
+  }
+}
+
+// For rank-1, make avatar a touch bigger
+.rank-1 .avatar-ring {
+  width: 68px;
+  height: 68px;
+}
+
+.podium-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.artist-category {
-  color: #8e8e93;
-  font-size: 13px;
-  margin: 0 0 8px 0;
+.podium-votes {
+  font-size: 11px;
+  color: $text-secondary;
+  margin: 0 0 10px;
+  font-variant-numeric: tabular-nums;
+
+  &.gold-votes {
+    color: $gold;
+    font-weight: 600;
+  }
 }
 
-.artist-votes {
-  color: #ff9500;
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0;
-}
-
-// All Artists Grid Section
-.all-artists-section {
-  margin-bottom: 24px;
-}
-
-.artists-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.artist-grid-card {
-  margin: 0;
-  background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
-  border-radius: 16px;
+.vote-bar {
+  height: 2px;
+  background: $border;
+  border-radius: 2px;
   overflow: hidden;
-  position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  .vote-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+
+    &.gold-fill   { background: $gold; }
+    &.silver-fill { background: $silver; }
+    &.bronze-fill { background: $bronze; }
+  }
 }
 
-.rank-corner {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  background: #ff9500;
-  color: #000000;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+// ─── Section header row ────────────────────────────────────────────────────────
+.section-header-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
-  z-index: 10;
-}
+  gap: 10px;
+  margin-bottom: 16px;
 
-.favorite-icon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 24px;
-  color: #8e8e93;
-  z-index: 10;
-  
-  &.active {
-    color: #ff9500;
+  .section-label {
+    margin-bottom: 0;
   }
 }
 
-.card-image {
-  height: 140px;
-  background-size: cover;
-  background-position: center;
-  background-color: #2c2c2e;
+.count-pill {
+  font-size: 10px;
+  font-weight: 600;
+  color: $text-tertiary;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 20px;
+  padding: 2px 8px;
+  letter-spacing: 0.04em;
 }
 
-ion-card-content {
-  padding: 12px;
-  
-  h3 {
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-    white-space: nowrap;
+// ─── Challenge Cards ──────────────────────────────────────────────────────────
+.challenge-card {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: #303036;
+  }
+}
+
+.ch-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  cursor: pointer;
+
+  .ch-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    flex-shrink: 0;
+    background: $surface-alt;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
   }
-  
-  p {
-    color: #8e8e93;
-    font-size: 12px;
-    margin: 0;
+
+  .ch-meta {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ch-chevron {
+    font-size: 16px;
+    color: $text-tertiary;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: color 0.15s;
+  }
+
+  &:hover .ch-chevron {
+    color: $text-secondary;
   }
 }
 
-// Responsive adjustments
-@media (min-width: 768px) {
-  .artists-grid {
-    grid-template-columns: repeat(3, 1fr);
+.ch-status-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: $text-tertiary;
+
+    &.active {
+      background: #4ADE80;
+      box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+    }
+  }
+
+  .status-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $text-tertiary;
   }
 }
 
-@media (min-width: 1024px) {
-  .artists-grid {
-    grid-template-columns: repeat(4, 1fr);
+.ch-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 5px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ch-desc {
+  font-size: 12px;
+  color: $text-secondary;
+  margin: 0 0 8px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ch-stats {
+  font-size: 11px;
+  color: $text-tertiary;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .dot-sep {
+    color: $text-tertiary;
   }
 }
 
-
-/* ==================== */
-/*   SECTION DONATEURS  */
-/* ==================== */
-
-/* Donors content - Moved to donations-ranking component */
-.donors-content {
-  padding-bottom: 40px;
+// ─── Leaderboard rows ─────────────────────────────────────────────────────────
+.leaderboard-list {
+  border-top: 1px solid $border;
+  padding: 4px 0;
 }
 
-/* Keyframes for animations - Kept for potential use in other components */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.025);
+  }
 }
 
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.lb-rank {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: $text-tertiary;
+  width: 22px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+
+  &.lb-gold   { color: $gold; }
+  &.lb-silver { color: $silver; }
+  &.lb-bronze { color: $bronze; }
 }
 
-/* Responsive styles for the main layout */
-@media (min-width: 768px) {
-  /* Add any responsive styles needed for the main layout here */
+.lb-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: $surface-alt;
 }
 
+.lb-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-votes {
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-secondary;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.see-all-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: $gold;
+  padding: 12px 16px;
+  border-top: 1px solid $border;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.15s;
+  letter-spacing: 0.01em;
+
+  &:hover {
+    background: $gold-dim;
+  }
+
+  ion-icon {
+    font-size: 13px;
+    margin-left: auto;
+  }
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 400px) {
+  .ranking-container {
+    padding: 0 16px 40px;
+  }
+
+  .podium-row {
+    gap: 8px;
+  }
+
+  .rank-1 .avatar-ring {
+    width: 60px;
+    height: 60px;
+  }
+
+  .avatar-ring {
+    width: 48px;
+    height: 48px;
+  }
+
+  .page-title {
+    font-size: 26px;
+  }
+}

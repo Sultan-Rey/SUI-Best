@@ -1,643 +1,603 @@
-// ─────────────────────────────────────────────
-// tab-exclusive.page.scss
-// Design system tokens
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────
+//  EXCLUSIVE PAGE — Design Cinéma Premium
+//  Palette : #080808 · #D4AF7A · #FFFFFF
+// ─────────────────────────────────────────
 
-:host {
-  --orange:        #FF8C00;
-  --orange-glow:   rgba(255, 140, 0, 0.32);
-  --bg:            #0D0D0F;
-  --surface:       #141418;
-  --surface2:      #1C1C22;
-  --surface3:      #242430;
-  --text:          #F0EEF8;
-  --text-muted:    #7A788A;
-  --border:        rgba(255, 255, 255, 0.06);
-}
+// Tokens
+$gold:         #d4af7a;
+$gold-light:   #e8c88a;
+$bg:           #080808;
+$surface-1:    #111111;
+$surface-2:    #181818;
+$text-primary: #ffffff;
+$text-muted:   rgba(255, 255, 255, 0.45);
+$text-faint:   rgba(255, 255, 255, 0.2);
+$border:       rgba(255, 255, 255, 0.07);
+$border-gold:  rgba(212, 175, 122, 0.25);
 
-// ─────────────────────────────────────────────
-// Ion-content override
-// ─────────────────────────────────────────────
-.exclusive-wrapper{
-  width: 75%;
-  margin-left: 25%;
-   @media (max-width: 768px) {
-    width: 100%;
-    margin-left: 0;
-   }
-}
-
+// ─── HOST ─────────────────────────────────
 .exclusive-content {
-  --background: var(--bg);
-  --color: var(--text);
-
-  font-family: 'DM Sans', sans-serif;
+  --background: #{$bg};
+  color: $text-primary;
 }
 
-// ─────────────────────────────────────────────
-// Header
-// ─────────────────────────────────────────────
-
-.ex-header {
-  padding: 56px 24px 12px;
-
-  .ex-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: var(--text);
-    margin: 0 0 4px;
-    line-height: 1.1;
-  }
-
-  .ex-subtitle {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin: 0;
-  }
+.exclusive-wrapper {
+  padding-bottom: 100px;
+  position: relative;
+  z-index: 2;
 }
 
-// ─────────────────────────────────────────────
-// Search
-// ─────────────────────────────────────────────
-
-.ex-search-wrap {
-  padding: 16px 24px;
+// ─── AMBIENT GLOW ─────────────────────────
+.background-glow {
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  background: $gold;
+  filter: blur(220px);
+  opacity: 0.06;
+  top: -260px;
+  right: -180px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.ex-search-box {
+.background-glow-2 {
+  position: fixed;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: #6a4fcf;
+  filter: blur(240px);
+  opacity: 0.05;
+  bottom: 0;
+  left: -100px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+// ─── HERO IMMERSIF ────────────────────────
+.hero-section {
+  position: relative;
+  width: 100%;
+  height: 70vw;
+  max-height: 520px;
+  min-height: 320px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.hero-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, rgba($bg, 0.94) 36%, rgba($bg, 0.15) 100%),
+    linear-gradient(to top, rgba($bg, 1) 0%, transparent 34%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 32px 28px;
+}
+
+.hero-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 16px;
-  transition: border-color 0.2s;
-
-  &:focus-within {
-    border-color: rgba(255, 140, 0, 0.3);
-  }
-
-  .search-icon {
-    font-size: 17px;
-    color: var(--text-muted);
-    flex-shrink: 0;
-  }
-
-  .search-input {
-    background: none;
-    border: none;
-    outline: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: var(--text);
-    width: 100%;
-
-    &::placeholder {
-      color: var(--text-muted);
-    }
-  }
+  margin-bottom: 14px;
 }
 
-// ─────────────────────────────────────────────
-// Premium banner
-// ─────────────────────────────────────────────
+.badge-type {
+  display: inline-block;
+  background: rgba($gold, 0.13);
+  border: 1px solid $border-gold;
+  color: $gold;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
 
-.premium-banner {
-  margin: 4px 24px 24px;
-  padding: 18px 20px;
-  background: linear-gradient(135deg, #1A1420 0%, #1C1628 50%, #14121C 100%);
-  border-radius: 20px;
-  border: 1px solid rgba(138, 92, 246, 0.2);
-  position: relative;
-  overflow: hidden;
+.badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(220, 38, 38, 0.18);
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  color: #f87171;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
 
   &::before {
     content: '';
-    position: absolute;
-    top: -30px;
-    right: -30px;
-    width: 120px;
-    height: 120px;
-    background: radial-gradient(circle, rgba(138, 92, 246, 0.15) 0%, transparent 70%);
-    pointer-events: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: livePulse 1.2s ease-in-out infinite;
   }
-
-  .premium-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .premium-label {
-    font-family: 'Syne', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .premium-gem {
-    font-size: 18px;
-  }
-
-  .premium-desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin: 0 0 14px;
-  }
-
-  .btn-subscribe {
-    width: 100%;
-    background: var(--surface3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 13px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.15s;
-
-    &:active {
-      opacity: 0.75;
-    }
-  }
-}
-
-// ─────────────────────────────────────────────
-// Filter tabs
-// ─────────────────────────────────────────────
-
-.filter-tabs-wrap {
-  padding: 0 24px 24px;
-  overflow: hidden;
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 2px;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.filter-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 18px;
-  border-radius: 50px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-  background: var(--surface2);
-  color: var(--text-muted);
-  border-color: var(--border);
-
-  ion-icon {
-    font-size: 14px;
-  }
-
-  .tab-prefix {
-    font-size: 13px;
-  }
-
-  &.active {
-    background: var(--orange);
-    color: white;
-    font-weight: 700;
-    border-color: transparent;
-    box-shadow: 0 4px 20px var(--orange-glow);
-  }
-}
-
-// ─────────────────────────────────────────────
-// Section title
-// ─────────────────────────────────────────────
-
-.section-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  padding: 0 24px 16px;
-  letter-spacing: -0.2px;
-}
-
-.section-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 8px 24px 24px;
-}
-
-// ─────────────────────────────────────────────
-// Featured horizontal scroll
-// ─────────────────────────────────────────────
-
-.featured-scroll-wrap {
-  padding: 0 0 28px;
-  overflow: hidden;
-}
-
-.featured-scroll {
-  display: flex;
-  gap: 16px;
-  padding: 0 24px;
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.featured-card {
-  flex-shrink: 0;
-  width: 220px;
-  background: var(--surface);
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: transform 0.18s;
-
-  &:active {
-    transform: scale(0.97);
-  }
-}
-
-// ─────────────────────────────────────────────
-// Card thumbnail (shared)
-// ─────────────────────────────────────────────
-
-.card-thumb {
-  width: 100%;
-  height: 150px;
-  position: relative;
-  overflow: hidden;
-  background: var(--surface2);
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.65;
-  }
-
-  &.is-locked {
-    background: linear-gradient(135deg, #1a1a22 0%, #222230 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .lock-overlay {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .lock-icon-wrap {
-    width: 52px;
-    height: 52px;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    ion-icon {
-      font-size: 22px;
-      color: rgba(255, 255, 255, 0.7);
-    }
-  }
-
-  .lock-price {
-    font-family: 'Syne', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-  }
-}
-
-.card-duration-badge {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: white;
-
-  ion-icon {
-    font-size: 12px;
-  }
-
-  &.top-right {
-    bottom: auto;
-    left: auto;
-    top: 10px;
-    right: 10px;
-  }
-}
-
-// ─────────────────────────────────────────────
-// Card info (shared)
-// ─────────────────────────────────────────────
-
-.card-info,
-.content-info {
-  padding: 14px 16px;
-}
-
-.card-title {
-  font-family: 'Syne', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--text);
-  margin: 0 0 10px;
-
-  // full-width cards get larger title
-  .content-card & {
-    font-size: 15px;
-  }
-}
-
-.card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.author-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Syne', sans-serif;
-  font-size: 9px;
-  font-weight: 800;
-  color: white;
-  flex-shrink: 0;
-  background: linear-gradient(135deg, #FF8C00, #E05000);
-}
-
-.author-name {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.views-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-muted);
-
-  ion-icon {
-    font-size: 13px;
-  }
-}
-
-// ─────────────────────────────────────────────
-// Buttons
-// ─────────────────────────────────────────────
-
-.btn-buy {
-  width: 100%;
-  background: var(--orange);
-  border: none;
-  border-radius: 10px;
-  padding: 10px;
-  color: white;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 16px var(--orange-glow);
-  transition: all 0.15s;
-  letter-spacing: 0.2px;
-
-  &:active {
-    transform: scale(0.97);
-    box-shadow: 0 2px 8px var(--orange-glow);
-  }
-}
-
-.btn-watch {
-  @extend .btn-buy;
-  background: var(--surface3);
-  color: var(--text);
-  box-shadow: none;
-  border: 1px solid var(--border);
-}
-
-.btn-buy-full {
-  @extend .btn-buy;
-  width: calc(100% - 32px);
-  margin: 0 16px 16px;
-  padding: 15px;
-  font-family: 'Syne', sans-serif;
-  font-size: 15px;
-  border-radius: 14px;
-  box-shadow: 0 6px 24px var(--orange-glow);
-}
-
-// ─────────────────────────────────────────────
-// All content list
-// ─────────────────────────────────────────────
-
-.all-content-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 24px 32px;
-}
-
-.content-card {
-  background: var(--surface);
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: transform 0.18s;
-
-  &:active {
-    transform: scale(0.99);
-  }
-}
-
-// ─────────────────────────────────────────────
-// Live card specific
-// ─────────────────────────────────────────────
-
-.live-thumb {
-  width: 100%;
-  height: 200px;
-  position: relative;
-  overflow: hidden;
-  background: #111;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: brightness(0.75);
-  }
-}
-
-.live-badge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #E8364A;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-family: 'Syne', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: white;
-  letter-spacing: 0.8px;
-}
-
-.live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: white;
-  animation: livePulse 1.2s infinite;
 }
 
 @keyframes livePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.45; transform: scale(0.75); }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
 }
 
-.play-btn {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 54px;
-  height: 54px;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(8px);
-  border-radius: 50%;
+.hero-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  max-width: 380px;
+  margin-bottom: 10px;
+}
+
+.hero-desc {
+  color: $text-muted;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  max-width: 340px;
+  margin-bottom: 18px;
+}
+
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.72rem;
+  color: $text-faint;
+  margin-bottom: 22px;
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: $text-primary;
+  color: $bg;
+  border: none;
+  border-radius: 7px;
+  padding: 11px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.88);
+  }
+}
+
+// ─── PREMIUM CTA ──────────────────────────
+.premium-cta {
+  margin: 0 20px 28px;
+  background: linear-gradient(135deg, rgba($gold, 0.08), rgba($gold, 0.03));
+  border: 1px solid $border-gold;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.cta-content {
+  .cta-tag {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    color: $gold;
+    margin-bottom: 6px;
+  }
+
+  h2 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  p {
+    font-size: 0.78rem;
+    color: $text-muted;
+    line-height: 1.4;
+  }
+}
+
+.cta-btn {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, $gold, $gold-light);
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+// ─── SEARCH ───────────────────────────────
+.search-bar {
+  margin: 0 20px 20px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $border;
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(255, 255, 255, 0.28);
+  padding: 0 18px;
+  gap: 10px;
+  backdrop-filter: blur(20px);
 
   ion-icon {
-    font-size: 22px;
-    color: white;
-    margin-left: 2px;
+    color: $text-muted;
+    font-size: 18px;
+    flex-shrink: 0;
   }
-}
 
-.thumb-type-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-// ─────────────────────────────────────────────
-// Locked full-width thumb
-// ─────────────────────────────────────────────
-
-.content-thumb {
-  width: 100%;
-  height: 180px;
-  position: relative;
-  overflow: hidden;
-  background: var(--surface2);
-
-  img {
+  input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: $text-primary;
+    font-size: 0.88rem;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.6;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+  }
+}
+
+// ─── FILTERS ──────────────────────────────
+.filter-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid $border;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 7px 16px;
+  border-radius: 30px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+
+  &.active,
+  &:active {
+    background: $gold;
+    color: #111;
+    border-color: $gold;
+    font-weight: 700;
+  }
+}
+
+// ─── SECTION WRAPPER ──────────────────────
+.content-section {
+  margin-bottom: 34px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 20px;
+  margin-bottom: 14px;
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
   }
 
-  &.locked-thumb {
-    background: linear-gradient(135deg, #1e1e2a 0%, #2a2040 50%, #1a1828 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  span {
+    font-size: 0.72rem;
+    color: $text-muted;
+    cursor: pointer;
+  }
+}
+
+// ─── HORIZONTAL SCROLL ────────────────────
+.horizontal-scroll {
+  display: flex;
+  gap: 12px;
+  padding: 0 20px 6px;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+// ─── CARD ─────────────────────────────────
+.content-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 160px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: $surface-1;
+  cursor: pointer;
+  transition: transform 0.28s ease;
+
+  &.premium,
+  &.series {
+    width: 200px;
   }
 
-  .locked-thumb-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
+  &:hover {
+    transform: translateY(-4px);
 
-  .lock-circle {
-    width: 64px;
-    height: 64px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    ion-icon {
-      font-size: 28px;
-      color: rgba(255, 255, 255, 0.65);
+    .gold-progress {
+      width: 100%;
     }
   }
 
-  .lock-big-price {
-    font-family: 'Syne', sans-serif;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--text);
+  .thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: $surface-2;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  .card-body {
+    padding: 10px 11px 14px;
+
+    h3 {
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    p {
+      font-size: 0.68rem;
+      color: $text-muted;
+    }
+
+    .stats {
+      font-size: 0.65rem;
+      color: $text-faint;
+      margin-top: 5px;
+      display: flex;
+      gap: 10px;
+    }
+  }
+}
+
+// Signature : barre or au hover
+.gold-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, $gold, $gold-light);
+  transition: width 0.4s ease;
+}
+
+// ─── BADGES SUR CARD ──────────────────────
+.live-badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(239, 68, 68, 0.88);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 3px 7px;
+  border-radius: 4px;
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fff;
+  }
+}
+
+.episodes {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.68);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.62rem;
+  padding: 3px 7px;
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+}
+
+.series-info {
+  @extend .episodes;
+}
+
+.watchers {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  color: $text-muted;
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+}
+
+// ─── LOCK BADGE AVEC PRIX ──────────────────
+.lock-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba($gold, 0.5);
+  border-radius: 20px;
+  padding: 2px 10px 2px 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: $gold;
+  z-index: 2;
+  
+  ion-icon {
+    font-size: 14px;
+    color: $gold;
+  }
+  
+  .lock-price {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 700;
+    
+    .currency-icon {
+      font-size: 0.65rem;
+      opacity: 0.9;
+    }
+  }
+}
+
+// ─── LOCK SIMPLE (sans prix) ──────────────
+.locked {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba($gold, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  z-index: 2;
+}
+
+// ─── PRICE TAG DANS LE BODY ────────────────
+.price-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: $gold;
+  font-weight: 600;
+  
+  ion-icon {
+    font-size: 12px;
+    color: $gold;
+  }
+}
+
+// ─── GRID (Tous les contenus) ─────────────
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 0 20px;
+
+  .content-card {
+    width: auto;
+    flex-shrink: unset;
+  }
+}
+
+// ─── AUTHOR ROW ───────────────────────────
+.author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+
+  .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 0.68rem;
+    color: $text-muted;
+  }
+}
+
+// ─── RESPONSIVE ───────────────────────────
+@media (max-width: 600px) {
+  .hero-section {
+    max-height: 420px;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .premium-cta {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .cta-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

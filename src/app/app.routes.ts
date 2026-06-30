@@ -41,6 +41,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'content-player/:id',
+    loadComponent: () => import('./tab-exclusive/pages/content-player/content-player.page').then(m => m.ContentPlayerPage),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'series-detail/:id',
+    loadComponent: () => import('./tab-exclusive/pages/series-detail/series-detail.page').then(m => m.SeriesDetailPage),
+    canActivate: [authGuard]
+  },
+  {
     path: 'blacklist',
     loadComponent: () => import('./blacklist/blacklist.page').then( m => m.BlacklistPage),
     canActivate: [authGuard]
@@ -62,9 +72,9 @@ export const routes: Routes = [
     loadComponent: () => import('./registration/registration.page').then( m => m.RegistrationPage)
   },
   {
-    path: 'payment-callback',
-    loadComponent: () => import('./payment-callback/payment-callback.page').then( m => m.PaymentCallbackPage)
-  },
+  path: 'payment-callback/:identifier',
+  loadComponent: () => import('./payment-callback/payment-callback.page').then( m => m.PaymentCallbackPage)
+},
   {
     path: '**',
     redirectTo: 'home'

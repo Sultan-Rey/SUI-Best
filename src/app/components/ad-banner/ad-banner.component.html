@@ -1,0 +1,85 @@
+<!-- ad-banner.component.html -->
+<ng-container *ngIf="shouldShow">
+  <div class="ad-banner-container">
+
+    <div class="ad-timer" *ngIf="countdown > 0 && placement !== 'INTERSTITIAL'">
+      <span class="timer-text">{{ countdown }}s</span>
+    </div>
+
+    <div class="ad-countdown" *ngIf="countdown > 0 && placement === 'INTERSTITIAL'">
+      <span class="countdown-text">Fermeture dans {{ countdown }}s</span>
+      <button class="close-btn" (click)="onClose()">✕</button>
+    </div>
+
+    <!-- Loading State -->
+    <div class="ad-loading" *ngIf="isLoading">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Error State -->
+    <div class="ad-error" *ngIf="error && !isLoading">
+      <span class="error-text">{{ error }}</span>
+    </div>
+
+    <!-- Banner Ad -->
+    <div class="ad-content banner-ad" *ngIf="currentAd && placement === 'BANNER' && !isLoading">
+      <img 
+        [src]="currentAd.media_url | mediaUrl | async" 
+        [alt]="currentAd.title"
+        class="ad-image"
+        (click)="onAdClick()"
+      />
+      <div class="ad-info">
+        <span class="ad-label">Advertisement</span>
+        <span class="ad-advertiser">{{ currentAd.advertiser_name }}</span>
+      </div>
+    </div>
+
+    <!-- Video Roll Ad -->
+    <div class="ad-content video-roll-ad" *ngIf="currentAd && placement === 'VIDEO_ROLL' && !isLoading">
+      <video 
+        [src]="currentAd.media_url"
+        class="ad-video"
+        (ended)="onVideoEnded()"
+        (click)="onAdClick()"
+        autoplay
+        muted
+      ></video>
+      <div class="ad-overlay">
+        <span class="ad-label">Advertisement</span>
+        <button class="skip-btn" (click)="isVideoPlaying = false">Skip Ad</button>
+      </div>
+    </div>
+
+    <!-- Interstitial Ad -->
+    <div class="ad-content interstitial-ad" *ngIf="currentAd && placement === 'INTERSTITIAL' && !isLoading">
+      <div class="interstitial-wrapper">
+        <img 
+          [src]="currentAd.media_url | mediaUrl | async" 
+          [alt]="currentAd.title"
+          class="ad-image"
+          (click)="onAdClick()"
+        />
+        <div class="interstitial-content">
+          <h3 class="ad-title">{{ currentAd.title }}</h3>
+          <p class="ad-description" *ngIf="currentAd.description">{{ currentAd.description }}</p>
+          <button class="close-btn" (click)="onClose()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Ad (fallback) -->
+    <div class="ad-content global-ad" *ngIf="currentAd && placement === 'GLOBAL' && !isLoading">
+      <img 
+        [src]="currentAd.media_url | mediaUrl | async" 
+        [alt]="currentAd.title"
+        class="ad-image"
+        (click)="onAdClick()"
+      />
+      <div class="ad-info">
+        <span class="ad-label">Advertisement</span>
+        <span class="ad-advertiser">{{ currentAd.advertiser_name }}</span>
+      </div>
+    </div>
+  </div>
+</ng-container>

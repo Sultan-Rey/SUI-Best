@@ -6,6 +6,7 @@ export interface Coupon {
   description: string;
   referencePrice ?: number;
   type: CouponType;
+  isUsed?:boolean;
   usageValue: number;
   expiresAt: Date;
 }

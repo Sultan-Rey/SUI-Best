@@ -1,0 +1,320 @@
+// ad-banner.component.scss
+:host {
+  display: block;
+  
+  // Si le composant est vide, il ne prend pas de place
+  &:empty {
+    display: none;
+  }
+}
+
+.ad-banner-container {
+  width: 100%;
+  height: 100%;
+  // Ne prend de place que s'il a du contenu
+}
+
+// Optionnel : si vous voulez cacher complètement le conteneur
+.ad-banner-container.hidden {
+  display: none !important;
+}
+
+.ad-banner-container {
+  position: relative;
+  width: 100%;
+  min-height: 100px;
+  overflow: hidden;
+}
+
+/* Loading State */
+.ad-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  background-color: #f5f5f5;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.ad-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  background-color: #fee;
+  padding: 1rem;
+}
+
+.error-text {
+  color: #c33;
+  font-size: 0.875rem;
+}
+
+/* Common Ad Content Styles */
+.ad-content {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.ad-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.ad-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ad-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ad-advertiser {
+  font-size: 0.875rem;
+  color: white;
+  font-weight: 500;
+}
+
+/* Banner Ad Specific */
+.banner-ad {
+  max-height: 250px;
+}
+
+/* Video Roll Ad Specific */
+.video-roll-ad {
+  position: relative;
+  background-color: #000;
+}
+
+.ad-video {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  display: block;
+}
+
+.ad-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.ad-overlay .ad-label {
+  align-self: flex-start;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: white;
+}
+
+.skip-btn {
+  align-self: flex-end;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: white;
+  }
+}
+
+/* Interstitial Ad Specific */
+.interstitial-ad {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.interstitial-wrapper {
+  position: relative;
+  max-width: 800px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.interstitial-wrapper .ad-image {
+  max-height: 60vh;
+  width: 100%;
+  object-fit: contain;
+}
+
+.interstitial-content {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.ad-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.ad-description {
+  margin: 0 0 1rem 0;
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.close-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #c0392b;
+  }
+}
+
+
+// ad-banner.component.scss
+
+.ad-timer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+
+.ad-countdown {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  backdrop-filter: blur(4px);
+  
+  .close-btn {
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+}
+
+/* Global Ad Specific */
+.global-ad {
+  max-height: 200px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .banner-ad,
+  .global-ad {
+    max-height: 150px;
+  }
+
+  .ad-video {
+    max-height: 250px;
+  }
+
+  .interstitial-ad {
+    padding: 1rem;
+  }
+
+  .interstitial-wrapper {
+    max-width: 100%;
+  }
+
+  .interstitial-wrapper .ad-image {
+    max-height: 50vh;
+  }
+
+  .ad-title {
+    font-size: 1.25rem;
+  }
+
+  .ad-description {
+    font-size: 0.875rem;
+  }
+}

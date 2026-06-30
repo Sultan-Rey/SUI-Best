@@ -1,0 +1,158 @@
+/* styles.scss ou page spécifique */
+.payment-waiting {
+  --background: #f8f9fa;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+/* Cercle avec effet pulse */
+.icon-container {
+  margin-bottom: 2rem;
+}
+
+.pulse-ring {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+  position: relative;
+}
+
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  animation: ring-pulse 2s ease-out infinite;
+}
+
+.payment-icon {
+  font-size: 48px;
+  color: white;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Titre */
+.title {
+  font-size: 26px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.5px;
+}
+
+/* Message */
+.message {
+  font-size: 16px;
+  color: #6c757d;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  max-width: 380px;
+}
+
+/* Spinner élégant */
+.spinner-container {
+  margin: 1.5rem 0 2rem;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e9ecef;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Status text */
+.status-text {
+  font-size: 14px;
+  color: #adb5bd;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  min-height: 24px;
+  transition: all 0.3s ease;
+}
+
+/* Bouton élégant */
+.home-button {
+  margin-top: 2.5rem;
+  max-width: 320px;
+  --border-color: #667eea;
+  --color: #667eea;
+  --color-hover: white;
+  --background-hover: #667eea;
+  --border-radius: 50px;
+  --padding-start: 24px;
+  --padding-end: 24px;
+  height: 52px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  transition: all 0.3s ease;
+}
+
+.home-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.home-button ion-icon {
+  font-size: 20px;
+}
+
+/* Animation d'apparition du bouton */
+.home-button:not([hidden]) {
+  animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

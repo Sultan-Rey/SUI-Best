@@ -1,0 +1,132 @@
+<ion-header class="series-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tab-exclusive"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Série</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleLike()">
+        <ion-icon [name]="isLiked ? 'heart' : 'heart-outline'"></ion-icon>
+      </ion-button>
+      <ion-button (click)="toggleBookmark()">
+        <ion-icon [name]="isBookmarked ? 'bookmark' : 'bookmark-outline'"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="series-content" [fullscreen]="true">
+
+  <ng-container *ngIf="series$ | async as series">
+
+    <!-- SERIES HERO -->
+    <div class="series-hero">
+      <div class="hero-background">
+        <img [src]="series.thumbnail | mediaUrl | async" [alt]="series.title" />
+        <div class="hero-overlay"></div>
+      </div>
+      
+      <div class="hero-content">
+        <div class="series-type">
+          <ion-icon [name]="getSeriesIcon(series.type)"></ion-icon>
+          {{ series.type }}
+        </div>
+        <h1 class="series-title">{{ series.title }}</h1>
+        <p class="series-description">{{ series.description }}</p>
+        
+        <div class="series-meta">
+          <div class="meta-item">
+            <ion-icon name="eye-outline"></ion-icon>
+            <span>{{ series.viewCount || 0 }} vues</span>
+          </div>
+          <div class="meta-item">
+            <ion-icon name="time-outline"></ion-icon>
+            <span>{{ formatTime(series.duration || 0) }}</span>
+          </div>
+          <div class="meta-item" *ngIf="series.price">
+            <ion-icon name="star-outline"></ion-icon>
+            <span>{{ series.price }} coins</span>
+          </div>
+        </div>
+        
+        <div class="series-stats">
+          <div class="stat-badge">
+            {{ series.totalEpisodes }} épisodes
+          </div>
+          <div class="stat-badge" *ngIf="series.isCompleted">
+            Terminée
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTHOR INFO -->
+    <div class="author-section">
+      <div class="avatar" [style.background]="series.author.color">
+        {{ series.author.initials }}
+      </div>
+      <div class="author-info">
+        <span class="author-name">{{ series.author.name }}</span>
+        <span class="author-label">Créateur</span>
+      </div>
+    </div>
+
+    <!-- EPISODES LIST -->
+    <div class="episodes-section">
+      <h2 class="section-title">Épisodes</h2>
+      
+      <div class="episodes-list">
+        <div
+          class="episode-card"
+          *ngFor="let episode of episodes$ | async"
+          (click)="onEpisodeTap(episode)"
+        >
+          <div class="episode-thumb">
+            <img [src]="episode.media.thumbnail | mediaUrl | async" [alt]="episode.title" />
+            <div class="episode-number">
+              Ép. {{ episode.series?.episodeNumber }}
+            </div>
+            <div class="locked-overlay" *ngIf="isLockedForUser(episode)">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+            </div>
+          </div>
+          
+          <div class="episode-info">
+            <h3 class="episode-title">{{ episode.title }}</h3>
+            <p class="episode-desc">{{ episode.description }}</p>
+            <div class="episode-meta">
+              <span class="duration">
+                <ion-icon name="time-outline"></ion-icon>
+                {{ formatTime(episode.media.duration || 0) }}
+              </span>
+              <span class="views">
+                <ion-icon name="eye-outline"></ion-icon>
+                {{ episode.viewCount || 0 }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="episode-action">
+            <ion-button fill="clear">
+              <ion-icon name="play"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="(episodes$ | async)?.length === 0">
+        <ion-icon name="play" size="large"></ion-icon>
+        <p>Aucun épisode disponible</p>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Loading state -->
+  <div class="loading-state" *ngIf="!(series$ | async)">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Chargement...</p>
+  </div>
+
+</ion-content>

@@ -1,72 +1,147 @@
-<app-header-component ></app-header-component>
-<ion-content [fullscreen]="false" color="dark">
-  <!-- Refresher pour pull-to-refresh -->
+<app-header-component (currentUserProfile)="onProfileLoaded($event)"></app-header-component>
+<ion-content [fullscreen]="false">
+
   <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
-    <ion-refresher-content pullingIcon="circular" pullingText="Tirer pour rafraîchir" refreshingSpinner="circles" refreshingText="Chargement...">
+    <ion-refresher-content 
+      pullingIcon="circular" 
+      pullingText="Tirer pour rafraîchir" 
+      refreshingSpinner="circles" 
+      refreshingText="Chargement...">
     </ion-refresher-content>
   </ion-refresher>
 
   <div class="ranking-container">
-    <!-- Header Section -->
-    <div class="header-section">
-      <h1 class="main-title">Classement des Artistes</h1>
-      <p class="subtitle">Découvrez les talents qui font vibrer notre communauté</p>
-      
-      <!-- Tab Buttons -->
-      <!-- <div class="tab-buttons">
-        <ion-button 
-          [fill]="selectedTab === 'votes' ? 'solid' : 'outline'" 
-          [color]="selectedTab === 'votes' ? 'warning' : 'medium'"
-          (click)="selectTab('votes')"
-          class="tab-button">
-          <ion-icon name="trophy" slot="start"></ion-icon>
-          Top Votes
-        </ion-button>
-         <ion-button 
-          [fill]="selectedTab === 'dons' ? 'solid' : 'outline'" 
-          [color]="selectedTab === 'dons' ? 'warning' : 'medium'"
-          (click)="selectTab('dons')"
-          class="tab-button">
-          <ion-icon name="cash" slot="start"></ion-icon>
-          Top Dons
-        </ion-button>
-      </div> -->
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-eyebrow">Saison en cours</div>
+      <h1 class="page-title">Classement</h1>
+      <div class="filter-tabs">
+        <button class="tab-btn" [class.active]="filterType === 'all'" (click)="setFilter('all')">Tous</button>
+        <button class="tab-btn" [class.active]="filterType === 'active'" (click)="setFilter('active')">En cours</button>
+        <button class="tab-btn" [class.active]="filterType === 'completed'" (click)="setFilter('completed')">Terminés</button>
+      </div>
     </div>
 
-    <!-- Loading State -->
+    <!-- Loading -->
     <div *ngIf="isLoading" class="loading-state">
       <ion-spinner name="crescent" color="warning"></ion-spinner>
-      <p>Chargement des classements...</p>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION VOTES (affichée uniquement si votes) -->
-    <!-- ============================================ -->
-    <ng-container *ngIf="!isLoading && selectedTab === 'votes'">
-      <!-- Empty State - Pas de défis -->
-      <div *ngIf="!challengeRankings || challengeRankings.length === 0" class="empty-state">
-        <div class="empty-icon">🏆</div>
-        <h3 class="empty-title">Aucun classement disponible</h3>
-        <p class="empty-description">
-          Suivez des créateurs pour voir leurs défis dans le classement.
-        </p>
-        <ion-button fill="clear" class="empty-action" (click)="openSearch()">
-          <ion-icon name="search" slot="start"></ion-icon>
-          Explorer les créateurs
-        </ion-button>
-      </div>
+    <!-- Empty -->
+    <div *ngIf="!isLoading && challengeLeaderboards.length === 0" class="empty-state">
+      <div class="empty-glyph">—</div>
+      <p class="empty-title">Aucun classement</p>
+      <p class="empty-sub">Suivez des créateurs pour les voir apparaître ici.</p>
+      <button class="ghost-btn" (click)="openSearch()">
+        <ion-icon name="search"></ion-icon>
+        Explorer
+      </button>
+    </div>
 
-      <!-- Contenu normal quand il y a des défis -->
-      <app-votes-ranking 
-        *ngIf="challengeRankings && challengeRankings.length > 0"
-        [isLoading]="isLoading"
-        [challengeRankings]="challengeRankings"
-        [topArtists]="topArtists"
-        (viewChallenge)="onViewChallenge($event)">
-      </app-votes-ranking>
+    <ng-container *ngIf="!isLoading && challengeLeaderboards.length > 0">
+
+      <!-- Podium Top Artistes -->
+      <section class="podium-section" *ngIf="topArtists.length > 0">
+        <div class="section-label">Top artistes</div>
+
+        <div class="podium-row">
+          <!-- 2e place -->
+          <div class="podium-card rank-2" *ngIf="topArtists[1]">
+            <div class="podium-rank">02</div>
+            <div class="avatar-ring silver">
+              <img [src]="topArtists[1].userAvatar | mediaUrl" (error)="onImageError($event)" class="podium-avatar">
+            </div>
+            <p class="podium-name">{{ topArtists[1].userDisplayName || topArtists[1].username }}</p>
+            <p class="podium-votes">{{ formatVotes(topArtists[1].totalVotes) }}</p>
+            <div class="vote-bar">
+              <div class="vote-fill silver-fill" [style.width]="getVotePercent(topArtists[1]) + '%'"></div>
+            </div>
+          </div>
+
+          <!-- 1re place -->
+          <div class="podium-card rank-1" *ngIf="topArtists[0]">
+            <div class="crown-icon">♛</div>
+            <div class="podium-rank gold-rank">01</div>
+            <div class="avatar-ring gold">
+              <img [src]="topArtists[0].userAvatar | mediaUrl" (error)="onImageError($event)" class="podium-avatar">
+              <ion-icon name="checkmark-circle" class="verified-dot" *ngIf="topArtists[0].isVerified"></ion-icon>
+            </div>
+            <p class="podium-name">{{ topArtists[0].userDisplayName || topArtists[0].username }}</p>
+            <p class="podium-votes gold-votes">{{ formatVotes(topArtists[0].totalVotes) }}</p>
+            <div class="vote-bar">
+              <div class="vote-fill gold-fill" [style.width]="getVotePercent(topArtists[0]) + '%'"></div>
+            </div>
+          </div>
+
+          <!-- 3e place -->
+          <div class="podium-card rank-3" *ngIf="topArtists[2]">
+            <div class="podium-rank">03</div>
+            <div class="avatar-ring bronze">
+              <img [src]="topArtists[2].userAvatar | mediaUrl" (error)="onImageError($event)" class="podium-avatar">
+            </div>
+            <p class="podium-name">{{ topArtists[2].userDisplayName || topArtists[2].username }}</p>
+            <p class="podium-votes">{{ formatVotes(topArtists[2].totalVotes) }}</p>
+            <div class="vote-bar">
+              <div class="vote-fill bronze-fill" [style.width]="getVotePercent(topArtists[2]) + '%'"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Divider -->
+      <div class="h-rule"></div>
+
+      <!-- Challenges -->
+      <section class="challenges-section">
+        <div class="section-header-row">
+          <div class="section-label">Par défi</div>
+          <span class="count-pill">{{ filteredChallengeLeaderboards.length }}</span>
+        </div>
+
+        <div class="challenge-card" *ngFor="let challenge of filteredChallengeLeaderboards">
+          <!-- Challenge header -->
+          <div class="ch-header" (click)="onViewChallenge(challenge)">
+            <div class="ch-thumb" *ngIf="challenge.coverImage">
+              <img [src]="challenge.coverImage | mediaUrl | async" (error)="onImageError($event)">
+            </div>
+            <div class="ch-meta">
+              <div class="ch-status-row">
+                <span class="status-dot" [class.active]="!challenge.isCompleted"></span>
+                <span class="status-label">{{ challenge.isCompleted ? 'Terminé' : 'En cours' }}</span>
+              </div>
+              <h3 class="ch-name">{{ challenge.challengeName }}</h3>
+              <p class="ch-desc" *ngIf="challenge.description">
+                {{ challenge.description | slice:0:90 }}{{ challenge.description.length > 90 ? '…' : '' }}
+              </p>
+              <div class="ch-stats">
+                <span>{{ challenge.statistics.total_participants }} participants</span>
+                <span class="dot-sep">·</span>
+                <span>{{ formatVotes(challenge.statistics.total_votes) }} votes</span>
+              </div>
+            </div>
+            <ion-icon name="chevron-forward" class="ch-chevron"></ion-icon>
+          </div>
+
+          <!-- Leaderboard rows -->
+          <div class="leaderboard-list">
+            <div class="lb-row" *ngFor="let artist of challenge.leaderboard | slice:0:3; let i = index">
+              <span class="lb-rank" [class.lb-gold]="i === 0" [class.lb-silver]="i === 1" [class.lb-bronze]="i === 2">
+                {{ (i + 1).toString().padStart(2, '0') }}
+              </span>
+              <img [src]="artist.userAvatar | mediaUrl | async" (error)="onImageError($event)" class="lb-avatar">
+              <span class="lb-name">{{ artist.userDisplayName || artist.username }}</span>
+              <span class="lb-votes">{{ formatVotes(artist.totalVotes) }}</span>
+            </div>
+          </div>
+
+          <button class="see-all-btn" (click)="onViewFullLeaderboard(challenge)">
+            Classement complet
+            <ion-icon name="arrow-forward"></ion-icon>
+          </button>
+        </div>
+      </section>
+
     </ng-container>
-
-  
   </div>
-  
 </ion-content>

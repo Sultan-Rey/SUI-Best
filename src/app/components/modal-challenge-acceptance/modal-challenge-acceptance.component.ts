@@ -8,11 +8,12 @@ import {
   checkmarkCircleOutline, closeCircleOutline, playCircleOutline, 
   checkmarkDoneCircleOutline 
 } from 'ionicons/icons';
-
+import { MediaUrlPipe } from 'src/app/utils/pipes/mediaUrlPipe/media-url-pipe';
 import { Challenge } from 'src/models/Challenge';
 import { ParticipantRequest } from 'src/models/ParticipantRequest';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
 import { Auth } from 'src/services/AUTH/auth';
+import { MediaLightboxComponent } from '../media-lightbox/media-lightbox.component';
 
 interface ChallengeRequestsGroup {
   challenge: Challenge;
@@ -24,7 +25,7 @@ interface ChallengeRequestsGroup {
   templateUrl: './modal-challenge-acceptance.component.html',
   styleUrls: ['./modal-challenge-acceptance.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, IonicModule, MediaUrlPipe],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModalChallengeAcceptanceComponent implements OnInit {
@@ -110,7 +111,7 @@ loadPendingRequests() {
     this.isProcessingAction = true;
     this.cdr.markForCheck();
 
-    this.challengeService.acceptParticipantRequest(request.id).subscribe({
+    this.challengeService.acceptParticipantRequest(request).subscribe({
       next: async () => {
         await this.showToast(`@${request.userProfile?.username || 'L\'utilisateur'} a rejoint votre challenge !`, 'success');
         this.removeRequestFromUi(challenge.id, request.id!);
@@ -158,12 +159,18 @@ loadPendingRequests() {
     this.cdr.markForCheck();
   }
 
-  previewSubmittedMedia(content: any) {
-    // Si votre objet Content utilise l'URL ou un format spécifique pour la vidéo/image :
-    if (content) {
-       // Logique premium pour ouvrir un lecteur natif ou modal vidéo plein écran
-       console.log("Lecture du média : ", content);
-    }
+  async previewSubmittedMedia(content: any) {
+    if (!content || !content.fileUrl) return;
+
+    // 2. Ouverture de la lightbox via le ModalController d'Ionic
+    const modal = await this.modalCtrl.create({
+      component: MediaLightboxComponent,
+      componentProps: { content },
+      cssClass: 'premium-lightbox-modal', // Classe CSS globale si tu veux customiser les dimensions globales
+      backdropDismiss: true
+    });
+
+    return await modal.present();
   }
 
   dismissModal() {

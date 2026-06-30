@@ -86,6 +86,22 @@
   }
 }
 
+
+.premium-lightbox-modal {
+  --height: 100%;
+  --width: 100%;
+  --background: transparent;
+  
+  /* Pour court-circuiter le style par défaut des modales Ionic sur tablette/desktop */
+  @media (min-width: 768px) {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    position: fixed;
+  }
+}
+
 .dialog-modal {
   // 1. On surcharge les variables CSS natives d'Ionic pour les modals
   --width: 90%;          // Largeur du dialogue sur mobile
@@ -96,5 +112,41 @@
   // 2. On s'assure que le wrapper respecte la hauteur automatique
   .modal-wrapper {
     min-height: auto;
+  }
+}
+
+// global.scss
+.coin-confirmation-modal {
+  --background: transparent;
+  --border-radius: 16px;
+  
+  .modal-wrapper {
+    max-width: 380px;
+    background: #1a1a1a;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+}
+
+.custom-alert {
+  .alert-wrapper {
+    border-radius: 16px;
+    background: #1a1a1a;
+  }
+  
+  .alert-head {
+    padding: 16px 24px 8px;
+  }
+  
+  .alert-message {
+    color: #ddd;
+    padding: 8px 24px 16px;
+    white-space: pre-line;
+    text-align: center;
+  }
+  
+  .alert-button-cancel {
+    color: #ffc107;
+    font-weight: 500;
   }
 }

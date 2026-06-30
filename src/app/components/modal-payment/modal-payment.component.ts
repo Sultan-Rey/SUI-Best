@@ -72,7 +72,7 @@ export class ModalPaymentComponent implements OnInit, AfterViewInit {
         this.paymentMessage = 'Redirection vers PayPal...';
         URL = paymentResponse.approvalUrl;
       }
-     
+        
         this.modalCtrl.dismiss({paymentUrl:URL, method:this.selectedMethod, extra:ORDER_ID});
       
     } catch (error) {

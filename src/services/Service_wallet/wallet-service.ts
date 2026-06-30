@@ -482,7 +482,7 @@ purchasePlan(plan: any, userId: string, paymentMethod: string, orderId?: string)
     walletId: '', // Sera rempli quand le wallet sera disponible
     type: 'purchase',
     amount: plan.price,
-    itemType: 'subscription', // Nouveau type pour les plans
+    itemType: 'subscription',
     description: `Abonnement au plan ${plan.name} - ${plan.duration} ${plan.period}(s)`,
     date: new Date().toISOString(),
     price: plan.price,
@@ -504,37 +504,16 @@ purchasePlan(plan: any, userId: string, paymentMethod: string, orderId?: string)
 
   // Vérifier si le wallet existe déjà
   const currentWallet = this.walletSubject.value;
-  
+
   // Si wallet existe et correspond à l'utilisateur
   if (currentWallet && currentWallet.userId === userId) {
+    this.clearPendingPlanTransactions(userId);
     return this.addPlanTransactionToExistingWallet(currentWallet, transaction);
   }
-  
-  // Si le wallet n'existe pas encore (pré-création de compte)
-  // On retourne un observable qui va créer le wallet et ajouter la transaction
-  return this.createWallet(userId).pipe(
-    switchMap(newWallet => {
-      // Récupérer toutes les transactions en attente pour cet utilisateur
-      const pendingTransactions = this.getPendingPlanTransactions(userId);
-      
-      // Ajouter toutes les transactions en attente
-      let obs = of(newWallet);
-      for (const pendingTx of pendingTransactions) {
-        obs = obs.pipe(
-          switchMap(wallet => this.addPlanTransactionToExistingWallet(wallet, pendingTx))
-        );
-      }
-      
-      // Nettoyer les transactions en attente
-      this.clearPendingPlanTransactions(userId);
-      
-      return obs;
-    }),
-    catchError(error => {
-      console.error('❌ Erreur lors de l\'enregistrement de l\'achat du plan:', error);
-      return throwError(() => new Error(`Impossible d'enregistrer l'achat du plan: ${error.message}`));
-    })
-  );
+
+  // Nouvel utilisateur : pas de wallet, pas de création.
+  // La transaction reste en attente, elle sera rejouée après création du compte.
+  return of({} as Wallet);
 }
 
 /**
@@ -701,34 +680,55 @@ clearPendingPlanTransactions(userId: string): void {
    * Décrémente la valeur d'utilisation d'un coupon
    */
   decrementUserCouponUsage(couponId: string, usageValue: number = 1): Observable<Wallet> {
-    const currentWallet = this.walletSubject.value;
-    if (!currentWallet) {
-      return throwError(() => new Error('No wallet loaded'));
-    }
-
-    const index = currentWallet.coupons.findIndex(c => c.id === couponId);
-    if (index === -1) {
-      return throwError(() => new Error('Coupon not found'));
-    }
-
-    const coupon = currentWallet.coupons[index];
-    
-    if (coupon.usageValue <= 0) {
-      return throwError(() => new Error('Coupon already used'));
-    }
-
-    const updatedCoupon = {
-      ...coupon,
-      usageValue: coupon.usageValue - usageValue,
-      isUsed: coupon.usageValue - usageValue <= 0,
-      updatedAt: new Date().toISOString()
-    };
-
-    const updatedCoupons = [...currentWallet.coupons];
-    updatedCoupons[index] = updatedCoupon;
-
-    return this.updateWallet({ coupons: updatedCoupons });
+  const currentWallet = this.walletSubject.value;
+  if (!currentWallet) {
+    return throwError(() => new Error('No wallet loaded'));
   }
+
+  const index = currentWallet.coupons.findIndex(c => c.id === couponId);
+  if (index === -1) {
+    return throwError(() => new Error('Coupon not found'));
+  }
+
+  const coupon = currentWallet.coupons[index];
+  
+  if (coupon.usageValue <= 0) {
+    return throwError(() => new Error('Coupon already used'));
+  }
+
+  // 1. Calcul de la nouvelle valeur d'utilisation
+  const newUsageValue = coupon.usageValue - usageValue;
+
+  // 2. Création du coupon mis à jour
+  const updatedCoupon = {
+    ...coupon,
+    usageValue: Math.max(0, newUsageValue), // Évite les valeurs négatives
+    isUsed: newUsageValue <= 0,
+    updatedAt: new Date().toISOString()
+  };
+
+  // 3. Clonage et mise à jour du tableau des coupons
+  const updatedCoupons = [...currentWallet.coupons];
+  updatedCoupons[index] = updatedCoupon;
+
+  // 4. Recalcul des statistiques de la balance
+  // Option A : Compter uniquement les coupons qui ne sont PAS encore complètement épuisés
+  const activeCouponsCount = updatedCoupons.filter(c => !c.isUsed).length;
+  
+  // Option B : Si vous voulez simplement la longueur brute du tableau (même si épuisé)
+  // const activeCouponsCount = updatedCoupons.length;
+
+  const updatedBalance = {
+    ...currentWallet.balance,
+    coupons: activeCouponsCount
+  };
+
+  // 5. Envoi de la mise à jour globale avec les coupons ET la balance mis à jour
+  return this.updateWallet({ 
+    coupons: updatedCoupons,
+    balance: updatedBalance
+  });
+}
 
   /**
    * Valide un coupon
@@ -984,14 +984,15 @@ createCouponUsageTransaction(
   couponId: string, 
   usageValue: number, 
   userId: string, 
-  contentId?: string, 
+  contentId?: string,
+  walletId?:string, 
   challengeId?: string
 ): Observable<Wallet> {
   
   // Créer la transaction d'utilisation
   const transaction: Transaction = {
     id: 'TR_'+couponId,
-    walletId: `admin_${this.auth.getAdminUID()}`, // Référence au wallet admin
+    walletId: walletId || '', 
     type: 'usage',
     amount: usageValue,
     itemType: 'coupons',
@@ -1008,7 +1009,7 @@ createCouponUsageTransaction(
   };
 
   // Ajouter cette transaction au wallet de l'admin
-  return this.updateAdminWalletTransactions([transaction], false);
+  return this.addPlanTransactionToExistingWallet(this.walletSubject.value as Wallet, transaction);
 }
 
 /**

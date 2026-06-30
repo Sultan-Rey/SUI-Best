@@ -351,3 +351,111 @@
 .gift-container {
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+// États de chargement, erreur et vide
+.loading-state,
+.error-state,
+.empty-state,
+.empty-filtered-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 300px;
+  color: #666;
+
+  ion-spinner {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #ccc;
+  }
+
+  h3 {
+    margin: 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  p {
+    margin: 4px 0 16px;
+    font-size: 14px;
+    color: #999;
+  }
+}
+
+.error-state {
+  ion-icon {
+    color: #ff6b6b;
+  }
+
+  .btn-retry {
+    padding: 8px 24px;
+    border: 2px solid #ff6b6b;
+    border-radius: 20px;
+    background: transparent;
+    color: #ff6b6b;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover {
+      background: #ff6b6b;
+      color: white;
+    }
+  }
+}
+
+.empty-filtered-state {
+  grid-column: 1 / -1;
+  min-height: 200px;
+  padding: 30px;
+
+  ion-icon {
+    font-size: 36px;
+    color: #ddd;
+  }
+
+  p {
+    color: #bbb;
+  }
+}
+
+// Désactivation du bouton d'envoi
+.btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+
+  ion-spinner {
+    width: 20px;
+    height: 20px;
+    color: white;
+  }
+}
+
+// Cache Lottie si non disponible
+.gift-card {
+  .gift-icon-wrapper {
+    ng-lottie {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
+}

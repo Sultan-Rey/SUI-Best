@@ -30,10 +30,10 @@ import {
   listOutline,
   headsetSharp
 } from 'ionicons/icons';
-import { ExclusiveService } from 'src/services/Service_exclusive_content/exclusive-service';
-import { Auth } from 'src/services/AUTH/auth';
-import { ExclusiveContent, ExclusiveContentType, ExclusiveContentStatus, Series } from 'src/models/Content';
-import { ProfileService } from 'src/services/Service_profile/profile-service';
+import { ExclusiveContentService } from '../../../../../../services/Service_exclusive_content/exclusive-service';
+import { Auth } from '../../../../../../services/AUTH/auth';
+import { ExclusiveContent, ExclusiveContentType, ExclusiveContentStatus, Series } from '../../../../../../models/Content';
+import { ProfileService } from '../../../../../../services/Service_profile/profile-service';
 
 @Component({
   selector: 'app-post-exclusivity',
@@ -72,7 +72,7 @@ export class PostExclusivityComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private exclusiveService: ExclusiveService,
+    private exclusiveService: ExclusiveContentService,
     private authService: Auth,
     private profileService: ProfileService,
     private toastController: ToastController
@@ -180,7 +180,7 @@ export class PostExclusivityComponent implements OnInit {
 
     // Adapter l'objet author au type attendu par Series
     const authorData = {
-      uid: currentUser.id,
+      id: currentUser.id,
       name: currentUser.displayName || 'Créateur Anonyme',
       initials: this.getInitials(currentUser.displayName || 'Créateur Anonyme'),
       color: this.getRandomColor(),

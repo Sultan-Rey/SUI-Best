@@ -1,15 +1,16 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, concatMap, filter, forkJoin, from, map, of, switchMap, take, throwError } from 'rxjs';
+import { from, Observable, of, throwError } from 'rxjs';
+import { catchError, concatMap, filter, map, switchMap, take } from 'rxjs/operators';
 import { ApiJSON, FilterOptions, FilterResult } from '../API/api-json';
-import { ExclusiveContent, ExclusiveContentType, Series } from '../../models/Content';
-import { ProfileService } from '../Service_profile/profile-service';
+import { ExclusiveContent, ExclusiveContentStatus, Series } from '../../models/Content'
 import { HttpEventType, HttpResponse } from '@angular/common/http';
+
 
 @Injectable({
   providedIn: 'root',
 })
-export class ExclusiveService {
-   private readonly resource = 'exclusive_contents';
+export class ExclusiveContentService {
+  private readonly resource = 'exclusive_contents';
   private readonly seriesResource = 'series';
 
   constructor(private api: ApiJSON) {}
@@ -21,7 +22,7 @@ export class ExclusiveService {
    */
   uploadThumbnail(file: File): Observable<string> {
     return this.api.upload<any>(file, 'exclusives/thumbnails').pipe(
-      filter((event: { type: any; }) => event.type === HttpEventType.Response),
+      filter(event => event.type === HttpEventType.Response),
       map(event => {
         const body = (event as HttpResponse<any>).body;
         if (body?.path) {
@@ -108,7 +109,7 @@ export class ExclusiveService {
             })
           );
         }),
-        concatMap((status: { progress: number; videoUrl?: string }) => {
+        concatMap(status => {
           if (status.progress < 100) {
             return of(status);
           }
@@ -197,8 +198,6 @@ export class ExclusiveService {
   create(content: Partial<ExclusiveContent>): Observable<ExclusiveContent> {
     return this.api.create<ExclusiveContent>(this.resource, content);
   }
-
-  
 
   /**
    * Met à jour un contenu exclusif
@@ -364,9 +363,26 @@ export class ExclusiveService {
     );
   }
 
- 
+  /**
+   * Publie un contenu (change le statut en PUBLISHED)
+   */
+  publishContent(contentId: string): Observable<ExclusiveContent> {
+    return this.patch(contentId, { status: ExclusiveContentStatus.PUBLISHED });
+  }
 
- 
+  /**
+   * Archive un contenu
+   */
+  archiveContent(contentId: string): Observable<ExclusiveContent> {
+    return this.patch(contentId, { status: ExclusiveContentStatus.ARCHIVED });
+  }
+
+  /**
+   * Met un contenu en brouillon
+   */
+  draftContent(contentId: string): Observable<ExclusiveContent> {
+    return this.patch(contentId, { status: ExclusiveContentStatus.DRAFT });
+  }
 
   // ── Statistiques ─────────────────────────────────────────────────────────────
 
@@ -402,4 +418,3 @@ export class ExclusiveService {
     );
   }
 }
-

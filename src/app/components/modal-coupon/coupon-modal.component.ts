@@ -9,8 +9,8 @@ import { Auth } from '../../../services/AUTH/auth';
 import { WalletService } from '../../../services/Service_wallet/wallet-service';
 import { switchMap, map, catchError, filter, takeUntil } from 'rxjs/operators';
 import { forkJoin, take, of, tap, Observable, Subject } from 'rxjs';
-import { VoteService } from 'src/services/Service_vote/vote-service';
-import { VoteRule } from 'src/models/Challenge';
+import { VoteService } from '../../../services/Service_vote/vote-service';
+import { VoteRule } from '../../../models/Challenge';
 
 import {
   ticketOutline,
@@ -34,12 +34,12 @@ import {
   ellipsisHorizontal,
   qrCodeOutline
 } from 'ionicons/icons';
-import { Vote, VoteStatusResponse } from 'src/models/Vote';
-import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
+import { Vote, VoteStatusResponse } from '../../../models/Vote';
+import { ChallengeService } from '../../../services/Service_challenge/challenge-service';
 import { BuyCouponModalComponent } from '../modal-buy-coupon/buy-coupon-modal.component';
 import { ModalQRscannerComponent } from '../modal-qrscanner/modal-qrscanner.component';
-import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
-import { IncomeService } from 'src/services/service_income/income-service';
+import { CouponModalMode } from '../../../interfaces/coupon.interfaces';
+import { IncomeService } from '../../../services/service_income/income-service';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 
 @Component({
@@ -179,6 +179,10 @@ export class CouponModalComponent implements OnInit, OnDestroy {
     return this.mode === CouponModalMode.MANAGEMENT;
   }
 
+  get isAccessMode(): boolean {
+    return this.mode === CouponModalMode.ACCESS;
+  }
+
   // Getters pour le template
   get isLoadingMore(): boolean {
     return this._isLoadingMore;
@@ -309,7 +313,7 @@ export class CouponModalComponent implements OnInit, OnDestroy {
     if (this.slidePosition >= this.maxSlideDistance * this.slideThreshold) {
       // Compléter le slide
       this.slidePosition = this.maxSlideDistance;
-      this.confirmVote();
+      this.isVoteMode ? this.confirmVote() : this.modalController.dismiss({success:true});
     } else {
       // Revenir à la position initiale avec animation
       this.slidePosition = 0;
@@ -318,66 +322,60 @@ export class CouponModalComponent implements OnInit, OnDestroy {
 
 
   private confirmVote() {
-    if (!this.selectedCoupon) return;
+  if (!this.selectedCoupon) return;
 
-   
+  // Utilisation de la valeur de burnCoupon pour déterminer la quantité à décrémenter
+  const usageValue = this.burnCoupon == true ? this.selectedCoupon.usageValue : 1;
+  
+  // Préparation du vote
+  const voteData: Vote = {
+    userId: this.userId,
+    contentId: this.postId,
+    challengeId: this.challengeId,
+    nbVotes: usageValue,
+    createdAt: Date.now().toString()
+  };
 
-    // Utilisation de la valeur de burnCoupon pour déterminer la quantité à décrémenter
-    const usageValue = this.burnCoupon == true ? this.selectedCoupon.usageValue : 1;
-    //console.log("usageValue: "+usageValue);
-     //preparation du vote
-    const voteData:Vote = {
-      userId: this.userId,
-      contentId: this.postId,
-      challengeId: this.challengeId,
-      nbVotes: usageValue,
-      createdAt: Date.now().toString()
-    };
-
-    // Chaîner les opérations pour assurer l'atomicité
-    this.walletService.decrementUserCouponUsage(this.selectedCoupon.id, usageValue).pipe(
-  takeUntil(this.destroy$), // Nettoyer à la destruction
-  tap(() => {
-    // Mettre à jour la liste des coupons après l'utilisation
-    this.loadAvailableCoupons();
-  }),
-  switchMap(() => 
-    // Créer la transaction pour le wallet admin
-    this.walletService.createCouponUsageTransaction(
-      this.selectedCoupon?.id || '',
-      usageValue,
-      this.userId,
-      this.postId,
-      this.challengeId
-    )
-  ),
-  switchMap(() =>
-    // Si la transaction admin est créée, on ajoute le vote
-    this.voteService.addVoteToContent(
-      voteData,
-      this.usageRule
-    ).pipe(
-      takeUntil(this.destroy$), // Nettoyer à la destruction
-      tap(() => this.selectedCoupon = null)
-    )
-  )
-).subscribe({
-  next: () => {
-    // Afficher un message de succès
-    this.toastController.create({
-      message: 'Vote confirmé',
-      duration: 2000,
-      color: 'success',
-      position: 'bottom'
-    }).then(toast => toast.present());
-    this.closeModal(true, 'Vote confirmé');
-  },
-  error: (error: any) => {
-    console.error('Erreur lors de la confirmation du vote:', error);
-    this.closeModal(false, 'Erreur lors du vote');
-  }
-});
-  }
+  // Appel direct au service de vote avec le couponId
+  // Le backend gère tout : décrémentation du coupon, création/mise à jour du vote, transaction
+  this.voteService.addVoteToContent(
+    voteData,
+    this.selectedCoupon.id, // Le couponId est passé au backend
+    this.usageRule
+  ).pipe(
+    takeUntil(this.destroy$), // Nettoyer à la destruction
+    tap(() => {
+      // Mettre à jour la liste des coupons après l'utilisation
+      this.loadAvailableCoupons();
+      this.selectedCoupon = null;
+    })
+  ).subscribe({
+    next: (response) => {
+      // Afficher un message de succès
+      this.toastController.create({
+        message: 'Vote confirmé avec succès',
+        duration: 2000,
+        color: 'success',
+        position: 'bottom'
+      }).then(toast => toast.present());
+      
+      this.closeModal(true, 'Vote confirmé');
+    },
+    error: (error: any) => {
+      console.error('Erreur lors de la confirmation du vote:', error);
+      
+      // Afficher un message d'erreur
+      this.toastController.create({
+        message: error.error?.error || 'Erreur lors du vote. Veuillez réessayer.',
+        duration: 3000,
+        color: 'danger',
+        position: 'bottom'
+      }).then(toast => toast.present());
+      
+      this.closeModal(false, 'Erreur lors du vote');
+    }
+  });
+}
 
  
 

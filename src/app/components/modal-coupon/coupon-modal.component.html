@@ -19,9 +19,9 @@
     <!-- Titre et Sous-titre -->
     <div class="modal-intro">
       <h2 class="modal-title" *ngIf="isVoteMode">Votez avec un coupon</h2>
-      <h2 class="modal-title" *ngIf="isManagementMode">Mes coupons</h2>
+      <h2 class="modal-title" *ngIf="isManagementMode || isAccessMode">Mes coupons</h2>
       <p class="modal-subtitle" *ngIf="isVoteMode">Sélectionnez un coupon pour voter</p>
-      <p class="modal-subtitle" *ngIf="isManagementMode">Gérez vos coupons et obtenez-en plus</p>
+      <p class="modal-subtitle" *ngIf="isManagementMode || isAccessMode">Gérez vos coupons et obtenez-en plus</p>
     </div>
 
     <!-- Slider de Coupons -->
@@ -236,14 +236,14 @@
     </div>
 
     <!-- Info footer -->
-    <div class="info-hint" *ngIf="!selectedCoupon && isVoteMode">
+    <div class="info-hint" *ngIf="!selectedCoupon && (isVoteMode || isAccessMode)">
       <ion-icon name="information-circle-outline"></ion-icon>
       <p>Sélectionnez un coupon pour continuer</p>
     </div>
   </div>
 
   <!-- Slide to Vote avec effet Liquid Glass (uniquement en mode VOTE) -->
-  <div class="slide-section-fixed" *ngIf="selectedCoupon && isVoteMode">
+  <div class="slide-section-fixed" *ngIf="selectedCoupon && (isVoteMode || isAccessMode)">
     <div  class="slide-wrapper">
       <div class="slide-track-glass" #slideTrack>
         <!-- Effet liquid glass background -->
@@ -265,7 +265,7 @@
         
         <div class="slide-text-glass" [class.fading]="isSliding">
           <ion-icon name="arrow-forward"></ion-icon>
-          Glissez pour voter
+          {{isVoteMode ? 'Glissez pour voter' : 'Glissez pour accéder'}}
         </div>
       </div>
       

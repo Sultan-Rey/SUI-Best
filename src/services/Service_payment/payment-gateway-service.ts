@@ -39,23 +39,24 @@ private processMobile(url: string, method: 'moncash' | 'paypal', orderId: string
 
     const subscription = browser.on('loadstart').subscribe({
       next: async (event: any) => {
-        if (!event.url?.includes('apis.majorware.net/fallbacks/payment-success')) return;
+        if (!event.url?.includes('starinuniform.org/payment-callback')) return;
 
         browser.close();
         subscription.unsubscribe();
 
         const urlObj = new URL(event.url);
-        const result = await this.verifyPayment(method, urlObj, orderId);
-
+        const token = urlObj.searchParams.get('token') ??  '';
+        const result = await this.verifyPayment(method, method == 'paypal' ? token : orderId);
+        //console.log("success", result);
         // Récupère la route depuis le contexte déjà stocké dans purchasePack
         const context = JSON.parse(sessionStorage.getItem('pending_payment_context') || '{}');
 
         // Même mécanique que le web : stocke et laisse la page de destination gérer
         sessionStorage.setItem('payment_result', JSON.stringify({ ...result, context }));
         
-        const route = result.success
-          ? (context.redirectOnSuccess || '/home')
-          : (context.redirectOnFailure || '/home');
+        /* const route = result.success
+           //? (context.redirectOnSuccess || '/home')
+           : (context.redirectOnFailure || '/default/account-error');*/
 
         // Nettoie
         sessionStorage.removeItem('pending_order_id');
@@ -63,7 +64,7 @@ private processMobile(url: string, method: 'moncash' | 'paypal', orderId: string
         sessionStorage.removeItem('pending_payment_context');
 
         resolve(result);
-        this.router.navigate([route]);
+        //this.router.navigate([route]);
       },
       error: () => resolve({ success: false, method, error: 'Erreur navigateur.' })
     });
@@ -79,7 +80,7 @@ private processMobile(url: string, method: 'moncash' | 'paypal', orderId: string
   });
 }
 
-public async verifyPayment(method: 'moncash' | 'paypal', urlObj: URL, orderId: string): Promise<PaymentResult> {
+public async verifyPayment(method: 'moncash' | 'paypal', orderId: string): Promise<PaymentResult> {
   try {
     if (method === 'moncash') {
       const data = await firstValueFrom(this.paymentService.verifyMonCashPayment(orderId));
@@ -89,9 +90,9 @@ public async verifyPayment(method: 'moncash' | 'paypal', urlObj: URL, orderId: s
     }
 
     if (method === 'paypal') {
-      const token = urlObj.searchParams.get('token');
-      if (!token) return { success: false, method, error: 'Token PayPal manquant.' };
-      const response = await firstValueFrom(this.paymentService.capturePaypalOrder(token));
+      
+      if (!orderId) return { success: false, method, error: 'Token PayPal manquant.' };
+      const response = await firstValueFrom(this.paymentService.capturePaypalOrder(orderId));
       return response?.status === 'COMPLETED'
         ? { success: true, method, data: response }
         : { success: false, method, error: 'Capture PayPal invalide.', data: response };

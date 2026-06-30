@@ -10,11 +10,12 @@ ion-content.tiktok-content {
   overflow-y: scroll;
   scroll-snap-type: y mandatory;   // ✅ LE cœur du fix
   -webkit-overflow-scrolling: touch;
+  position: relative;
 
   // Cache la scrollbar
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
-  
+
   // S'assurer qu'il n'y a pas d'espace vide à la fin
   &:after {
     content: '';
@@ -22,6 +23,8 @@ ion-content.tiktok-content {
     height: 1px;
   }
 }
+
+
 
 ion-refresher {
   position: absolute;
@@ -41,6 +44,24 @@ ion-refresher {
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.4s ease-out;
+}
+
+.ad-item {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.4s ease-out;
+  
+  app-ad-banner {
+    width: 100%;
+    height: 100%;
+  }
 }
 
 @keyframes fadeIn {
@@ -90,7 +111,7 @@ ion-button[disabled] {
   
   video, img {
     width: 100%;
-    height: 100%;
+    height: 75%;
     object-fit: cover;
   }
 
@@ -190,7 +211,7 @@ ion-button[disabled] {
   flex: 1;
   pointer-events: auto;
   max-width: calc(100% - 10px);
-  margin-bottom: -25px;
+  margin-bottom: 15px;
 }
 
 .artist-header {
@@ -560,6 +581,7 @@ ion-button[disabled] {
 .empty-state-content {
   text-align: center;
   max-width: 400px;
+  margin-bottom: 200px;
   width: 100%;
 }
 

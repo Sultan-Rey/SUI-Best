@@ -1,11 +1,30 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule, NgFor } from '@angular/common';
 import { trigger, state, style, transition, animate } from '@angular/animations';
-import { ChallengeRanking } from '../../../models/Challenge';
-import { Artist } from 'src/models/User';
-import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
 import { ModalController } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { ShortNumberPipe } from 'src/app/utils/pipes/shortNumberPipe/short-number-pipe';
+import { LeaderboardEntry } from 'src/services/Service_vote/vote-service';
+import { IonIcon, IonBadge } from "@ionic/angular/standalone";
+import { addIcons } from 'ionicons';
+import {closeOutline } from 'ionicons/icons';
+
+
+// Interface pour le challenge reçu (identique à celle de ranking.page.ts)
+interface ChallengeLeaderboard {
+  challengeId: string;
+  challengeName: string;
+  coverImage?: string;
+  description?: string;
+  endDate?: string;
+  isCompleted?: boolean;
+  leaderboard: LeaderboardEntry[];
+  statistics: {
+    total_participants: number;
+    total_votes: number;
+    average_votes_per_participant: number;
+  };
+}
 
 @Component({
   selector: 'app-modal-ranking',
@@ -13,7 +32,7 @@ import { Router } from '@angular/router';
   styleUrls: ['./modal-ranking.component.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [CommonModule, ShortNumberPipe, NgFor],
+  imports: [IonBadge, IonIcon, CommonModule, ShortNumberPipe, NgFor],
   animations: [
     trigger('modalSlideInOut', [
       state('void', style({
@@ -51,20 +70,26 @@ import { Router } from '@angular/router';
   ]
 })
 export class ModalRankingComponent implements OnInit {
-  @Input() ranking!: ChallengeRanking;
-  @Input() isVisible: boolean = false;
-  @Input() title: string = 'Classement';
+  @Input() challenge!: ChallengeLeaderboard;
+  @Input() isCompleted: boolean = false;
 
-  sortedArtists: Artist[] = [];
+  sortedLeaderboard: LeaderboardEntry[] = [];
   
-  constructor(private modalCtrl: ModalController, private router: Router) { }
+  constructor(
+    private modalCtrl: ModalController,
+    private router: Router
+  ) { addIcons({closeOutline}); }
 
   ngOnInit() {
-    if (this.ranking && this.ranking.artists) {
-      this.sortedArtists = [...this.ranking.artists].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    if (this.challenge && this.challenge.leaderboard) {
+      this.sortedLeaderboard = [...this.challenge.leaderboard]
+        .sort((a, b) => b.totalVotes - a.totalVotes)
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1
+        }));
     }
   }
-
 
   getRankIcon(rank: number): string {
     switch (rank) {
@@ -77,31 +102,42 @@ export class ModalRankingComponent implements OnInit {
 
   getRankColor(rank: number): string {
     switch (rank) {
-      case 1: return '#FFD700'; // Or
-      case 2: return '#C0C0C0'; // Argent
-      case 3: return '#CD7F32'; // Bronze
-      default: return '#6B7280'; // Gris
+      case 1: return '#FFD700';
+      case 2: return '#C0C0C0';
+      case 3: return '#CD7F32';
+      default: return '#6B7280';
     }
   }
 
-  showAccount(userId:string){
-        this.router.navigate(['/profile', userId]);
-        this.modalCtrl.dismiss({
-          animation: {
-            leaveAnimation: 'modal-slide-out'
-          }
-        });
-      }
+  getMedalClass(rank: number): string {
+    switch (rank) {
+      case 1: return 'gold-medal';
+      case 2: return 'silver-medal';
+      case 3: return 'bronze-medal';
+      default: return '';
+    }
+  }
+
+  showAccount(userId: string) {
+    this.router.navigate(['/profile', userId]);
+    this.closeModal();
+  }
 
   closeModal() {
-    this.modalCtrl.dismiss({
-      animation: {
-        leaveAnimation: 'modal-slide-out'
-      }
-    });
+    this.modalCtrl.dismiss();
   }
 
   onImageError(event: any) {
-    event.target.src = 'assets/icon/avatar-default.png';
+    event.target.src = 'assets/avatar-default.png';
+  }
+
+  formatVotes(votes: number): string {
+    if (votes >= 1000000) {
+      return (votes / 1000000).toFixed(1) + 'M';
+    }
+    if (votes >= 1000) {
+      return (votes / 1000).toFixed(1) + 'K';
+    }
+    return votes.toString();
   }
 }

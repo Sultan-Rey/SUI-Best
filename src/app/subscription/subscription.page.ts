@@ -6,16 +6,17 @@ import { Router } from '@angular/router';
 import { Plan } from '../../models/Plan';
 // Remplacement du Browser de Capacitor par InAppBrowser
 import { InAppBrowser } from '@awesome-cordova-plugins/in-app-browser/ngx';
-import { 
+import {
   IonContent,
   IonHeader,
   IonTitle,
   IonToolbar,
   IonButtons,
   IonButton,
-  IonIcon, IonSpinner, IonImg } from '@ionic/angular/standalone';
+  IonIcon, IonSpinner, IonImg
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { 
+import {
   arrowBack,
   sparkles,
   flame,
@@ -45,7 +46,7 @@ import { ProfileService } from 'src/services/Service_profile/profile-service';
   styleUrls: ['./subscription.page.scss'],
   standalone: true,
   providers: [ModalController, InAppBrowser], // Ajout d'InAppBrowser aux providers
-  imports: [IonImg,  
+  imports: [IonImg,
     CommonModule,
     FormsModule,
     IonContent,
@@ -82,16 +83,16 @@ export class SubscriptionPage implements OnInit {
   private iab = inject(InAppBrowser); // Injection d'InAppBrowser
 
   constructor() {
-     addIcons({arrowBack,sparkles,flame,checkmarkCircle,rocket,'calendar':calendar,'trophy':trophy,'eyeOutline':eyeOutline,'diamondOutline':diamondOutline,'starOutline':starOutline,'trophyOutline':trophyOutline,});
+    addIcons({ arrowBack, sparkles, flame, checkmarkCircle, rocket, 'calendar': calendar, 'trophy': trophy, 'eyeOutline': eyeOutline, 'diamondOutline': diamondOutline, 'starOutline': starOutline, 'trophyOutline': trophyOutline, });
 
-  if(this.router.getCurrentNavigation()?.extras.state?.['registrationData']) {
-    this.registrationData = this.router.getCurrentNavigation()?.extras.state?.['registrationData'] as UserProfile;
-  }
-  if(this.router.getCurrentNavigation()?.extras.state?.['renewalData']) {
-    this.renewalData = this.router.getCurrentNavigation()?.extras.state?.['renewalData'] as any;
-  }
+    if (this.router.getCurrentNavigation()?.extras.state?.['registrationData']) {
+      this.registrationData = this.router.getCurrentNavigation()?.extras.state?.['registrationData'] as UserProfile;
+    }
+    if (this.router.getCurrentNavigation()?.extras.state?.['renewalData']) {
+      this.renewalData = this.router.getCurrentNavigation()?.extras.state?.['renewalData'] as any;
+    }
 
-   if (!this.registrationData) {
+    if (!this.registrationData) {
       console.error('Aucune donnée d\'inscription trouvée');
       this.router.navigate(['/register']);
       return;
@@ -111,26 +112,26 @@ export class SubscriptionPage implements OnInit {
     });
     await loading.present();
     this.error = null;
-    
+
     this.subscriptionService.getAvailablePlans().subscribe({
-  next: (plans) => {
-    // Si renewalData existe et que son plan est 'Exhibition'
-    if (this.renewalData && this.renewalData.plan.trim() === 'Exhibition') {
-      // On NE GARDE QUE les plans qui n'ont PAS l'id 'Exhibition'
-      plans = plans.filter(plan => plan.name.trim() !== 'Exhibition');
-    }
-    if(this.registrationData && this.registrationData.type.trim() == 'creator'){
-      plans = plans.filter(plan => plan.name.trim() !== 'Exhibition');
-    }
-    this.plans = plans;
-    loading.dismiss();
-  },
-  error: (error) => {
-    console.error('💥 Erreur lors du chargement des plans:', error);
-    this.error = 'Impossible de charger les plans disponibles';
-    loading.dismiss();
-  }
-});
+      next: (plans) => {
+        // Si renewalData existe et que son plan est 'Exhibition'
+        if (this.renewalData && this.renewalData.plan.trim() === 'Exhibition') {
+          // On NE GARDE QUE les plans qui n'ont PAS l'id 'Exhibition'
+          plans = plans.filter(plan => plan.name.trim() !== 'Exhibition');
+        }
+        if (this.registrationData && this.registrationData.type.trim() == 'creator') {
+          plans = plans.filter(plan => plan.name.trim() !== 'Exhibition');
+        }
+        this.plans = plans;
+        loading.dismiss();
+      },
+      error: (error) => {
+        console.error('💥 Erreur lors du chargement des plans:', error);
+        this.error = 'Impossible de charger les plans disponibles';
+        loading.dismiss();
+      }
+    });
   }
 
   selectPlan(planId: string) {
@@ -177,111 +178,123 @@ export class SubscriptionPage implements OnInit {
         id: selectedPlan.id,
         name: selectedPlan.name,
         price: selectedPlan.price,
-        period: selectedPlan.period,      
+        period: selectedPlan.period,
         duration: selectedPlan.duration === 0 ? 30 : selectedPlan.duration,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         status: 'active',
         features: selectedPlan.features
       };
-      if(selectedPlan.price > 0){
-      const modal = await this.modalController.create({
-        component: ModalPaymentComponent,
-        componentProps: {
-         OrderAmount: Number(selectedPlan.price)
-        },
-        cssClass: 'auto-height',
-        initialBreakpoint: 0.80,
-        breakpoints: [0, 0.80, 1],
-        handle: true
-      });
-      
-      await modal.present();
-    
-      const { data } = await modal.onDidDismiss();
-     
-       if (data?.paymentUrl) {
-         const URL = data.paymentUrl as string;
-         const ORDERID = data.extra as string;
-         const result = await this.paymentGateway.processPayment(URL, data.method, ORDERID);
-         if (result.success) {
-          this.walletService.purchasePlan(
-  this.registrationData.myPlan,
-  this.registrationData.id,
-  data.method,
-  ORDERID
-).subscribe({
-  next: () => {
-    if (this.registrationData.id && this.renewalData?.date) {
+      if (selectedPlan.price > 0) {
+        const modal = await this.modalController.create({
+          component: ModalPaymentComponent,
+          componentProps: {
+            OrderAmount: Number(selectedPlan.price)
+          },
+          cssClass: 'auto-height',
+          initialBreakpoint: 0.80,
+          breakpoints: [0, 0.80, 1],
+          handle: true
+        });
 
-      const payload: Partial<UserProfile> = {
-        userInfo: {
-          memberShip: {
-            plan: selectedPlan.name,
-            date: endDate
-          }
-        } as any
-      };
+        await modal.present();
 
-      this.profileService.updateProfile(
-        this.registrationData.id,
-        payload
-      ).subscribe({
-        next: async () => {
-          this.profileService['api'].clearCache();
+        const { data } = await modal.onDidDismiss();
 
-          const alert = await this.alertController.create({
-            header: '🎉 Bienvenue parmi les VIP !',
-            message: `
+        if (data?.paymentUrl) {
+          const URL = data.paymentUrl as string;
+          const ORDERID = data.extra as string;
+          sessionStorage.setItem('pending_order_id', ORDERID);
+          sessionStorage.setItem('pending_payment_method', data.method);
+          sessionStorage.setItem('pending_payment_context', JSON.stringify({
+            reason: 'account_creation',
+            data: this.registrationData,
+            redirectOnSuccess: '/default/account-success',
+            redirectOnFailure: '/default/account-error'
+          }));
+
+          const result = await this.paymentGateway.processPayment(URL, data.method, ORDERID);
+          if (result.success) {
+            this.walletService.purchasePlan(
+              this.registrationData.myPlan,
+              this.registrationData.id,
+              data.method,
+              ORDERID
+            ).subscribe({
+              next: () => {
+                if (this.registrationData.id && this.renewalData?.date) {
+
+                  const payload: Partial<UserProfile> = {
+                    userInfo: {
+                      memberShip: {
+                        plan: selectedPlan.name,
+                        date: endDate
+                      }
+                    } as any
+                  };
+
+                  this.profileService.updateProfile(
+                    this.registrationData.id,
+                    payload
+                  ).subscribe({
+                    next: async () => {
+                      this.profileService['api'].clearCache();
+                      sessionStorage.removeItem("payment_result");
+                      const alert = await this.alertController.create({
+                        header: '🎉 Bienvenue parmi les VIP !',
+                        message: `
               Félicitations ! Votre adhésion <strong>${this.renewalData.plan}</strong> est maintenant active.
               <br><br>
               Vous faites désormais partie de nos membres VIP et bénéficiez des avantages exclusifs dans la communauté.
             `,
-            backdropDismiss: false,
-            buttons: [
-              {
-                text: 'Continuer le vibe',
-                handler: () => {
-                  this.router.navigate(['/home']);
+                        backdropDismiss: false,
+                        buttons: [
+                          {
+                            text: 'Continuer le vibe',
+                            handler: () => {
+                              this.router.navigate(['/home']);
+                            }
+                          }
+                        ]
+                      });
+
+                      await alert.present();
+                    },
+                    error: (error) => {
+                      console.error('❌ Erreur lors de la mise à jour du profil :', error);
+                    }
+                  });
+
+                } else {
+                  this.tryCreateAccount();
                 }
+              },
+
+              error: (err) => {
+                console.error('❌ purchasePlan a échoué:', err);
+
+                // Le wallet est sauvegardé localement,
+                // on poursuit le processus de création de compte.
+                if (this.registrationData && !this.renewalData)
+                  this.tryCreateAccount();
+
               }
-            ]
-          });
+            });
 
-          await alert.present();
-        },
-        error: (error) => {
-          console.error('❌ Erreur lors de la mise à jour du profil :', error);
+          } else {
+            // Afficher une alerte ou un toast avec result.error
+            console.error("Échec du paiement :", result.error);
+          }
+        }
+      } else {
+        if (this.registrationData && !this.renewalData)
           this.tryCreateAccount();
-        }
-      });
 
-    } else {
-      this.tryCreateAccount();
-    }
-  },
-
-  error: (err) => {
-    console.error('❌ purchasePlan a échoué:', err);
-
-    // Le wallet est sauvegardé localement,
-    // on poursuit le processus de création de compte.
-    this.tryCreateAccount();
-  }
-});
-          
-        } else {
-          // Afficher une alerte ou un toast avec result.error
-        console.error("Échec du paiement :", result.error);
-        }
-       }
-      }else{
-        this.tryCreateAccount();
       }
     }
   }
 
-  
+
 
 
 
@@ -295,26 +308,27 @@ export class SubscriptionPage implements OnInit {
       });
       await loading.present();
 
-      
+
       const signupResponse = await firstValueFrom(this.auth.signup(this.registrationData));
-      
+
       if (!signupResponse.success) {
         throw new Error(signupResponse.error || signupResponse.message || 'Échec de l\'inscription');
       } else {
         await loading.dismiss();
 
-        
+        sessionStorage.removeItem("payment_result");
+
         if (signupResponse.user_id) {
           await this.notificationManager.notifyWelcome(signupResponse.user_id);
         }
-        
+
         await this.router.navigate(['/default/account-success'], {
           state: {
             name: this.registrationData.name,
             email: this.registrationData.email
           }
         });
-        
+
         // Réinitialisation des données
         this.registrationData = null;
       }
@@ -322,15 +336,30 @@ export class SubscriptionPage implements OnInit {
     } catch (error: any) {
       console.error('Erreur d\'inscription:', error);
       const errorMessage = error?.message || 'Une erreur est survenue lors de l\'inscription';
-      
+
       const failureAlert = await this.alertController.create({
         header: 'Échec de la création',
         message: errorMessage,
-        buttons: ['Recommencer']
+        buttons: [
+    {
+      text: 'Recommencer',
+      handler: () => {
+        this.tryCreateAccount();
+      }
+    },
+    {
+      text: 'Login',
+      cssClass: 'alert-button-confirm', // Optionnel : pour styliser différemment
+      handler: () => {
+        this.router.navigate(['/login']); // Modifiez la route selon votre configuration
+      }
+    }
+  ]
       });
       await failureAlert.present();
-      
+
     } finally {
+      sessionStorage.removeItem("payment_result");
       this.isLoading = false;
     }
   }

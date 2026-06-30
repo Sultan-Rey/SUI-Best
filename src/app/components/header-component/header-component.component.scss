@@ -19,8 +19,8 @@
 // ─── Conteneur principal ──────────────────────────────────────────────────────
 .stats-container {
   // Variables de base
-  --padding-top-base: 6px;
-  --padding-top-fallback: 24px;
+  //--padding-top-base: 6px;
+  //--padding-top-fallback: 24px;
   --padding-right: 12px;
   --padding-bottom: 8px;
   --padding-left: 12px;
@@ -553,7 +553,7 @@
   --header-border:       rgba(0, 0, 0, 0.08);
   --btn-bg:              rgba(0, 0, 0, 0.12);
   --btn-bg-hover:        rgba(0, 0, 0, 0.20);
-  --btn-active-bg:       #d1c7a5;
+  --btn-active-bg:       #494e5f;
   --coin-label-bg:       #fff3cd;
   --coin-label-color:    #7c6000;
   --searchbar-bg:        rgba(117, 114, 114, 0.699);
@@ -567,8 +567,8 @@
   --background: var(--header-bg);
   background:   var(--header-bg) !important;
 
-  padding-top: constant(safe-area-inset-top);
-  padding-top: env(safe-area-inset-top);
+  //padding-top: constant(safe-area-inset-top);
+  //padding-top: env(safe-area-inset-top);
 
   @media screen and (min-width: 1024px) {
     --background: var(--header-bg-desktop);

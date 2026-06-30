@@ -1,0 +1,113 @@
+<ion-header class="player-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tab-exclusive"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Lecture</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="shareContent()">
+        <ion-icon name="share-social"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="player-content" [fullscreen]="true">
+
+  <ng-container *ngIf="content$ | async as content">
+
+    <!-- VIDEO PLAYER -->
+    <div class="video-container">
+      <video
+        *ngIf="content.media.videoFile"
+        [src]="content.media.videoFile | mediaUrl | async"
+        class="video-player"
+        controls
+        autoplay
+      ></video>
+      
+      <!-- Fallback si pas de vidéo -->
+      <div class="video-placeholder" *ngIf="!content.media.videoFile">
+        <ion-icon name="play" size="large"></ion-icon>
+        <p>Contenu non disponible</p>
+      </div>
+    </div>
+
+    <!-- CONTENT INFO -->
+    <div class="content-info">
+      
+      <!-- Header -->
+      <div class="info-header">
+        <div class="type-badge">
+          <ion-icon [name]="getContentIcon(content.type)"></ion-icon>
+          {{ content.type }}
+        </div>
+        <div class="actions">
+          <ion-button fill="clear" (click)="toggleLike()">
+            <ion-icon [name]="isLiked ? 'heart' : 'heart-outline'"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" (click)="toggleBookmark()">
+            <ion-icon [name]="isBookmarked ? 'bookmark' : 'bookmark-outline'"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- Title & Author -->
+      <h1 class="content-title">{{ content.title }}</h1>
+      
+      <div class="author-row">
+        <div class="avatar" [style.background]="content.author.color">
+          {{ content.author.initials }}
+        </div>
+        <div class="author-info">
+          <span class="author-name">{{ content.author.name }}</span>
+          <span class="content-meta">
+            👁 {{ content.viewCount || 0 }} vues
+            <span *ngIf="content.likeCount">❤️ {{ content.likeCount }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="description">
+        <p>{{ content.description }}</p>
+      </div>
+
+      <!-- Series Info -->
+      <div class="series-info" *ngIf="content.series?.isSeries">
+        <div class="series-badge">
+          <ion-icon name="play"></ion-icon>
+          Série : {{ content.series!.seriesTitle }}
+        </div>
+        <div class="episode-info" *ngIf="content.series!.episodeNumber">
+          Épisode {{ content.series!.episodeNumber }} / {{ content.series!.totalEpisodes }}
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">Durée</span>
+          <span class="stat-value">{{ formatTime(content.media.duration || 0) }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Type</span>
+          <span class="stat-value">{{ content.type }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Statut</span>
+          <span class="stat-value">{{ content.status }}</span>
+        </div>
+      </div>
+
+    </div>
+
+  </ng-container>
+
+  <!-- Loading state -->
+  <div class="loading-state" *ngIf="!(content$ | async)">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Chargement...</p>
+  </div>
+
+</ion-content>

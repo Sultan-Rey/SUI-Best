@@ -27,7 +27,7 @@ import {
 
   IonContent,
 
-  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonInput, IonSpinner, IonItem, IonLabel } from '@ionic/angular/standalone';
+  IonInfiniteScroll, IonInfiniteScrollContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonInput, IonSpinner, IonItem, IonLabel, IonText } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
 
@@ -82,6 +82,8 @@ import { ModalSelectPostComponent } from 'src/app/components/modal-select-post/m
 import { Segment } from 'src/models/Segment.js';
 
 import { FollowedViewPolling } from './followed-view-polling';
+import { PremiumService } from 'src/services/Premium/premium-service.js';
+
 
 
 
@@ -99,9 +101,9 @@ import { FollowedViewPolling } from './followed-view-polling';
 
   changeDetection: ChangeDetectionStrategy.OnPush,
 
-  imports: [IonLabel, IonItem, IonSpinner, IonContent, DatePipe, AsyncPipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
+  imports: [IonText, IonLabel, IonItem, IonSpinner, IonContent, DatePipe, AsyncPipe, IonRefresherContent, IonRefresher, ShortNumberPipe, MediaUrlPipe, IonInfiniteScrollContent,
 
-    IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, FormsModule, SideActionsComponent]
+    IonInfiniteScroll, NgFor, NgIf, IonIcon, IonButton, FormsModule, SideActionsComponent] 
 
 })
 
@@ -201,6 +203,11 @@ private polling?: FollowedViewPolling;
 
   commentCount!:number;
 
+  // Ads management
+  currentAdIndex: number = 0;
+  showAd: boolean = false;
+  private adRotationInterval: any = null;
+  private readonly AD_ROTATION_DELAY = 30000; // 30 seconds
 
 
   //#region Constructor
@@ -222,6 +229,8 @@ private polling?: FollowedViewPolling;
     private commentService: CommentService,
 
     private profileService: ProfileService,
+
+    private premiumService: PremiumService,
 
     private actionSheetController: ActionSheetController,
 
@@ -400,7 +409,7 @@ ionViewWillLeave() {
 
 
  ngOnDestroy() {
-  
+
   this.intersectionObserver?.disconnect();
   clearTimeout(this.snapRevealTimeout);
 
@@ -758,6 +767,11 @@ private triggerSnapReveal(postEl: HTMLElement) {
 
  private async playVideo(video: HTMLVideoElement, postId: string) {
 
+  // Évite de relancer si déjà en lecture
+  if (!video.paused) {
+    return;
+  }
+
   video.muted = this.isMuted; // Tentative avec le son si isMuted est false
 
 
@@ -783,6 +797,11 @@ private triggerSnapReveal(postEl: HTMLElement) {
     await video.play();
 
   } catch (err) {
+
+    // Ignore AbortError (pause interrompt play pendant scroll)
+    if (err instanceof Error && err.name === 'AbortError') {
+      return;
+    }
 
     console.warn('Autoplay avec son bloqué, tentative en muet :', err);
 
@@ -1154,6 +1173,18 @@ onPressEnd(post: Content) {
 
 
 
+  //#region Ads Management
+
+  trackByPost(index: number, post: Content): string {
+    return post.id || index.toString();
+  }
+
+ 
+
+  //#endregion
+
+
+
   //#region Content Loading
 
   private loadInitialFeed(): Observable<void> {
@@ -1313,7 +1344,7 @@ onPressEnd(post: Content) {
 
 
   async refreshFeed(event: any) {
-
+    console.log("chargment...");
     if (this.challengeName) {
 
       await this.processExternalPosts();
@@ -1484,6 +1515,12 @@ onPressEnd(post: Content) {
 
       async presentParticipateOptions(challenge: Challenge) {
 
+        const hasAccess = await this.premiumService.checkAccessOrLock(
+    this.currentUserProfile, 
+  );
+  
+   if (!hasAccess) return;
+   
           const actionSheet = await this.actionSheetController.create({
 
             header: 'Participer au challenge',

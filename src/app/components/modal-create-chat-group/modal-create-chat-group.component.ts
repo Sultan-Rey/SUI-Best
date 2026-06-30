@@ -94,25 +94,20 @@ export class ModalCreateChatGroupComponent implements OnInit {
   private async loadUserData() {
     try {
       this.isLoading = true;
-      
       if (this.CurrentUser) {
         if (this.isEditingMode && this.existingGroup) {
           // Mode édition : charger les participants du groupe existant
           await this.loadExistingGroupData();
         } else {
-          // Mode création : charger les fans et follows pour invitation
-          const [fansResult, followsResult] = await Promise.all([
-            this.profileService.searchUserIdInMyFollows(this.CurrentUser.id).toPromise(),
-            this.profileService.getProfileById(this.CurrentUser.id).toPromise()
-          ]);
-          
-          // Récupérer les profils des fans
-          const fans = fansResult?.results || [];
-          
+        
           // Récupérer les profils des follows depuis myFollows
           let follows: UserProfile[] = [];
-          if (followsResult?.myFollows && followsResult.myFollows.length > 0) {
-            follows = await this.profileService.getProfilesByIds(followsResult.myFollows).toPromise() || [];
+          if (this.CurrentUser.myFollows && this.CurrentUser.myFollows.length > 0) {
+            follows = await this.profileService.getProfilesByIds(this.CurrentUser.myFollows).toPromise() || [];
+          }
+          let fans:UserProfile[] = [];
+          if (this.CurrentUser.myFans && this.CurrentUser.myFans.length > 0) {
+            fans = await this.profileService.getProfilesByIds(this.CurrentUser.myFans).toPromise() || [];
           }
           
           this.myFans = fans;
@@ -134,6 +129,11 @@ export class ModalCreateChatGroupComponent implements OnInit {
     }
   }
 
+  onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.onerror = null;
+    img.src = 'assets/avatar-default.png';
+  }
   /**
    * Charge les données du groupe existant pour le mode édition
    */
@@ -319,7 +319,7 @@ export class ModalCreateChatGroupComponent implements OnInit {
         ).toPromise();
         
         if (uploadResult) {
-          groupData.avatar = uploadResult.url;
+          groupData.avatar = uploadResult.path;
         }
       } else if (this.groupAvatarPreview && !this.groupAvatar) {
         // Conserver l'avatar existant si pas de nouveau fichier

@@ -6,8 +6,7 @@ import {
   IonContent,
   IonIcon,
   ToastController,
-  ModalController
-} from '@ionic/angular/standalone';
+  ModalController, AlertController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   searchOutline,
@@ -19,12 +18,20 @@ import {
   videocamOutline,
   imagesOutline,
 } from 'ionicons/icons';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-import { ExclusiveService } from '../../services/Service_exclusive_content/exclusive-service';
+import { Observable, of, throwError } from 'rxjs';
+import { map, catchError, takeUntil, switchMap, take } from 'rxjs/operators';
+import { ExclusiveContentService } from '../../services/Service_exclusive_content/exclusive-service';
 import { ExclusiveContent, ExclusiveContentStatus, ExclusiveContentType, Series } from '../../models/Content';
 import { Router } from '@angular/router';
-import { ModalPaymentComponent } from '../components/modal-payment/modal-payment.component';
+import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
+import { AsyncPipe } from '@angular/common';
+import { Auth } from '../../services/AUTH/auth';
+import { CouponModalComponent } from '../components/modal-coupon/coupon-modal.component';
+import { CouponModalMode } from '../../interfaces/coupon.interfaces';
+import { WalletService, UserBalance } from '../../services/Service_wallet/wallet-service';
+import { Transaction, Wallet } from '../../models/Wallet';
+import { PremiumService } from '../../services/Premium/premium-service';
+import { CoinConfirmationComponent } from './CoinConfirmationComponent';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +56,7 @@ export interface FilterTab {
   styleUrls: ['exclusive.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [CommonModule, FormsModule, IonContent, IonIcon, HeaderComponentComponent],
+  imports: [ MediaUrlPipe, AsyncPipe, CommonModule, FormsModule, IonContent, IonIcon, HeaderComponentComponent],
 })
 export class ExclusivePage implements OnInit {
 
@@ -66,15 +73,22 @@ export class ExclusivePage implements OnInit {
 
   // Données observables
   featuredItems$!: Observable<ExclusiveContent[]>;
+  liveContents$!: Observable<ExclusiveContent[]>; 
+  masterClass$!: Observable<ExclusiveContent[]>;
   allContents$!: Observable<ExclusiveContent[]>;
   series$!: Observable<Series[]>;
   public subscriptionStatus: string = '';
+  public userBalance: UserBalance = { coins: 0, coupons: 0 };
   
   constructor(
     private toastCtrl: ToastController,
+    private alertController: AlertController,
     private modalController: ModalController,
-    private exclusiveService: ExclusiveService,
-    private router: Router
+    private walletService: WalletService,
+    private premiumService: PremiumService,
+    private exclusiveService: ExclusiveContentService,
+    private router: Router,
+    private auth: Auth
   ) {
     addIcons({
       searchOutline,
@@ -96,19 +110,94 @@ export class ExclusivePage implements OnInit {
     this.subscriptionStatus = status; // On stocke la valeur
   }
 
+  onBalanceChange(balance: UserBalance) {
+    this.userBalance = balance;
+  }
+
+  /**
+   * Crée un objet Transaction pour un achat de contenu exclusif
+   */
+ private createTransaction(
+  item: ExclusiveContent,
+  currencyType: 'coin' | 'coupon' | 'money',
+  amount: number,
+  paymentMethod?: string
+): Observable<Wallet> {
+  const currentUser = this.auth.getCurrentUser();
+  
+  const transaction: Omit<Transaction, 'walletId'> = {
+    id: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: 'purchase',
+    amount: amount,
+    itemType: currencyType === 'money' ? 'subscription' : currencyType === 'coin' ? 'coins' : 'coupons',
+    description: `Achat du contenu "${item.title}" (${item.type})`,
+    date: new Date().toISOString(),
+    price: item.currency?.value || 0,
+    paymentMethod: paymentMethod || (currencyType === 'coin' ? 'wallet' : currencyType === 'coupon' ? 'coupon' : 'payment_gateway'),
+    metadata: {
+      contentId: item.id,
+      contentType: item.type,
+      contentTitle: item.title,
+      authorId: item.author?.id,
+      authorName: item.author?.name,
+      currencyType: currencyType,
+      currencyValue: item.currency?.value,
+      status: 'completed'
+    }
+  };
+
+  // ✅ Récupérer le wallet et enregistrer la transaction
+  return this.walletService.wallet$.pipe(
+    take(1),
+    switchMap(wallet => {
+      if (!wallet) {
+        return throwError(() => new Error('Wallet non trouvé'));
+      }
+      return this.walletService.addPlanTransactionToExistingWallet(wallet, transaction as Transaction);
+    })
+  );
+}
+
+/**
+ * Affiche un dialog de confirmation pour l'achat avec des coins
+ */
+/**
+ * Affiche un dialog de confirmation pour l'achat avec des coins
+ */
+private async presentCoinConfirmation(item: ExclusiveContent): Promise<boolean> {
+  const modal = await this.modalController.create({
+    component: CoinConfirmationComponent,
+    cssClass: 'coin-confirmation-modal',
+    componentProps: {
+      contentTitle: item.title,
+      coinCost: item.currency?.value || 0,
+      currentBalance: this.userBalance.coins
+    },
+    backdropDismiss: true
+  });
+
+  await modal.present();
+  const { data } = await modal.onWillDismiss();
+  return data?.confirmed || false;
+}
   // ── Data Loading ─────────────────────────────────────────────────────────────
 
   loadData(): void {
-    // 1. Récupérer les contenus mis en avant (featured) via le filtre par statut du service
-    this.featuredItems$ = this.exclusiveService.getByStatus('featured').pipe(
+    // 1. Récupérer tous les contenus et filtrer pour featured
+    this.featuredItems$ = this.exclusiveService.getAll().pipe(
+      map(contents => contents.filter(c => 
+        c.status === ExclusiveContentStatus.FEATURED && 
+        (c.type === ExclusiveContentType.VIDEO || c.type === ExclusiveContentType.BEHIND)
+      )),
       catchError(error => {
         console.error('Erreur lors du chargement des contenus vedettes', error);
         return of([]);
       })
     );
 
-    // 2. Récupérer tous les contenus publiés par défaut
-    this.allContents$ = this.exclusiveService.getByStatus('published').pipe(
+    // 2. Récupérer tous les contenus et filtrer pour published
+    this.allContents$ = this.exclusiveService.getAll().pipe(
+      map(contents => contents.filter(c => c.status === ExclusiveContentStatus.PUBLISHED)),
       catchError(error => {
         console.error('Erreur lors du chargement de tous les contenus', error);
         return of([]);
@@ -122,81 +211,348 @@ export class ExclusivePage implements OnInit {
         return of([]);
       })
     );
+
+    // 4. Récupérer tous les contenus et filtrer pour live
+    this.liveContents$ = this.exclusiveService.getAll().pipe(
+      map(contents => contents.filter(c => c.isLive === true)),
+      catchError(error => {
+        console.error('Erreur lors du chargement des contenus live', error);
+        return of([]);
+      })
+    );
+
+    // 5. Récupérer tous les contenus et filtrer pour masterclass
+    this.masterClass$ = this.exclusiveService.getAll().pipe(
+      map(contents => contents.filter(c => 
+        c.type === ExclusiveContentType.MASTERCLASS && 
+        c.status === ExclusiveContentStatus.PUBLISHED
+      )),
+      catchError(error => {
+        console.error('Erreur lors du chargement des contenus masterclass', error);
+        return of([]);
+      })
+    );
   }
 
   // ── Filter ──────────────────────────────────────────────────────────────────
 
   setFilter(filterId: string): void {
     this.activeFilter = filterId;
+    this.applyFilterAndSearch();
+  }
+
+  /**
+   * Applique le filtre actuel et la recherche si searchQuery n'est pas vide
+   */
+  private applyFilterAndSearch(): void {
+    const searchTerm = this.searchQuery.toLowerCase().trim();
+    const hasSearch = searchTerm.length > 0;
     
-    if (filterId === 'series') {
-      // Afficher uniquement les séries (converties en ExclusiveContent pour l'affichage unifié)
-      const unifiedSeries$ = this.exclusiveService.getAllSeries().pipe(
-        map(series => series.map(s => this.convertSeriesToContent(s))),
-        catchError(() => of([]))
-      );
-      
-      this.featuredItems$ = unifiedSeries$;
-      this.allContents$ = unifiedSeries$;
-    } else {
-      // Filtrer dynamiquement les contenus selon leur type
-      if (filterId === 'all') {
-        // Retour aux données initiales non filtrées (publiées ou vedettes)
-        this.featuredItems$ = this.exclusiveService.getByStatus('archived').pipe(catchError(() => of([])));
-        this.allContents$ = this.exclusiveService.getByStatus('published').pipe(catchError(() => of([])));
-      } else {
-        // Appel aux méthodes natives de filtrage par type exposées par l'ExclusiveService
-        this.featuredItems$ = this.exclusiveService.getByType(filterId).pipe(
-          map(contents => contents.filter(c => c.status === ExclusiveContentStatus.ARCHIVED)),
+    // Filtrer tous les contenus selon le filtre sélectionné
+    const baseContents$ = this.exclusiveService.getAll().pipe(
+      catchError(() => of([]))
+    );
+    
+    const searchFilter = (item: ExclusiveContent | Series) => {
+      if (!hasSearch) return true;
+      const title = item.title?.toLowerCase() || '';
+      const description = item.description?.toLowerCase() || '';
+      const authorName = item.author?.name?.toLowerCase() || '';
+      return title.includes(searchTerm) || 
+             description.includes(searchTerm) || 
+             authorName.includes(searchTerm);
+    };
+    
+    switch (this.activeFilter) {
+      case 'series':
+        // Afficher uniquement les séries
+        this.featuredItems$ = this.exclusiveService.getAllSeries().pipe(
+          map(series => series
+            .map(s => this.convertSeriesToContent(s))
+            .filter(searchFilter)
+          ),
           catchError(() => of([]))
         );
+        this.allContents$ = this.featuredItems$;
+        break;
         
-        this.allContents$ = this.exclusiveService.getByType(filterId).pipe(
-          map(contents => contents.filter(c => c.status === ExclusiveContentStatus.PUBLISHED)),
-          catchError(() => of([]))
+      case 'all':
+        // Retour aux données initiales (featured + published)
+        this.featuredItems$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.status === ExclusiveContentStatus.FEATURED &&
+            (c.type === ExclusiveContentType.VIDEO || c.type === ExclusiveContentType.BEHIND) &&
+            searchFilter(c)
+          ))
         );
-      }
+        this.allContents$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.status === ExclusiveContentStatus.PUBLISHED &&
+            searchFilter(c)
+          ))
+        );
+        break;
+        
+      case 'video':
+        this.featuredItems$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.type === ExclusiveContentType.VIDEO && 
+            c.status === ExclusiveContentStatus.FEATURED &&
+            searchFilter(c)
+          ))
+        );
+        this.allContents$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.type === ExclusiveContentType.VIDEO && 
+            c.status === ExclusiveContentStatus.PUBLISHED &&
+            searchFilter(c)
+          ))
+        );
+        break;
+        
+      case 'behind':
+        this.featuredItems$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.type === ExclusiveContentType.BEHIND && 
+            c.status === ExclusiveContentStatus.FEATURED &&
+            searchFilter(c)
+          ))
+        );
+        this.allContents$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.type === ExclusiveContentType.BEHIND && 
+            c.status === ExclusiveContentStatus.PUBLISHED &&
+            searchFilter(c)
+          ))
+        );
+        break;
+        
+      case 'masterclass':
+        this.featuredItems$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.type === ExclusiveContentType.MASTERCLASS && 
+            c.status === ExclusiveContentStatus.FEATURED &&
+            searchFilter(c)
+          ))
+        );
+        this.allContents$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.type === ExclusiveContentType.MASTERCLASS && 
+            c.status === ExclusiveContentStatus.PUBLISHED &&
+            searchFilter(c)
+          ))
+        );
+        break;
+        
+      default:
+        // Fallback : afficher tous les contenus publiés
+        this.featuredItems$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.status === ExclusiveContentStatus.FEATURED &&
+            searchFilter(c)
+          ))
+        );
+        this.allContents$ = baseContents$.pipe(
+          map(contents => contents.filter(c => 
+            c.status === ExclusiveContentStatus.PUBLISHED &&
+            searchFilter(c)
+          ))
+        );
     }
   }
 
+  /**
+   * Appelé quand la recherche change
+   */
+  onSearchChange(): void {
+    this.applyFilterAndSearch();
+  }
+
   // ── Actions ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Vérifie si l'utilisateur actuel a accès à un contenu (son ID est dans watchers)
+   */
+  hasAccess(item: ExclusiveContent | Series): boolean {
+    const currentUser = this.auth.getCurrentUser();
+    if (!currentUser || !currentUser.id) return false;
+    
+    if ('watchers' in item && item.watchers) {
+      return item.watchers.includes(currentUser.id);
+    }
+    return false;
+  }
+
+  /**
+   * Vérifie si le contenu est verrouillé pour l'utilisateur actuel
+   * (locked=true et utilisateur n'a pas accès via watchers)
+   */
+  isLockedForUser(item: ExclusiveContent | Series): boolean {
+    if ('locked' in item && item.locked) {
+      return !this.hasAccess(item);
+    }
+    return false;
+  }
 
   onSubscribe(): void {
     this.router.navigate(['/subscription']);
   }
 
   onContentTap(item: ExclusiveContent | Series): void {
-    if ('locked' in item && item.locked) {
-      this.showToast(`Acheter pour déverrouiller : ${item.title}`);
+    if (this.isLockedForUser(item)) {
+      // Contenu verrouillé pour l'utilisateur : ouvrir le modal de paiement
+      // onBuy n'accepte que ExclusiveContent, pas Series
+      if ('locked' in item) {
+      
+        this.onBuy(item, new Event('click'));
+      }
     } else if ('episodeNumber' in item && item.episodeNumber) {
-      // C'est un épisode de série
-      this.showToast(`Lecture épisode ${item.episodeNumber} : ${item.title}`);
+      // C'est un épisode de série : naviguer vers le lecteur
+      this.router.navigate(['/content-player', item.id]);
+    } else if ('totalEpisodes' in item && item.totalEpisodes) {
+      // C'est une série : naviguer vers le détail de la série
+      this.router.navigate(['/series-detail', item.id]);
     } else {
-      this.showToast(`Lecture : ${item.title}`);
+      // Contenu simple : naviguer vers le lecteur
+      this.router.navigate(['/content-player', item.id]);
     }
   }
 
   async onBuy(item: ExclusiveContent, event: Event) {
-    event.stopPropagation();
-    const modal = await this.modalController.create({
-      component: ModalPaymentComponent,
-      cssClass: 'auto-height',
-      componentProps: { OrderAmount: item.currency?.value },
-      initialBreakpoint: 0.90,
-      breakpoints: [0, 0.90, 1],
-      handle: true
-    });
-                
-    await modal.present();
+  event.stopPropagation();
+  
+  // Initialiser watchers si nécessaire
+  item.watchers = item.watchers || [];
+  const userId = this.auth.getCurrentUser()?.id;
+  if (userId && !item.watchers.includes(userId)) {
+    item.watchers.push(userId);
   }
 
-  onWatch(item: ExclusiveContent, event: Event): void {
+  // ─── CAS COUPON ─────────────────────────────────────────────
+  if (item.currency?.type === 'coupon') {
+    const modal = await this.modalController.create({
+      component: CouponModalComponent,
+      cssClass: 'vote-modal',
+      breakpoints: [0, 0.7, 0.85],
+      initialBreakpoint: 0.85,
+      backdropDismiss: true,
+      componentProps: {
+        artistName: item.author?.name || 'Utilisateur',
+        artistAvatar: 'assets/avatar-default.png',
+        postId: item.id,
+        mode: CouponModalMode.ACCESS,
+      }
+    });
+
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    
+    if (data && data.success) {
+      // Mettre à jour le contenu
+      const updatedItem = await this.exclusiveService.update(item.id!, { watchers: item.watchers }).toPromise();
+      
+      // ✅ Créer et enregistrer la transaction (tout est géré dans createTransaction)
+      this.createTransaction(item, 'coupon', item.currency.value || 0, 'coupon').subscribe({
+        next: (updatedWallet) => {
+          console.log('✅ Transaction enregistrée avec succès', updatedWallet);
+          this.showToast('Félicitation, contenu débloqué!');
+        },
+        error: (err) => {
+          console.error('❌ Erreur lors de l\'enregistrement de la transaction:', err);
+          this.showToast('Erreur lors de l\'enregistrement de la transaction');
+        }
+      });
+    }
+
+ // ─── CAS COINS ──────────────────────────────────────────────
+} else if (item.currency?.type === 'coin') {
+  // Vérifier le solde
+ if (this.userBalance.coins < item.currency.value) {
+  const alert = await this.alertController.create({
+    header: 'Solde insuffisant',
+    message: `Vous n'avez pas assez de coins.\n\nSolde actuel : ${this.userBalance.coins} coins\nCoût : ${item.currency.value} coins\nManque : ${item.currency.value - this.userBalance.coins} coins`,
+    cssClass: 'custom-alert',
+    buttons: [
+      {
+        text: 'Fermer',
+        role: 'cancel'
+      }
+    ]
+  });
+  await alert.present();
+  return;
+}
+
+  // ✅ Afficher le dialog de confirmation
+  const confirmed = await this.presentCoinConfirmation(item);
+  
+  if (!confirmed) {
+    return; // L'utilisateur a annulé
+  }
+
+  // Procéder à l'achat
+  this.walletService.deductCoins(item.currency.value).subscribe({
+    next: async () => {
+      // Mettre à jour le contenu
+      const updatedItem = await this.exclusiveService.update(item.id!, { watchers: item.watchers }).toPromise();
+      
+      // Créer et enregistrer la transaction
+      this.createTransaction(item, 'coin', item?.currency?.value || 0, 'wallet').subscribe({
+        next: (updatedWallet) => {
+          console.log('✅ Transaction enregistrée avec succès', updatedWallet);
+          this.showToast('🎉 Félicitation, contenu débloqué avec succès !');
+        },
+        error: (err) => {
+          console.error('❌ Erreur lors de l\'enregistrement de la transaction:', err);
+          this.showToast('⚠️ Erreur lors de l\'enregistrement de la transaction');
+        }
+      });
+    },
+    error: (err) => {
+      console.error('Erreur lors de la déduction des coins:', err);
+      this.showToast('❌ Erreur lors de l\'achat');
+    }
+  });
+
+  // ─── CAS MONEY ──────────────────────────────────────────────
+  } else if (item.currency?.type === 'money') {
+    const hasAccess = await this.premiumService.checkAccessOrLock(
+      this.auth.getCurrentUser(), 
+    );
+    
+    if (hasAccess) {
+      // Mettre à jour le contenu
+      const updatedItem = await this.exclusiveService.update(item.id!, { watchers: item.watchers }).toPromise();
+      
+      // ✅ Créer et enregistrer la transaction
+      this.createTransaction(item, 'money', item.currency.value || 0, 'payment_gateway').subscribe({
+        next: (updatedWallet) => {
+          console.log('✅ Transaction enregistrée avec succès', updatedWallet);
+          this.showToast('Félicitation, contenu débloqué!');
+        },
+        error: (err) => {
+          console.error('❌ Erreur lors de l\'enregistrement de la transaction:', err);
+          this.showToast('Erreur lors de l\'enregistrement de la transaction');
+        }
+      });
+    }
+  }
+}
+
+  onWatch(item: ExclusiveContent | Series, event: Event): void {
     event.stopPropagation();
-    this.showToast(`Lecture : ${item.title}`);
+    if (this.isLockedForUser(item)) {
+      // Contenu verrouillé pour l'utilisateur : ouvrir le modal de paiement
+      if ('locked' in item) {
+        this.onBuy(item, event);
+      }
+    } else {
+      this.router.navigate(['/content-player', item.id]);
+    }
   }
 
   onSeriesTap(series: Series): void {
-    this.showToast(`Ouverture de la série : ${series.title}`);
+    this.router.navigate(['/series-detail', series.id]);
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

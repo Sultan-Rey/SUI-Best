@@ -1,253 +1,318 @@
-<app-header-component (currentSubscriptionStatus)="getSubscriptionStatus($event)" ></app-header-component>
+<app-header-component
+  (currentSubscriptionStatus)="getSubscriptionStatus($event)"
+  (balanceChange)="onBalanceChange($event)"
+></app-header-component>
 
-<ion-content [fullscreen]="false" class="exclusive-content">
+<ion-content class="exclusive-content" [fullscreen]="true">
 
-<div class="exclusive-wrapper">
+  <div class="exclusive-wrapper">
 
- <!-- HEADER -->
-  <div class="ex-header">
-    <h1 class="ex-title">Exclusifs</h1>
-    <p class="ex-subtitle">Contenus premium de vos artistes et createur</p>
-  </div>
+    <!-- AMBIENT GLOW -->
+    <div class="background-glow"></div>
+    <div class="background-glow-2"></div>
 
-  <!-- SEARCH -->
-  <div class="ex-search-wrap">
-    <div class="ex-search-box">
-      <ion-icon name="search-outline" class="search-icon"></ion-icon>
+    <!-- ─────────────────────────────────────────── -->
+    <!-- HERO — plein écran, immersif style Netflix  -->
+    <!-- ─────────────────────────────────────────── -->
+    <section class="hero-section">
+      <ng-container *ngIf="series$ | async as serie">
+        <div
+          class="hero-card"
+          (click)="onContentTap(serie[0])"
+          *ngIf="serie?.length"
+        >
+
+          <img
+            class="hero-image"
+            [src]="serie[0].thumbnail | mediaUrl | async"
+            [alt]="serie[0].title"
+          />
+
+          <div class="hero-overlay">
+
+            <div class="hero-top">
+              <span class="badge-type">{{ serie[0].type }}</span>
+              <span class="badge-live" *ngIf="serie[0].isCompleted">COMPLETED</span>
+            </div>
+
+            <h1 class="hero-title">{{ serie[0].title }}</h1>
+
+            <p class="hero-desc">{{ serie[0].description }}</p>
+
+            <div class="hero-meta">
+              <span>👁 {{ serie[0].viewCount }}</span>
+              <span *ngIf="serie[0].likeCount">❤️ {{ serie[0].likeCount }}</span>
+              <span *ngIf="serie[0]?.duration">⏱ {{ serie[0].duration }}</span>
+              <span *ngIf="serie[0].totalEpisodes">📺 {{ serie[0].totalEpisodes }} épisodes</span>
+            </div>
+
+            <button class="hero-btn" (click)="onWatch(serie[0], $event)">▶ Regarder</button>
+
+          </div>
+
+        </div>
+      </ng-container>
+    </section>
+
+    <!-- ─────────────────────────────── -->
+    <!-- CTA PREMIUM (si abonnement expiré) -->
+    <!-- ─────────────────────────────── -->
+    <section
+      class="premium-cta"
+      *ngIf="subscriptionStatus === 'expired'"
+    >
+      <div class="cta-content">
+        <span class="cta-tag">MEMBERSHIP</span>
+        <h2>Débloquez tout le contenu exclusif</h2>
+        <p>Séries, masterclass, lives et contenus premium sans limite.</p>
+      </div>
+      <button class="cta-btn" (click)="onSubscribe()">S'abonner</button>
+    </section>
+
+    <!-- ─────────────────────────────── -->
+    <!-- SEARCH                          -->
+    <!-- ─────────────────────────────── -->
+    <div class="search-bar">
+      <ion-icon name="search-outline"></ion-icon>
       <input
         type="text"
-        placeholder="Rechercher un contenu…"
+        placeholder="Rechercher un contenu, un créateur…"
         [(ngModel)]="searchQuery"
-        class="search-input"
+        (input)="onSearchChange()"
       />
     </div>
-  </div>
 
-  <!-- PREMIUM BANNER -->
-  <div class="premium-banner" *ngIf="subscriptionStatus ==='expired'">
-    <div class="premium-header">
-      <span class="premium-label">Premium</span>
-      <span class="premium-gem">💎</span>
-    </div>
-    <p class="premium-desc">Accédez à tout le contenu exclusif sans limite</p>
-    <button class="btn-subscribe" (click)="onSubscribe()">S'abonner</button>
-  </div>
-
-  <!-- FILTER TABS -->
-  <div class="filter-tabs-wrap">
-    <div class="filter-tabs">
+    <!-- ─────────────────────────────── -->
+    <!-- FILTRES                         -->
+    <!-- ─────────────────────────────── -->
+    <div class="filter-row">
       <button
+        class="filter-pill"
         *ngFor="let tab of filterTabs"
-        class="filter-tab"
         [class.active]="activeFilter === tab.id"
         (click)="setFilter(tab.id)"
       >
-        <ion-icon [name]="tab.icon" *ngIf="tab.icon"></ion-icon>
-        <span *ngIf="tab.prefix" class="tab-prefix">{{ tab.prefix }}</span>
+        <ion-icon *ngIf="tab.icon" [name]="tab.icon"></ion-icon>
         {{ tab.label }}
       </button>
     </div>
-  </div>
 
-  <!-- À LA UNE -->
-  <div class="section-title">À la Une</div>
+    <!-- ─────────────────────────────── -->
+    <!-- SECTION : EN DIRECT            -->
+    <!-- ─────────────────────────────── -->
+    <section class="content-section" *ngIf="liveContents$ | async as lives">
 
-  <div class="featured-scroll-wrap">
-    <div class="featured-scroll">
-      <div
-        class="featured-card"
-        *ngFor="let item of (featuredItems$ | async)"
-        (click)="onContentTap(item)"
-      >
-        <!-- Thumbnail -->
-        <div class="card-thumb" [ngClass]="{ 'is-locked': item.locked }">
-          <img *ngIf="item.media?.thumbnail && !item.locked" [src]="item.media.thumbnail" [alt]="item.title" />
-          <div class="lock-overlay" *ngIf="item.locked">
-            <div class="lock-icon-wrap">
+      <div class="section-header" *ngIf="lives.length > 0">
+        <h2>En direct</h2>
+        <span>{{ lives.length }} live(s)</span>
+      </div>
+
+      <div class="horizontal-scroll" *ngIf="lives.length > 0">
+        <div
+          class="content-card"
+          *ngFor="let item of lives"
+          (click)="onContentTap(item)"
+        >
+          <div class="thumb">
+            <img [src]="item.media.thumbnail | mediaUrl | async" [alt]="item.title" />
+            <div class="live-badge">LIVE</div>
+            <div class="watchers">👥 {{ item.watchers?.length || 0 }}</div>
+            
+            <!-- LOCK BADGE pour les lives payants -->
+            <div class="lock-badge" *ngIf="isLockedForUser(item) && item.currency">
               <ion-icon name="lock-closed-outline"></ion-icon>
-            </div>
-            <span class="lock-price">
-              <span *ngIf="item.currency?.type === 'coin'">🪙</span>
-              <span *ngIf="item.currency?.type === 'coupon'">🎟️</span>
-              <span *ngIf="item.currency?.type === 'money'">💰</span>
-              {{ item.currency?.value }}
-              <span *ngIf="item.currency?.type === 'coin'">coins</span>
-              <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
-              <span *ngIf="item.currency?.type === 'money'">HTG</span>
-            </span>
-          </div>
-          <div class="card-duration-badge" *ngIf="item.media?.duration">
-            <ion-icon name="time-outline"></ion-icon>
-            {{ item.media.duration }}s
-          </div>
-          <!-- Badge Série -->
-          <div class="series-badge" *ngIf="item.series?.isSeries">
-            <ion-icon name="play"></ion-icon>
-            {{ item.series?.totalEpisodes }} épisodes
-          </div>
-        </div>
-
-        <!-- Info -->
-        <div class="card-info">
-          <p class="card-title">{{ item.title }}</p>
-          <div class="card-meta">
-            <div class="author-row">
-              <div class="avatar" [style.background]="item.author.color">
-                {{ item.author.initials }}
-              </div>
-              <span class="author-name">{{ item.author.name }}</span>
+              <span class="lock-price">
+                {{ item.currency.value }}
+                <span class="currency-icon">
+                  <ng-container [ngSwitch]="item.currency.type">
+                    <span *ngSwitchCase="'coin'">🪙</span>
+                    <span *ngSwitchCase="'coupon'">🎫</span>
+                    <span *ngSwitchCase="'money'">💳</span>
+                  </ng-container>
+                </span>
+              </span>
             </div>
           </div>
-          <button
-            class="btn-buy"
-            *ngIf="item.locked"
-            (click)="onBuy(item, $event)"
-          >
-            <span *ngIf="item.currency?.type === 'coin'">🪙 Acheter</span>
-            <span *ngIf="item.currency?.type === 'coupon'">🎟️ Acheter</span>
-            <span *ngIf="item.currency?.type === 'money'">💰 Acheter</span>
-            {{ item.currency?.value }}
-            <span *ngIf="item.currency?.type === 'coin'">coins</span>
-            <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
-            <span *ngIf="item.currency?.type === 'money'">HTG</span>
-          </button>
-          <button
-            class="btn-watch"
-            *ngIf="!item.locked"
-            (click)="onWatch(item, $event)"
-          >
-            <span *ngIf="!item.series?.isSeries">🎬 Regarder</span>
-            <span *ngIf="item.series?.isSeries">📺 Voir la série</span>
-          </button>
+          <div class="card-body">
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.author.name }}</p>
+            
+            <!-- Prix dans le body pour les lives payants -->
+            <div class="price-tag" *ngIf="isLockedForUser(item) && item.currency">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <span>{{ item.currency.value }} {{ item.currency.type }}</span>
+            </div>
+          </div>
+          <div class="gold-progress"></div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- DIVIDER -->
-  <div class="section-divider"></div>
+    </section>
 
-  <!-- TOUS LES CONTENUS -->
-  <div class="section-title">Tous les contenus</div>
+    <!-- ─────────────────────────────── -->
+    <!-- SECTION : MASTERCLASS          -->
+    <!-- ─────────────────────────────── -->
+    <section class="content-section" *ngIf="masterClass$ | async as masterclass">
 
-  <div class="all-content-list">
-    <div
-      class="content-card"
-      *ngFor="let item of (allContents$ | async)"
-      (click)="onContentTap(item)"
-    >
-      <!-- LIVE card -->
-      <ng-container *ngIf="item.isLive">
-        <div class="content-thumb live-thumb">
-          <img [src]="item.media.thumbnail" [alt]="item.title" />
-          <div class="live-badge">
-            <span class="live-dot"></span>
-            LIVE
-          </div>
-          <div class="play-btn">
-            <ion-icon name="play"></ion-icon>
-          </div>
-          <div class="thumb-type-badge">LIVE</div>
-          <!-- Badge Série -->
-          <div class="series-badge" *ngIf="item.series?.isSeries">
-            <ion-icon name="play"></ion-icon>
-            Série
-          </div>
-        </div>
-        <div class="content-info">
-          <p class="card-title">{{ item.title }}</p>
-          <div class="card-meta">
-            <div class="author-row">
-              <div class="avatar" [style.background]="item.author.color">
-                {{ item.author.initials }}
-              </div>
-              <span class="author-name">{{ item.author.name }}</span>
-            </div>
-          </div>
-        </div>
-      </ng-container>
+      <div class="section-header" *ngIf="masterclass.length > 0">
+        <h2>Masterclass</h2>
+        <span>Contenus éducatifs premium</span>
+      </div>
 
-      <!-- LOCKED full card -->
-      <ng-container *ngIf="!item.isLive && item.locked">
-        <div class="content-thumb locked-thumb">
-          <div class="locked-thumb-inner">
-            <div class="lock-circle">
+      <div class="horizontal-scroll" *ngIf="masterclass.length > 0">
+        <div
+          class="content-card premium"
+          *ngFor="let item of masterclass"
+          (click)="onContentTap(item)"
+        >
+          <div class="thumb">
+            <img [src]="item.media.thumbnail | mediaUrl | async" [alt]="item.title" />
+            <div class="episodes" *ngIf="item.series">📺 {{ item.series.totalEpisodes }} épisodes</div>
+            
+            <!-- LOCK BADGE pour les masterclass payantes -->
+            <div class="lock-badge" *ngIf="isLockedForUser(item) && item.currency">
               <ion-icon name="lock-closed-outline"></ion-icon>
-            </div>
-            <span class="lock-big-price">
-              <span *ngIf="item.currency?.type === 'coin'">🪙</span>
-              <span *ngIf="item.currency?.type === 'coupon'">🎟️</span>
-              <span *ngIf="item.currency?.type === 'money'">💰</span>
-              {{ item.currency?.value }}
-              <span *ngIf="item.currency?.type === 'coin'">coins</span>
-              <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
-              <span *ngIf="item.currency?.type === 'money'">HTG</span>
-            </span>
-          </div>
-          <div class="card-duration-badge top-right" *ngIf="item.media.duration">
-            <ion-icon name="time-outline"></ion-icon>
-            {{ item.media.duration }}s
-          </div>
-          <!-- Badge Épisode -->
-          <div class="episode-badge" *ngIf="item.series?.episodeNumber">
-            📺 Ép. {{ item.series?.episodeNumber }}
-          </div>
-        </div>
-        <div class="content-info">
-          <p class="card-title">{{ item.title }}</p>
-          <div class="card-meta">
-            <div class="author-row">
-              <div class="avatar" [style.background]="item.author.color">
-                {{ item.author.initials }}
-              </div>
-              <span class="author-name">{{ item.author.name }}</span>
+              <span class="lock-price">
+                {{ item.currency.value }}
+                <span class="currency-icon">
+                  <ng-container [ngSwitch]="item.currency.type">
+                    <span *ngSwitchCase="'coin'">🪙</span>
+                    <span *ngSwitchCase="'coupon'">🎫</span>
+                    <span *ngSwitchCase="'money'">💳</span>
+                  </ng-container>
+                </span>
+              </span>
             </div>
           </div>
+          <div class="card-body">
+            <h3>{{ item.title }}</h3>
+            <div class="stats">
+              <span>👁 {{ item.viewCount }}</span>
+              <span>❤️ {{ item.likeCount }}</span>
+            </div>
+            
+            <!-- Prix dans le body pour les masterclass payantes -->
+            <div class="price-tag" *ngIf="isLockedForUser(item) && item.currency">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <span>{{ item.currency.value }} {{ item.currency.type }}</span>
+            </div>
+          </div>
+          <div class="gold-progress"></div>
         </div>
-        <button class="btn-buy-full" (click)="onBuy(item, $event)">
-          <span *ngIf="item.currency?.type === 'coin'">🪙 Acheter</span>
-          <span *ngIf="item.currency?.type === 'coupon'">🎟️ Acheter</span>
-          <span *ngIf="item.currency?.type === 'money'">💰 Acheter</span>
-          {{ item.currency?.value }}
-          <span *ngIf="item.currency?.type === 'coin'">coins</span>
-          <span *ngIf="item.currency?.type === 'coupon'">coupons</span>
-          <span *ngIf="item.currency?.type === 'money'">HTG</span>
-        </button>
-      </ng-container>
+      </div>
 
-      <!-- FREE / UNLOCKED full card -->
-      <ng-container *ngIf="!item.isLive && !item.locked">
-        <div class="content-thumb">
-          <img [src]="item.media.thumbnail" [alt]="item.title" />
-          <div class="card-duration-badge top-right" *ngIf="item.media.duration">
-            <ion-icon name="time-outline"></ion-icon>
-            {{ item.media.duration }}s
-          </div>
-          <!-- Badge Épisode -->
-          <div class="episode-badge" *ngIf="item.series?.episodeNumber">
-            📺 Ép. {{ item.series?.episodeNumber }}
-          </div>
-          <!-- Badge Série -->
-          <div class="series-badge" *ngIf="item.series?.isSeries">
-            <ion-icon name="play"></ion-icon>
-            Série
-          </div>
-        </div>
-        <div class="content-info">
-          <p class="card-title">{{ item.title }}</p>
-          <div class="card-meta">
-            <div class="author-row">
-              <div class="avatar" [style.background]="item.author.color">
-                {{ item.author.initials }}
-              </div>
-              <span class="author-name">{{ item.author.name }}</span>
+    </section>
+
+    <!-- ─────────────────────────────── -->
+    <!-- SECTION : SÉRIES               -->
+    <!-- ─────────────────────────────── -->
+    <section class="content-section" *ngIf="series$ | async as seriesList">
+
+      <div class="section-header" *ngIf="seriesList.length > 0">
+        <h2>Séries</h2>
+        <span>Contenus longs formats</span>
+      </div>
+
+      <div class="horizontal-scroll"  *ngIf="seriesList.length > 0">
+        <div
+          class="content-card series"
+          *ngFor="let item of seriesList"
+          (click)="onContentTap(item)"
+        >
+          <div class="thumb">
+            <img [src]="item.thumbnail | mediaUrl | async" [alt]="item.title" />
+            <div class="series-info">📺 {{ item.totalEpisodes }} épisodes</div>
+            
+            <!-- LOCK BADGE pour les séries payantes (utilise price) -->
+            <div class="lock-badge" *ngIf="isLockedForUser(item) && item.price && item.price > 0">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <span class="lock-price">
+                {{ item.price }} 💳
+              </span>
             </div>
           </div>
+          <div class="card-body">
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+            
+            <!-- Prix dans le body pour les séries payantes -->
+            <div class="price-tag" *ngIf="item.price && item.price > 0">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <span>{{ item.price }} HTG</span>
+            </div>
+          </div>
+          <div class="gold-progress"></div>
         </div>
-      </ng-container>
-    </div>
+      </div>
+
+    </section>
+
+    <!-- ─────────────────────────────── -->
+    <!-- SECTION : TOUS LES CONTENUS    -->
+    <!-- ─────────────────────────────── -->
+    <section class="content-section">
+
+      <div class="section-header">
+        <h2>Tous les contenus</h2>
+        <span>{{ (allContents$ | async)?.length }} éléments</span>
+      </div>
+
+      <div class="grid">
+        <div
+          class="content-card"
+          *ngFor="let item of (allContents$ | async)"
+          (click)="onContentTap(item)"
+        >
+          <div class="thumb">
+            <img [src]="item.media.thumbnail | mediaUrl | async" [alt]="item.title" />
+            <span class="badge-type">{{ item.type }}</span>
+            
+            <!-- LOCK BADGE avec prix (uniquement si locked ET currency) -->
+            <div class="lock-badge" *ngIf="isLockedForUser(item) && item.currency">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <span class="lock-price">
+                {{ item.currency.value }}
+                <span class="currency-icon">
+                  <ng-container [ngSwitch]="item.currency.type">
+                    <span *ngSwitchCase="'coin'">🪙</span>
+                    <span *ngSwitchCase="'coupon'">🎫</span>
+                    <span *ngSwitchCase="'money'">💳</span>
+                  </ng-container>
+                </span>
+              </span>
+            </div>
+            
+            <!-- LOCK simple sans prix (fallback) -->
+            <div class="locked" *ngIf="isLockedForUser(item) && !item.currency">🔒</div>
+            
+            <div class="live-badge" *ngIf="item.isLive">LIVE</div>
+          </div>
+
+          <div class="card-body">
+            <h3>{{ item.title }}</h3>
+            <div class="stats">
+              <span>👁 {{ item.viewCount }}</span>
+              <span *ngIf="item.likeCount">❤️ {{ item.likeCount }}</span>
+              <span *ngIf="item.media.duration">⏱ {{ item.media.duration }}</span>
+            </div>
+            
+            <!-- Prix dans le body pour les contenus payants -->
+            <div class="price-tag" *ngIf="isLockedForUser(item) && item.currency">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <span>{{ item.currency.value }} {{ item.currency.type }}</span>
+            </div>
+            
+            <div class="author">
+              <span>By {{ item.author.name }}</span>
+            </div>
+          </div>
+
+          <div class="gold-progress"></div>
+        </div>
+      </div>
+
+    </section>
+
   </div>
-
-</div>
 
 </ion-content>

@@ -75,6 +75,7 @@ export interface Content {
 
 
 export interface Author {
+  id:string;
   name: string;
   initials: string;
   color: string; // CSS gradient string
@@ -90,7 +91,8 @@ export enum ExclusiveContentType {
 export enum ExclusiveContentStatus {
   DRAFT = 'draft',
   PUBLISHED = 'published',
-  ARCHIVED = 'archived'
+  ARCHIVED = 'archived',
+  FEATURED = 'featured'
 }
 
 export interface SeriesInfo {
@@ -105,7 +107,7 @@ export interface SeriesInfo {
 }
 
 export interface MediaInfo {
-  videoFile?: File;
+  videoFile?: string;
   thumbnail?: string;
   mimeType: string;
   fileSize: number;

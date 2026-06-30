@@ -6,83 +6,90 @@
   </ion-refresher>
 
   <div class="posts-container" #postsContainer>
+    <!-- Fixed Ad Banner Overlay -->
     <ng-container *ngIf="!isLoading; else loadingTemplate">
       <ng-container *ngIf="posts.length > 0; else noPostsTemplate">
-        <div class="post" *ngFor="let post of posts; trackBy: trackByPostId; let i = index"
-          [attr.data-content-id]="post.id">
+        <ng-container *ngFor="let post of posts; trackBy: trackByPost; let i = index">
+          <div class="post"
+            [attr.data-content-id]="post.id"
+            [attr.data-index]="i">
 
-          <div class="video-container" (pointerdown)="onPressStart(post)" (pointerup)="onPressEnd(post)"
-            (pointerleave)="onPressEnd(post)">
+            <div class="video-container" (pointerdown)="onPressStart(post)" (pointerup)="onPressEnd(post)"
+              (pointerleave)="onPressEnd(post)">
 
-            <img *ngIf="!isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl | async"
-              (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail"/>
-            <video 
-                [src]="post.fileUrl | mediaUrl | async" 
-                class="video-thumbnail" 
-                [muted]="isMuted" 
-                loop 
-                playsinline
-                [controls]="isDesktop"
-                (loadstart)="onVideoLoadStart(post)"
-                (canplay)="onVideoLoaded(post)"
-                (error)="onVideoError($event, post)">
-            </video>
-            
-            <!-- Loader pendant le chargement -->
-            <div *ngIf="loadingVideos[post.id || '']" class="video-loader">
-                <ion-spinner name="crescent" color="light"></ion-spinner>
+              <img *ngIf="!isVideo(post)" [src]="(post.thumbnailUrl || post.fileUrl) | mediaUrl | async"
+                (error)="onImageContentError($event)" [class]="getCadrageClass(post)" class="video-thumbnail"/>
+              <video
+                  [src]="post.fileUrl | mediaUrl | async"
+                  class="video-thumbnail"
+                  [muted]="isMuted"
+                  loop
+                  playsinline
+                  [controls]="isDesktop"
+                  (loadstart)="onVideoLoadStart(post)"
+                  (canplay)="onVideoLoaded(post)"
+                  (error)="onVideoError($event, post)">
+              </video>
+
+              <!-- Loader pendant le chargement -->
+              <div *ngIf="loadingVideos[post.id || '']" class="video-loader">
+                  <ion-spinner name="crescent" color="light"></ion-spinner>
+              </div>
+              <div class="video-overlay"></div>
             </div>
-            <div class="video-overlay"></div>
-          </div>
 
-          <div class="main-content" [class.is-hidden]="uiHidden[post.id || '']">
-            <div class="artist-info">
-              <div class="artist-header">
-                <!--img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)"-->
-                <div class="artist-details">
-                  <ion-item lines="none"
-                    *ngIf="hasActiveChallenge(post) && canParticipateInChallenge(post) && post.userId !== currentUserProfile.id"
-                    class="challenge-item-cyclic">
-                    <ion-label>{{ currentChallenge[post.challengeId || '']?.name }}</ion-label>
-                    <ion-button slot="end" color="dark"
-                      (click)="presentParticipateOptions(currentChallenge[post.challengeId || ''])">Participer <ion-icon
-                        name="arrow-forward"></ion-icon></ion-button>
-                  </ion-item>
-                  <div class="profile-header">
-                    <h4 class="profile-name" (click)="showAccount(post.userId)">{{ post.username || 'Utilisateur' }}
-                      <ion-icon *ngIf="post?.userId && userVerified[post.userId]" name="checkmark-circle"
-                        class="verified-badge">
-                      </ion-icon>
-                      <ion-button (click)="subscribeTo(post.userId)"
-                        *ngIf="currentUserProfile.id !== post?.userId && !currentUserProfile.myFollows.includes(post.userId) && challengeName=='-'"
-                        fill="clear" size="small" style="margin-left: 10px;" class="subscribe-btn">
-                        S'abonner
-                      </ion-button>
-                    </h4>
+            <div class="main-content" [class.is-hidden]="uiHidden[post.id || '']">
+              <div class="artist-info">
+                <div class="artist-header">
+                  <img (click)="showAccount(post.userId)" [src]="(userAvatars[post.userId] | mediaUrl) || 'assets/avatar-default.png'" class="artist-avatar" (error)="onImageAvatarError($event)">
+                  <div class="artist-details">
+                    <ion-item lines="none"
+                      *ngIf="hasActiveChallenge(post) && canParticipateInChallenge(post) && post.userId !== currentUserProfile.id"
+                      class="challenge-item-cyclic">
+                      <ion-label>{{ currentChallenge[post.challengeId || '']?.name }}</ion-label>
+                      <ion-button slot="end" color="dark"
+                        (click)="presentParticipateOptions(currentChallenge[post.challengeId || ''])">Participer <ion-icon
+                          name="arrow-forward"></ion-icon></ion-button>
+                    </ion-item>
+                    <div class="profile-header">
+                      <h4 class="profile-name" (click)="showAccount(post.userId)">{{ post.username || 'Utilisateur' }}
+                        <ion-icon *ngIf="post?.userId && userVerified[post.userId]" name="checkmark-circle"
+                          class="verified-badge">
+                        </ion-icon>
+                        <ion-button (click)="subscribeTo(post.userId)"
+                          *ngIf="currentUserProfile.id !== post?.userId && !currentUserProfile.myFollows.includes(post.userId) && challengeName=='-'"
+                          fill="clear" size="small" style="margin-left: 10px;" class="subscribe-btn">
+                          S'abonner
+                        </ion-button>
+                      </h4>
+
+                    </div>
+
+                    <div class="artist-name">
+                      <span>{{ post.description }}</span>
+                    </div>
+
+                    <p class="artist-location">
+                      <span class="post-date">{{ post.created_at | date:'dd MMM yyyy' }}</span>
+                      <span class="separator">•</span>
+                      <span class="post-views">{{ post.viewCount | shortNumber }} vues</span>
+                      <span class="separator" *ngIf="currentChallenge">•</span>
+                      <span class="post-date" *ngIf="currentChallenge"><ion-text color="primary"> {{ currentChallenge[post.challengeId || '']?.name }} </ion-text>
+                      </span>
+                    </p>
 
                   </div>
-
-                  <div class="artist-name">
-                    <span>{{ post.description }}</span>
-                  </div>
-
-                  <p class="artist-location">
-                    <span class="post-date">{{ post.created_at | date:'dd MMM yyyy' }}</span>
-                    <span class="separator">•</span>
-                    <span class="post-views">{{ post.viewCount | shortNumber }} vues</span>
-                  </p>
-
                 </div>
+
+
               </div>
 
-
+              <app-side-actions [CurrentChallenge]="currentChallenge" [CurrentUserProfile]="currentUserProfile"
+                [HasActiveChallenge]="hasActiveChallenge(post)" [Post]="post"
+                [UserAvatars]="userAvatars"></app-side-actions>
             </div>
-
-            <app-side-actions [CurrentChallenge]="currentChallenge" [CurrentUserProfile]="currentUserProfile"
-              [HasActiveChallenge]="hasActiveChallenge(post)" [Post]="post"
-              [UserAvatars]="userAvatars"></app-side-actions>
           </div>
-        </div>
+        </ng-container>
       </ng-container>
     </ng-container>
     <ng-template #loadingTemplate>

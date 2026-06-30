@@ -31,6 +31,7 @@ import { Segment } from 'src/models/Segment';
 import { ModalChallengeAcceptanceComponent } from 'src/app/components/modal-challenge-acceptance/modal-challenge-acceptance.component';
 import { PremiumLockComponent } from 'src/app/components/premium-lock/premium-lock.component';
 import { Router } from '@angular/router';
+import { PremiumService } from 'src/services/Premium/premium-service';
 
 @Component({
   selector: 'app-challenge',
@@ -134,6 +135,7 @@ export class ChallengeComponent implements OnInit, OnDestroy {
   constructor(
     private challengeService: ChallengeService,
     private creationService: CreationService,
+    private premiumService: PremiumService,
     private modalCtrl: ModalController,
     private toastController: ToastController,
     private loadingController: LoadingController,
@@ -158,37 +160,7 @@ export class ChallengeComponent implements OnInit, OnDestroy {
     this.searchSubject.complete();
   }
 
-   // Dans le fichier TS où se trouve votre fonction openPremiumLock :
-private async openPremiumLock(): Promise<void> {
-  const modal = await this.modalCtrl.create({
-    component: PremiumLockComponent,
-    cssClass: 'dialog-modal',
-    backdropDismiss: false,
-    enterAnimation: this.enterAnimation, // Passez votre fonction d'animation ici
-    leaveAnimation: this.leaveAnimation
-  });
-  await modal.present();
 
-  const { role } = await modal.onWillDismiss();
-  if (role === 'upgrade') {
-    try {
-    const renewalInfo = {
-      plan: this.CurrentUserProfile.userInfo.memberShip?.plan,
-      date: this.CurrentUserProfile.userInfo.memberShip?.date
-    }
-    // 5️⃣ Redirection vers la page d'abonnement en passant le payload mis à jour
-    // ATTENTION : On envoie 'payload' au lieu de 'this.form' pour que l'étape suivante ait accès aux follows
-    await this.router.navigate(['/subscription'], {
-      state: { registrationData: this.CurrentUserProfile, renewalData: renewalInfo}
-    });
-  } catch (navError) {
-    console.error("Erreur lors de la navigation :", navError);
-  } finally {
-    // 6️⃣ Quoi qu'il arrive, on détruit le loading pour libérer l'écran
-    await this.modalCtrl.dismiss();
-  }
-  }
-}
 
   private getSchoolId(): string {
     return this.CurrentUserProfile?.userInfo?.school?.id || '';
@@ -281,13 +253,12 @@ private async openPremiumLock(): Promise<void> {
         }
         return;
       }
+
+        
+      this.presentAddingOptions(challenge, contents);
+    
       
-      this.navigateToTab.emit({
-        args: contents,
-        extras: true,
-        targetSegment: 'followed',
-        targetReturn: 'challenge'
-      });
+      
 
     } catch (error) {
       console.error('[ChallengeComponent] onPlay error:', error);
@@ -296,18 +267,53 @@ private async openPremiumLock(): Promise<void> {
   }
 
 
-  async presentParticipateOptions(challenge: Challenge): Promise<void> {
-if (this.CurrentUserProfile.userInfo.memberShip) {
-  const plan = this.CurrentUserProfile.userInfo.memberShip.plan.trim();
-  const expirationDate = new Date(this.CurrentUserProfile.userInfo.memberShip.date).getTime();
-  const isExpired = expirationDate <= Date.now();
+  private showContents(contents:Content[]){
 
-  // On déclenche si c'est le plan Exhibition OU si le plan est expiré
-  if (plan.toLowerCase().trim() === 'exhibition' || isExpired) {
-    this.openPremiumLock();
-    return;
+     this.navigateToTab.emit({
+        args: contents,
+        extras: true,
+        targetSegment: 'followed',
+        targetReturn: 'challenge'
+      });
+
   }
-}
+  async presentAddingOptions(challenge: Challenge, contents: Content[]):Promise<void>{
+    if(challenge.creator_id.trim() == this.CurrentUserProfile.id.trim()){
+ const actionSheet = await this.actionSheetController.create({
+      header: 'Controler votre challenge',
+      buttons: [
+        {
+          text: 'Ajouter un post',
+          icon: 'add-sharp',
+          handler: () => { this.presentParticipateOptions(challenge); }
+        },
+        {
+          text: 'Voir les contenus',
+          icon: 'create',
+          handler: () => { this.showContents(contents); }
+        },
+        {
+          text: 'Annuler',
+          icon: 'close',
+          role: 'cancel'
+        }
+      ]
+    });
+    await actionSheet.present();
+    return;
+        }else{
+          this.showContents(contents);
+        }
+  }
+  async presentParticipateOptions(challenge: Challenge): Promise<void> {
+
+    const hasAccess = await this.premiumService.checkAccessOrLock(
+    this.CurrentUserProfile, 
+    this.enterAnimation, 
+    this.leaveAnimation
+  );
+
+  if (!hasAccess) return;
 
     const actionSheet = await this.actionSheetController.create({
       header: 'Participer au challenge',

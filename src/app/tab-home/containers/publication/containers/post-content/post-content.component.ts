@@ -517,6 +517,17 @@ export class PostContentComponent implements OnInit, OnDestroy {
   return !!this.selectedChallenge;
 }
 
+  challengeSelection(): string {
+  const challenge = this.selectedChallenge;
+  const currentUserId = this.CurrentUserProfile?.id;
+
+  // Si aucun challenge n'est sélectionné ou s'il n'a pas d'ID, on retourne une chaîne vide
+  if (!challenge?.id) return '';
+
+  // Si l'utilisateur connecté est le créateur du challenge, on retourne l'ID du challenge
+  // Sinon, c'est qu'il s'agit d'un tiers (en attente d'acceptation)
+  return currentUserId === challenge.creator_id ? challenge.id : 'pending_acceptance';
+}
   nextStep(): void {
     if (this.currentStep >= this.totalSteps) return;
     this.currentStep++;
@@ -559,7 +570,7 @@ async submit(): Promise<void> {
       isPublic:       this.isPublic,
       allowDownloads: this.content.allowDownloads ?? true,
       allowComments:  this.content.allowComments ?? false,
-      challengeId:    this.selectedChallenge?.id ?  'pending_acceptance':'',
+      challengeId:    this.challengeSelection(),
       cadrage:        'default',
       width:          this.activeMedia?.width,
       height:         this.activeMedia?.height,

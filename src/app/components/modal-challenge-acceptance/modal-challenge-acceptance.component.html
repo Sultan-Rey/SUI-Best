@@ -43,7 +43,7 @@
           <div *ngFor="let request of item.requests; trackBy: trackByRequestId" class="candidate-card">
             <div class="candidate-profile-row">
               <ion-avatar class="premium-avatar">
-                <img [src]="request.userProfile?.avatar || 'assets/images/default-avatar.png'" alt="Avatar de {{ request.userProfile?.username }}" />
+                <img [src]="request.userProfile?.avatar || 'assets/avatar-default.png' | mediaUrl | async" alt="Avatar de {{ request.userProfile?.username }}" />
               </ion-avatar>
               <div class="candidate-meta">
                 <span class="candidate-name">{{ request.userProfile?.displayName || request.userProfile?.username }}</span>
@@ -57,7 +57,8 @@
                   <ion-icon name="play-circle-outline"></ion-icon>
                   <span>Voir la vibe</span>
                 </div>
-                <div class="media-placeholder" [style.background-image]="'url(' + request.content.thumbnailUrl"></div>
+<div class="media-placeholder" [style.background-image]= "'url(' + (request.content.thumbnailUrl | mediaUrl | async) + ')'" >
+</div>
               </div>
               <div class="preview-text-box">
                 <p class="content-caption" *ngIf="request.content.description">« {{ request.content.description }} »</p>

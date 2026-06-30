@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonIcon, IonButton, IonItem, IonLabel, IonInput } from '@ionic/angular/standalone';
-import { checkmarkCircle, mailUnread, lockClosed } from 'ionicons/icons';
+import { checkmarkCircle, mailUnread, lockClosed, closeCircle, alertCircle } from 'ionicons/icons';
 import { Auth } from 'src/services/AUTH/auth';
 
 @Component({
@@ -17,16 +17,17 @@ export class DefaultPage implements OnInit, OnDestroy {
 
   constructor(private route: ActivatedRoute, private router: Router, private auth: Auth) { }
 
-  ngOnInit() {
-    // Récupérer le paramètre d'URL pour la route default/:arg
-    this.route.paramMap.subscribe(params => {
-      this.arg = params.get('arg');
-    });
-    
-    // Récupérer les extras de la navigation
-    const navigation = this.router.getCurrentNavigation();
-    this.extras = navigation?.extras?.state || null;
-  }
+  isReady = false;
+
+ngOnInit() {
+  this.route.paramMap.subscribe(params => {
+    this.arg = params.get('arg');
+    this.isReady = true;
+  });
+
+  const navigation = this.router.getCurrentNavigation();
+  this.extras = navigation?.extras?.state || null;
+}
 
   arg: string | null = null;
   extras: any = null;
@@ -35,10 +36,22 @@ export class DefaultPage implements OnInit, OnDestroy {
   checkmarkCircle = checkmarkCircle;
   mailUnread = mailUnread;
   lockClosed = lockClosed;
+  closeCircle = closeCircle;
+  alertCircle = alertCircle;
+
+  errorReason: string = '';
+errorMessage: string = '';
+
+ isPaymentFailed = false;
+paymentError: string | null = null;
 
   get isAccountSuccess(): boolean {
     return this.arg === 'account-success';
   }
+
+  get isAccountError(): boolean {
+  return this.arg === 'account-error' || this.arg === 'payment-failed' || this.arg === 'creation-failed';
+}
 
   get isPasswordReset(): boolean {
     return this.arg === 'password-reset';
@@ -47,6 +60,12 @@ export class DefaultPage implements OnInit, OnDestroy {
   get isPasswordChange(): boolean {
     return this.arg === 'password-change';
   }
+
+// 3. Ajoutez la méthode pour réessayer le paiement (à adapter selon votre logique de routage)
+retryPayment(): void {
+  // Option A : Re-naviguer vers la page de checkout / tarification
+  this.router.navigate(['/home']); 
+}
 
   // Accès aux données des extras
   get userName(): string {
@@ -171,6 +190,19 @@ export class DefaultPage implements OnInit, OnDestroy {
  
     this.router.navigate(['/login']);
   }
+
+  retryCreation(): void {
+  this.router.navigate(['/register'], { state: { email: this.userEmail } });
+}
+
+goToHome(): void {
+  this.router.navigate(['/home']);
+}
+
+contactSupport(): void {
+  // Rediriger vers le support ou ouvrir un modal
+  this.router.navigate(['/support']);
+}
 
   ngOnDestroy(): void {
     if (this.resendTimer) {

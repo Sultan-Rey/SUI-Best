@@ -1,55 +1,40 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ModalController } from '@ionic/angular';
-import { RefresherCustomEvent } from '@ionic/angular';
+import { ModalController, RefresherCustomEvent } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { search, diamond, ribbon, trophy, cash, trophyOutline, checkmarkCircle, trendingUp, gift, heart, starOutline } from 'ionicons/icons';
+import { search, trophy, trophyOutline, checkmarkCircle, trendingUp, gift, heart, starOutline, medal, ribbon, closeOutline, people, chevronForward, arrowForward } from 'ionicons/icons';
 import { ChallengeService } from '../../services/Service_challenge/challenge-service';
-import { CreationService } from '../../services/Service_content/creation-service';
-import { VoteService } from '../../services/Service_vote/vote-service';
+import { VoteService, LeaderboardEntry } from '../../services/Service_vote/vote-service';
 import { ProfileService } from '../../services/Service_profile/profile-service';
-import { forkJoin, Observable, of, Subject, from } from 'rxjs';
-import { switchMap, map, catchError, takeUntil, filter, take } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { MediaUrlPipe } from '../utils/pipes/mediaUrlPipe/media-url-pipe';
 import { HeaderComponentComponent } from '../components/header-component/header-component.component';
 import { 
   IonContent, 
-  IonSpinner, IonRefresher, IonRefresherContent, IonButton, IonIcon } from '@ionic/angular/standalone';
-import { Artist } from 'src/models/User';
-import { VotesRankingComponent } from '../components/view-votes-ranking/votes-ranking.component';
-import { ModalRankingComponent } from '../components/modal-ranking/modal-ranking.component';
-import { UserProfile } from 'src/models/User';
-import { Auth } from 'src/services/AUTH/auth';
+  IonSpinner, 
+  IonRefresher, 
+  IonRefresherContent, 
+  IonIcon,
+ IonFooter } from '@ionic/angular/standalone';
+import { Auth } from '../../services/AUTH/auth';
 import { Router } from '@angular/router';
+import { UserProfile } from '../../models/User';
+import { ModalRankingComponent } from '../components/modal-ranking/modal-ranking.component';
 
-interface Donor {
-  id: string;
-  name: string;
-  totalDonations: number;
-  donationCount: number;
-  imageUrl: string;
-  rank?: number;
-  tier: 'legendary' | 'epic' | 'rare' | 'common';
-  badge?: string;
-  level: number;
-}
-
-interface DonorTier {
-  name: string;
-  minAmount: number;
-  color: string;
-  icon: string;
-  benefits: string[];
-}
-
-
-
-
-
-interface ChallengeRanking {
+interface ChallengeLeaderboard {
   challengeId: string;
   challengeName: string;
-  artists: Artist[];
+  coverImage?: string;
+  description?: string;
+  endDate?: string;
+  isCompleted?: boolean;
+  leaderboard: LeaderboardEntry[];
+  statistics: {
+    total_participants: number;
+    total_votes: number;
+    average_votes_per_participant: number;
+  };
 }
 
 @Component({
@@ -58,166 +43,50 @@ interface ChallengeRanking {
   styleUrls: ['./ranking.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [IonRefresherContent, IonRefresher, 
+  imports: [
     CommonModule,
     FormsModule,
     HeaderComponentComponent,
     IonContent,
     IonSpinner,
-    IonButton,
+    IonRefresher,
+    IonRefresherContent,
     IonIcon,
-    VotesRankingComponent
+   MediaUrlPipe,
+   AsyncPipe
   ]
 })
 export class RankingPage implements OnInit, OnDestroy {
-  selectedTab: 'votes' | 'dons' = 'votes';
   isLoading = true;
-  challengeRankings: ChallengeRanking[] = [];
+  challengeLeaderboards: ChallengeLeaderboard[] = [];
+  filteredChallengeLeaderboards: ChallengeLeaderboard[] = [];
+  allArtists: LeaderboardEntry[] = [];
+  topArtists: LeaderboardEntry[] = [];
+  currentUserProfile: UserProfile | null = null;
+  currentUserId: string = '';
+  adminUID: string = '';
 
-  allArtists: Artist[] = [];
-  topArtists: Artist[] = [];
+  // ✅ Filtre
+  filterType: 'all' | 'active' | 'completed' = 'all';
 
   private destroy$ = new Subject<void>();
-  
-  // Modal properties
-  showRankingModal: boolean = false;
-  selectedRanking: ChallengeRanking | null = null;
-  
-  // User profile
-  currentUserProfile: UserProfile | null = null;
-
-  topDonors: Donor[] = [];
-  donorTiers: DonorTier[] = [
-    {
-      name: 'Légendaire',
-      minAmount: 10000,
-      color: '#FFD700',
-      icon: 'star',
-      benefits: ['Badge exclusif', 'Mention spéciale', 'Accès VIP']
-    },
-    {
-      name: 'Épique',
-      minAmount: 5000,
-      color: '#9945FF',
-      icon: 'diamond',
-      benefits: ['Badge premium', 'Priorité support']
-    },
-    {
-      name: 'Rare',
-      minAmount: 1000,
-      color: '#3B82F6',
-      icon: 'ribbon',
-      benefits: ['Badge rare', 'Remerciements']
-    },
-    {
-      name: 'Commun',
-      minAmount: 0,
-      color: '#10B981',
-      icon: 'heart',
-      benefits: ['Badge donateur']
-    }
-  ];
-
-  // Données statiques pour la démonstration
-  mockDonors: Donor[] = [
-    {
-      id: '1',
-      name: 'Marie Laurent',
-      totalDonations: 15000,
-      donationCount: 45,
-      imageUrl: 'https://i.pravatar.cc/150?img=1',
-      tier: 'legendary',
-      badge: '👑',
-      level: 12,
-      rank: 1
-    },
-    {
-      id: '2',
-      name: 'Jean Pierre',
-      totalDonations: 12000,
-      donationCount: 38,
-      imageUrl: 'https://i.pravatar.cc/150?img=2',
-      tier: 'legendary',
-      badge: '💎',
-      level: 11,
-      rank: 2
-    },
-    {
-      id: '3',
-      name: 'Sophie Martin',
-      totalDonations: 8500,
-      donationCount: 32,
-      imageUrl: 'https://i.pravatar.cc/150?img=3',
-      tier: 'epic',
-      badge: '⭐',
-      level: 9,
-      rank: 3
-    },
-    {
-      id: '4',
-      name: 'Lucas Dubois',
-      totalDonations: 6200,
-      donationCount: 28,
-      imageUrl: 'https://i.pravatar.cc/150?img=4',
-      tier: 'epic',
-      badge: '🎯',
-      level: 8,
-      rank: 4
-    },
-    {
-      id: '5',
-      name: 'Emma Bernard',
-      totalDonations: 4800,
-      donationCount: 24,
-      imageUrl: 'https://i.pravatar.cc/150?img=5',
-      tier: 'rare',
-      badge: '🌟',
-      level: 7,
-      rank: 5
-    },
-    {
-      id: '6',
-      name: 'Thomas Petit',
-      totalDonations: 3500,
-      donationCount: 20,
-      imageUrl: 'https://i.pravatar.cc/150?img=6',
-      tier: 'rare',
-      badge: '🔥',
-      level: 6,
-      rank: 6
-    }
-  ];
 
   constructor(
     private challengeService: ChallengeService,
-    private creationService: CreationService,
     private voteService: VoteService,
-    private profileService: ProfileService,
     private auth: Auth,
     private router: Router,
     private modalCtrl: ModalController
   ) {
-    addIcons({search,diamond,ribbon, trophy,cash,trophyOutline,checkmarkCircle,trendingUp,gift,heart,starOutline});
+    addIcons({
+      search, trophy, trophyOutline, checkmarkCircle, 
+      trendingUp, gift, heart, starOutline, medal, ribbon, people,
+      chevronForward, arrowForward
+    });
   }
 
   ngOnInit() {
     this.loadRankingData();
-    this.loadDonorsData();
-  }
-
-
-  // Méthode pour gérer le pull-to-refresh
-  doRefresh(event: RefresherCustomEvent) {
-    console.log('Rafraîchissement du classement...');
-    
-    // Recharger les données
-    this.loadRankingData();
-    this.loadDonorsData();
-    
-    // Terminer le refresher après 1 seconde pour montrer l'animation
-    setTimeout(() => {
-      event.detail.complete();
-    }, 1000);
   }
 
   ngOnDestroy() {
@@ -225,210 +94,222 @@ export class RankingPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  loadDonorsData() {
-    // Simuler le chargement des données
-    this.topDonors = this.mockDonors;
+  doRefresh(event: RefresherCustomEvent) {
+    this.loadRankingData();
+    setTimeout(() => {
+      event.detail.complete();
+    }, 1000);
   }
 
-  formatDonation(amount: number): string {
-    if (amount >= 1000000) {
-      return (amount / 1000000).toFixed(1) + 'M Gdes';
+  // ✅ Appliquer le filtre
+  applyFilter() {
+    if (this.filterType === 'all') {
+      this.filteredChallengeLeaderboards = [...this.challengeLeaderboards];
+    } else if (this.filterType === 'active') {
+      this.filteredChallengeLeaderboards = this.challengeLeaderboards.filter(c => !c.isCompleted);
+    } else if (this.filterType === 'completed') {
+      this.filteredChallengeLeaderboards = this.challengeLeaderboards.filter(c => c.isCompleted);
     }
-    if (amount >= 1000) {
-      return (amount / 1000).toFixed(1) + 'K Gdes';
-    }
-    return amount + ' Gdes';
   }
 
-  getTierColor(tier: string): string {
-    const tierObj = this.donorTiers.find(t => t.name.toLowerCase() === tier);
-    return tierObj?.color || '#10B981';
+  // ✅ Changer le filtre
+  setFilter(type: 'all' | 'active' | 'completed') {
+    this.filterType = type;
+    this.applyFilter();
   }
 
-  getDonorProgress(donor: Donor): number {
-    const nextTierIndex = this.donorTiers.findIndex(t => t.minAmount > donor.totalDonations);
-    if (nextTierIndex === -1) return 100;
-    
-    const currentTier = this.donorTiers[nextTierIndex + 1] || this.donorTiers[this.donorTiers.length - 1];
-    const nextTier = this.donorTiers[nextTierIndex];
-    
-    const progress = ((donor.totalDonations - currentTier.minAmount) / 
-                     (nextTier.minAmount - currentTier.minAmount)) * 100;
-  
-                     return progress;
-                    }
-  
- async loadRankingData() {
+  onProfileLoaded(profile:UserProfile){
+    this.currentUserProfile  = profile;
+  }
+
+  async loadRankingData() {
     this.isLoading = true;
     
     try {
-      // 1- Récupérer le profil utilisateur courant
+      // 1- Récupérer l'utilisateur courant et l'admin
       const currentUser = this.auth.getCurrentUser();
-      //2- Recuperer l'UID de l'admin 
-      const adminUID = await this.auth.getAdminUID().toPromise();
       if (!currentUser) {
         this.isLoading = false;
         return;
       }
-      
-      const currentProfile = await this.profileService.getProfileById(currentUser.id).toPromise();
-      this.currentUserProfile = currentProfile as UserProfile;
-      
-      // 2- Récupérer les challenges actifs des créateurs suivis
-      const challenges = await this.challengeService.getActiveChallenges(this.currentUserProfile.userInfo.school.id, adminUID || '-').toPromise();
+      this.currentUserId = currentUser.id;
+
+      const adminUID = await this.auth.getAdminUID().toPromise();
+      this.adminUID = adminUID || '';
+
+      // 3- Récupérer les challenges (actifs et terminés) des créateurs suivis
       const followedCreatorIds = this.currentUserProfile?.myFollows || [];
-      const filteredChallenges = challenges?.data.filter(challenge => 
-        followedCreatorIds.includes(challenge.creator_id)
-      );
+      const filteredCreatorIds = followedCreatorIds.filter(id => id !== this.currentUserId && id !== this.adminUID);
       
-      if (!filteredChallenges || filteredChallenges.length === 0) {
-        this.challengeRankings = [];
+      if (filteredCreatorIds.length === 0) {
+        this.challengeLeaderboards = [];
+        this.filteredChallengeLeaderboards = [];
         this.isLoading = false;
         return;
       }
-      
-      // 3- Récupérer tous les contenus de ces challenges
-      const allContents = await this.creationService.getContents({}).toPromise();
-      const challengeContents = allContents?.filter(content => 
-        filteredChallenges.some(challenge => challenge.id === content.challengeId)
-      );
-      
-      // 4- Créer les classements simples
-      const rankings = await Promise.all(
-        filteredChallenges.map(async (challenge) => {
-          // Récupérer les contenus de ce challenge
-          const contents = challengeContents?.filter(c => c.challengeId === challenge.id);
-          
-          if(!contents){
+
+      // Récupérer tous les challenges (actifs + terminés)
+      const challengesResponse = await this.challengeService.getChallengesByCreator(
+        [...filteredCreatorIds, this.adminUID]
+      ).toPromise();
+
+      const allChallenges = challengesResponse || [];
+
+      if (allChallenges.length === 0) {
+        this.challengeLeaderboards = [];
+        this.filteredChallengeLeaderboards = [];
+        this.isLoading = false;
+        return;
+      }
+
+      // 4- Pour chaque challenge, récupérer le leaderboard via VoteService
+      const leaderboards = await Promise.all(
+        allChallenges.map(async (challenge) => {
+          try {
+            // Vérifier si le challenge est terminé
+            const isCompleted = challenge.is_active === false || 
+                               (challenge.end_date && new Date(challenge.end_date) < new Date());
+
+            // Récupérer le leaderboard pour ce challenge
+            const leaderboardResponse = await this.voteService.getChallengeLeaderboard(
+              challenge.id,
+              20
+            ).toPromise();
+
+            return {
+              challengeId: challenge.id,
+              challengeName: challenge.name,
+              coverImage: challenge.cover_image_url,
+              description: challenge.description,
+              endDate: challenge.end_date,
+              isCompleted: isCompleted,
+              leaderboard: leaderboardResponse?.leaderboard || [],
+              statistics: leaderboardResponse?.statistics || {
+                total_participants: 0,
+                total_votes: 0,
+                average_votes_per_participant: 0
+              }
+            } as ChallengeLeaderboard;
+          } catch (error) {
+            console.error(`Error loading leaderboard for challenge ${challenge.id}:`, error);
             return null;
           }
-          
-          // Grouper par utilisateur et compter les votes
-          const userVotesMap = new Map<string, number>();
-          
-          for (const content of contents) {
-            const votes = await this.voteService.getTotalVotesForContent(content.id || '').toPromise();
-            const currentVotes = userVotesMap.get(content.userId) || 0;
-            userVotesMap.set(content.userId, currentVotes + (votes||0));
-          }
-          
-          // Récupérer les profils des créateurs
-          const artists: Artist[] = [];
-          for (const [userId, totalVotes] of userVotesMap.entries()) {
-            const userProfile = await this.profileService.getProfileById(userId).toPromise();
-            artists.push({
-              id: userId,
-              name: userProfile?.displayName || userProfile?.username || 'Artiste inconnu',
-              imageUrl: userProfile?.avatar || 'assets/icon/avatar-default.png',
-              category: 'Artiste',
-              votes: totalVotes,
-              rank: 0
-            });
-          }
-          
-          // Trier par votes
-          artists.sort((a, b) => b.votes - a.votes);
-          artists.forEach((artist, index) => {
-            artist.rank = index + 1;
-          });
-          
-          return {
-            challengeId: challenge.id,
-            challengeName: challenge.name,
-            coverImage: challenge.cover_image_url,
-            description: challenge.description,
-            artists: artists
-          };
         })
       );
-      
-      // Filtrer les résultats nuls et assigner
-      this.challengeRankings = rankings.filter(r => r !== null) as ChallengeRanking[];
-      
-      // Préparer les données pour l'affichage
-      this.prepareArtistsData();
+
+      // Filtrer les résultats nuls
+      this.challengeLeaderboards = leaderboards.filter(lb => lb !== null) as ChallengeLeaderboard[];
+
+      // Trier : les challenges terminés d'abord, puis par popularité
+      this.challengeLeaderboards.sort((a, b) => {
+        if (a.isCompleted && !b.isCompleted) return -1;
+        if (!a.isCompleted && b.isCompleted) return 1;
+        return b.statistics.total_votes - a.statistics.total_votes;
+      });
+
+      // ✅ Appliquer le filtre
+      this.applyFilter();
+
+      // Préparer les artistes du top global
+      this.prepareGlobalArtists();
+
       this.isLoading = false;
-      
+
     } catch (error) {
       console.error('Error loading ranking data:', error);
       this.isLoading = false;
     }
   }
 
-  private prepareArtistsData() {
-    // Rassembler tous les artistes de tous les défis
-    const artistMap = new Map<string, Artist>();
+  private prepareGlobalArtists() {
+    const artistMap = new Map<string, LeaderboardEntry>();
 
-    this.challengeRankings.forEach(ranking => {
-      ranking.artists.forEach(artist => {
-        if (artistMap.has(artist.id)) {
-          // Si l'artiste existe déjà, additionner les votes
-          const existingArtist = artistMap.get(artist.id)!;
-          existingArtist.votes += artist.votes;
-          // Garder le meilleur rang (le plus bas)
-          if (artist.rank && (!existingArtist.rank || artist.rank < existingArtist.rank!)) {
-            existingArtist.rank = artist.rank;
-          }
+    this.challengeLeaderboards.forEach(challenge => {
+      challenge.leaderboard.forEach(artist => {
+        if (artistMap.has(artist.userId)) {
+          const existing = artistMap.get(artist.userId)!;
+          existing.totalVotes += artist.totalVotes;
+          existing.votesCount += artist.votesCount;
+          existing.averageVotes = Math.round((existing.totalVotes / existing.votesCount) * 100) / 100;
         } else {
-          artistMap.set(artist.id, { ...artist });
+          artistMap.set(artist.userId, { ...artist });
         }
       });
     });
 
-    // Convertir en tableau et trier par votes décroissants
     this.allArtists = Array.from(artistMap.values())
-      .sort((a, b) => b.votes - a.votes);
+      .sort((a, b) => b.totalVotes - a.totalVotes);
 
-    // Mettre à jour les rangs finaux
     this.allArtists.forEach((artist, index) => {
       artist.rank = index + 1;
     });
 
-    // Les 6 premiers pour le top
     this.topArtists = this.allArtists.slice(0, 6);
   }
 
- 
-openSearch() {
-   this.router.navigate(['/search']);
+  async onViewChallenge(challenge: ChallengeLeaderboard) {
+    console.log('View challenge:', challenge.challengeId);
   }
 
-  selectTab(tab: 'votes' | 'dons') {
-    this.selectedTab = tab;
-    console.log("Tab is : ",this.selectedTab);
-    // Implémentez la logique pour l'onglet "dons" si nécessaire
+  async onViewFullLeaderboard(challenge: ChallengeLeaderboard) {
+    const modal = await this.modalCtrl.create({
+      component: ModalRankingComponent,
+      componentProps: { 
+        challenge: challenge,
+        isCompleted: challenge.isCompleted
+      },
+      cssClass: 'auto-height',
+      initialBreakpoint: 0.60,
+      breakpoints: [0, 0.60, 1],
+      handle: true
+    });
+    await modal.present();
   }
 
-  // Gestion des erreurs d'image
+  openSearch() {
+    this.loadRankingData();
+  }
+
   onImageError(event: any) {
-    event.target.src = 'assets/icon/avatar-default.png';
+    event.target.src = 'assets/avatar-default.png';
   }
 
-
-  // Méthode pour afficher les détails d'un défi
-  viewChallengeDetails(challengeId: string) {
-    // Implémentez la navigation vers la page des détails du défi
-    console.log('Voir les détails du défi:', challengeId);
-    // this.router.navigate(['/challenge-details', challengeId]);
+  formatVotes(votes: number): string {
+    if (votes >= 1000000) {
+      return (votes / 1000000).toFixed(1) + 'M';
+    }
+    if (votes >= 1000) {
+      return (votes / 1000).toFixed(1) + 'K';
+    }
+    return votes.toString();
   }
 
-  // Méthode pour afficher le classement complet d'un défi
-  async onViewChallenge(ranking: any) {
-     const modal = await this.modalCtrl.create({
-          component: ModalRankingComponent,
-          componentProps: { ranking: ranking},
-          cssClass: 'auto-height',
-          initialBreakpoint: 0.75,
-          breakpoints: [0, 0.75, 1],
-          handle: true
-        });
-        
-        await modal.present();
+  /**
+   * Calcule le pourcentage de votes d'un artiste par rapport au leader (topArtists[0]).
+   * Utilisé pour animer la barre de progression dans le podium.
+   * Toujours 100% pour le #1, proportionnel pour les autres.
+   */
+  getVotePercent(artist: LeaderboardEntry): number {
+    if (!this.topArtists.length || this.topArtists[0].totalVotes === 0) return 0;
+    const max = this.topArtists[0].totalVotes;
+    return Math.round((artist.totalVotes / max) * 100);
   }
 
-  // Méthode appelée lorsqu'un donateur est sélectionné
-  onViewDonor(donorId: string) {
-    // Implémentez la logique pour afficher les détails du donateur
-    console.log('View donor details:', donorId);
+  getMedalColor(rank: number): string {
+    switch(rank) {
+      case 1: return '#FFD700';
+      case 2: return '#C0C0C0';
+      case 3: return '#CD7F32';
+      default: return '#666';
+    }
+  }
+
+  getMedalIcon(rank: number): string {
+    switch(rank) {
+      case 1: return 'medal-outline';
+      case 2: return 'medal-outline';
+      case 3: return 'medal-outline';
+      default: return 'ribbon-outline';
+    }
   }
 }

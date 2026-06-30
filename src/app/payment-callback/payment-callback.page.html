@@ -1,13 +1,53 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>payment-callback</ion-title>
+    <ion-title>Paiement en cours</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="payment-waiting">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">payment-callback</ion-title>
+      <ion-title size="large">Paiement en cours</ion-title>
     </ion-toolbar>
   </ion-header>
+
+  <div class="container">
+    <!-- Logo/Icon -->
+    <div class="icon-container">
+      <div class="pulse-ring">
+        <ion-icon name="card-outline" class="payment-icon"></ion-icon>
+      </div>
+    </div>
+
+    <!-- Titre -->
+    <h1 class="title">Traitement du paiement</h1>
+
+    <!-- Message principal -->
+    <p class="message">
+      Nous finalisons votre transaction en toute sécurité.
+      <br />
+      Veuillez patienter quelques instants.
+    </p>
+
+    <!-- Spinner élégant -->
+    <div class="spinner-container">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Message de statut -->
+    <p class="status-text">Initialisation du paiement...</p>
+
+    <!-- Bouton de redirection (apparaît après 30s) -->
+    <ion-button
+      #homeButton
+      expand="block"
+      fill="outline"
+      class="home-button"
+      [hidden]="!showHomeButton"
+      (click)="goHome()"
+    >
+      <ion-icon slot="start" name="home-outline"></ion-icon>
+      Retourner à l'accueil
+    </ion-button>
+  </div>
 </ion-content>

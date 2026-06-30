@@ -7,6 +7,7 @@ import { IonModal } from "@ionic/angular/standalone";
   templateUrl: './premium-lock.component.html',
   styleUrls: ['./premium-lock.component.scss'],
   standalone: true,
+  providers: [ModalController],
   imports: [] // Plus besoin d'importer IonModal ici
 })
 export class PremiumLockComponent {

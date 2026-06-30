@@ -428,7 +428,7 @@ export class CreationService {
         // 4. Si c'est le challenge de quelqu'un d'autre :
         // si le post a été publié directement par le compte d'une école,
         // c.userId est égal à l'ID de l'école. On valide si cette école est celle de l'élève connecté.
-        if (userSchoolId && c.userId === userSchoolId) {
+        if (userSchoolId && c.userId === userSchoolId && c.challengeId!=='pending_acceptance') {
           return true;
         }
 

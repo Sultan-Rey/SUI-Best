@@ -1,34 +1,28 @@
 <!-- Header natif HTML - pas de balises Ionic --
-... (inchangé) -->
+... (inchangé)
+ //style="margin-top: calc(10px + env(safe-area-inset-top));"r
+-->
 
 <app-header-component 
-  style="margin-top: calc(10px + env(safe-area-inset-top));"
+ 
   [goBackTarget]="goBackTarget" 
   (goBack)="onGoBack($event)"
   [UserCanPublish] = "currentUserProfile.type!=='fan'"
   [UserIsVerified]="currentUserProfile.allowed_exclusive || false"
   [countUnreadMessages]="countUnreadMessages"
   [activeSegmentIndex]="getActiveSegmentIndex()"
-  (navigationChange)="onNavigationChange($event)">
+  (navigationChange)="onNavigationChange($event)"
+  (currentUserProfile)="onProfileLoaded($event)">
 </app-header-component>
 
 <!-- Contenu Ionic simplifié -->
 <ion-content [fullscreen]="false" class="home-content" #contentRef>
   
+  <div class="ad-overlay" *ngIf="selectedSegment !== 'message'">
+      <app-ad-banner></app-ad-banner>
+    </div>
 
   <div class="content-spacer"></div>
-  
-  <!-- Section Bannières Publicitaires Superposée -->
-  <div class="floating-banner-ad" *ngIf="showBannerAd && hasContent && bannerAds.length > 0 && isOnline">
-    <app-banner-ads 
-      [bannerAds]="bannerAds" 
-      [isLoading]="isLoadingBannerAds" 
-      [hasError]="hasBannerAdsError">
-    </app-banner-ads>
-    <button class="close-banner-btn" (click)="closeBannerAd()">
-      <ion-icon name="close"></ion-icon>
-    </button>
-  </div>
   
   <div class="views-container" [ngSwitch]="selectedSegment"  *ngIf="isOnline || hasCachedData">
     <!-- Affiche les vues même offline - les composants géreront le cache -->

@@ -13,10 +13,12 @@ import { provideFirebaseApp, initializeApp, getApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideStorage, getStorage } from '@angular/fire/storage';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { environment } from './environments/environment.prod';
 
 // ─── AJOUT DE L'IMPORT POUR LE NAVIGATEUR INTERNE ──────────────────
 import { InAppBrowser } from '@awesome-cordova-plugins/in-app-browser/ngx';
+import { ModalController } from '@ionic/angular';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -24,10 +26,12 @@ bootstrapApplication(AppComponent, {
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(),
+    provideAnimationsAsync(),
     importProvidersFrom(IonicStorageModule.forRoot({})),
     
     // ─── ENREGISTREMENT DU PROVIDER INAPPBROWSER ───────────────────
-    InAppBrowser, 
+    InAppBrowser,
+    ModalController, 
 
     provideLottieOptions({
       player: () => player,

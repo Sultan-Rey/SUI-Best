@@ -4,6 +4,7 @@ import { map } from 'rxjs/operators';
 import { ApiJSON } from '../API/api-json';
 import { Pack, PaymentMethod } from '../../interfaces/income.interfaces';
 import { Coupon } from 'src/models/Coupon';
+import { Gift } from 'src/models/Gift';
 
 @Injectable({
   providedIn: 'root',
@@ -11,6 +12,7 @@ import { Coupon } from 'src/models/Coupon';
 export class IncomeService {
   private readonly PACKS_RESOURCE = 'packs';
    private readonly COUPON_RESOURCE = 'coupons';
+   private readonly GIFT_RESOURCE = 'gifts';
   constructor(private api: ApiJSON) {} // ✅ Migration vers notre ApiJSON unifié
 
   
@@ -109,4 +111,17 @@ export class IncomeService {
       message: 'Code promo invalide'
     };
   }
+
+   // ============================================
+  // GIFTS API METHODS
+  // ============================================
+
+  /**
+   * Récupère tous les packs disponibles depuis l'API
+   */
+  getGifts(): Observable<Gift[]> {
+    return this.api.get<Gift[]>(this.GIFT_RESOURCE);
+  }
+
 }
+

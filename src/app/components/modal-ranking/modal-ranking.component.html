@@ -1,61 +1,145 @@
+<!-- Overlay -->
 <div class="modal-overlay" 
-     *ngIf="isVisible" 
-     @overlayFadeInOut
+     [@overlayFadeInOut] 
      (click)="closeModal()">
-  <div class="modal-container" 
-       @modalSlideInOut
-       (click)="$event.stopPropagation()">
-    <!-- Header -->
-    <div class="modal-header">
-      <h2 class="modal-title">{{ title }}</h2>
+</div>
+
+<!-- Modal Content -->
+<div class="modal-container" 
+     [@modalSlideInOut] 
+     (click)="$event.stopPropagation()">
+  
+  <!-- Header -->
+  <div class="modal-header">
+    <div class="header-top">
+      <h2 class="modal-title">
+        🏆 {{ challenge.challengeName || 'Classement' }}
+      </h2>
       <button class="close-btn" (click)="closeModal()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
+        <ion-icon name="close-outline"></ion-icon>
       </button>
     </div>
-
-    <!-- Content -->
-    <div class="modal-content">
-      <div class="ranking-list">
-        <div class="ranking-item" 
-             *ngFor="let artist of sortedArtists; let i = index" 
-             [class.top-three]="i < 3"
-             (click)="showAccount(artist.id)">
-          
-          <!-- Rank -->
-          <div class="rank-badge" 
-               [style.color]="getRankColor(i + 1)"
-               [class.podium]="i < 3">
-            <span class="rank-icon">{{ getRankIcon(i + 1) }}</span>
-          </div>
-
-          <!-- Artist Info -->
-          <div class="artist-info">
-            <img [src]="artist.imageUrl || 'assets/icon/avatar-default.png'" 
-                 [alt]="artist.name"
-                 class="artist-avatar"
-                 (error)="onImageError($event)">
-            <div class="artist-details">
-              <h3 class="artist-name">{{ artist.name }}</h3>
-              <p class="artist-category">{{ artist.category || 'Artiste' }}</p>
-            </div>
-          </div>
-
-          <!-- Votes -->
-          <div class="votes-info">
-            <span class="votes-number">{{ artist.votes | shortNumber }}</span>
-            <span class="votes-label">votes</span>
-          </div>
-        </div>
+    
+    <!-- Statistiques du challenge -->
+    <div class="challenge-stats" *ngIf="challenge.statistics">
+      <div class="stat-item">
+        <span class="stat-icon">👥</span>
+        <span class="stat-value">{{ challenge.statistics.total_participants }}</span>
+        <span class="stat-label">Participants</span>
       </div>
-
-      <!-- Empty State -->
-      <div class="empty-state" *ngIf="!sortedArtists || sortedArtists.length === 0">
-        <div class="empty-icon">📊</div>
-        <p class="empty-text">Aucun artiste dans ce classement</p>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-icon">🗳️</span>
+        <span class="stat-value">{{ challenge.statistics.total_votes | shortNumber }}</span>
+        <span class="stat-label">Votes totaux</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-icon">📊</span>
+        <span class="stat-value">{{ challenge.statistics.average_votes_per_participant | shortNumber }}</span>
+        <span class="stat-label">Moyenne</span>
       </div>
     </div>
+
+    <!-- Badge si challenge terminé -->
+    <div class="challenge-status" *ngIf="isCompleted">
+      <span class="status-badge completed">✅ Challenge terminé</span>
+    </div>
+    <div class="challenge-status" *ngIf="!isCompleted">
+      <span class="status-badge active">⚡ Challenge en cours</span>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="modal-body">
+    <!-- Top 3 Podium -->
+    <div class="podium" *ngIf="sortedLeaderboard.length >= 3">
+      <div class="podium-item second-place" *ngIf="sortedLeaderboard[1]">
+        <div class="podium-avatar-wrapper">
+          <img [src]="sortedLeaderboard[1].userAvatar || 'assets/icon/avatar-default.png'" 
+               (error)="onImageError($event)"
+               class="podium-avatar">
+          <div class="podium-rank">🥈</div>
+        </div>
+        <div class="podium-name">{{ sortedLeaderboard[1].userDisplayName || sortedLeaderboard[1].username }}</div>
+        <div class="podium-votes">{{ sortedLeaderboard[1].totalVotes | shortNumber }} votes</div>
+        <div class="podium-number">2</div>
+      </div>
+
+      <div class="podium-item first-place" *ngIf="sortedLeaderboard[0]">
+        <div class="podium-avatar-wrapper">
+          <img [src]="sortedLeaderboard[0].userAvatar || 'assets/icon/avatar-default.png'" 
+               (error)="onImageError($event)"
+               class="podium-avatar">
+          <div class="podium-rank">🥇</div>
+          <div class="crown">👑</div>
+        </div>
+        <div class="podium-name">{{ sortedLeaderboard[0].userDisplayName || sortedLeaderboard[0].username }}</div>
+        <div class="podium-votes">{{ sortedLeaderboard[0].totalVotes | shortNumber }} votes</div>
+        <div class="podium-number">1</div>
+      </div>
+
+      <div class="podium-item third-place" *ngIf="sortedLeaderboard[2]">
+        <div class="podium-avatar-wrapper">
+          <img [src]="sortedLeaderboard[2].userAvatar || 'assets/icon/avatar-default.png'" 
+               (error)="onImageError($event)"
+               class="podium-avatar">
+          <div class="podium-rank">🥉</div>
+        </div>
+        <div class="podium-name">{{ sortedLeaderboard[2].userDisplayName || sortedLeaderboard[2].username }}</div>
+        <div class="podium-votes">{{ sortedLeaderboard[2].totalVotes | shortNumber }} votes</div>
+        <div class="podium-number">3</div>
+      </div>
+    </div>
+
+    <!-- Liste complète -->
+    <div class="leaderboard-list">
+      <div class="list-header">
+        <span class="col-rank">Rang</span>
+        <span class="col-user">Participant</span>
+        <span class="col-votes">Votes</span>
+        <span class="col-level">Niveau</span>
+      </div>
+
+      <div class="list-item" 
+           *ngFor="let artist of sortedLeaderboard; let i = index"
+           [class.top-3]="i < 3"
+           (click)="showAccount(artist.userId)">
+        
+        <span class="col-rank" [style.color]="getRankColor(i + 1)">
+          {{ getRankIcon(i + 1) }}
+        </span>
+        
+        <div class="col-user">
+          <img [src]="artist.userAvatar || 'assets/icon/avatar-default.png'" 
+               (error)="onImageError($event)"
+               class="avatar">
+          <div class="user-info">
+            <span class="username">{{ artist.userDisplayName || artist.username }}</span>
+            <span class="user-badge" *ngIf="artist.isVerified">
+              <ion-icon name="checkmark-circle" color="primary"></ion-icon>
+            </span>
+          </div>
+        </div>
+        
+        <span class="col-votes">{{ artist.totalVotes | shortNumber }}</span>
+        
+        <span class="col-level">
+          <ion-badge color="warning">Niv. {{ artist.userLevel }}</ion-badge>
+        </span>
+      </div>
+
+      <!-- Message si liste vide -->
+      <div class="empty-list" *ngIf="sortedLeaderboard.length === 0">
+        <p>Aucun participant pour ce classement.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer">
+    <button class="close-modal-btn" (click)="closeModal()">
+      Fermer
+    </button>
   </div>
 </div>

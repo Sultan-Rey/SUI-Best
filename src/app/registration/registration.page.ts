@@ -284,6 +284,7 @@ private verifierInstitutionApresScan(decodedText: string) {
           'Vérification échouée', 
           'Ce code QR ne correspond à aucun établissement partenaire actif ou ses accès ont expiré.'
         );
+        console.log("QR Value : ",decodedText);
         // 4. L'alerte est fermée, on relance proprement la caméra pour un nouvel essai
         //this.stopScanner();
         // Cas où l'ID n'existe pas ou l'accès est expiré/invalide
@@ -297,6 +298,7 @@ private verifierInstitutionApresScan(decodedText: string) {
         'Impossible de joindre le serveur pour valider l\'établissement. Veuillez vérifier votre connexion internet.'
       );
       console.error("Erreur lors de la vérification de l'établissement :", err);
+      console.log("QR Value : ",decodedText);
     }
   });
 }

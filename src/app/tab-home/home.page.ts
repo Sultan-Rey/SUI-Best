@@ -18,7 +18,6 @@ import { HeaderComponentComponent } from '../components/header-component/header-
 import { BottomNavigationComponent } from '../components/bottom-navigation/bottom-navigation.component';
 import { PublicationComponent } from './containers/publication/publication.component';
 import { ChallengeComponent } from './containers/challenge/challenge.component';
-import { BannerAdsComponent } from './containers/banner-ads/banner-ads.component';
 import { isNullOrUndefined } from 'html5-qrcode/esm/core';
 import { MessageService } from 'src/services/Service_message/message-service';
 import { Segment } from 'src/models/Segment';
@@ -28,6 +27,7 @@ import { Platform } from '@ionic/angular';
 import { CreationService } from 'src/services/Service_content/creation-service';
 import { Content } from 'src/models/Content';
 import { ChallengeService } from 'src/services/Service_challenge/challenge-service';
+import { AdBannerComponent } from "../components/ad-banner/ad-banner.component";
 
 @Component({
   selector: 'app-home',
@@ -35,7 +35,7 @@ import { ChallengeService } from 'src/services/Service_challenge/challenge-servi
   styleUrls: ['home.page.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonFooter, 
+  imports: [IonFooter,
     NgIf,
     NgSwitchCase,
     AsyncPipe,
@@ -49,10 +49,8 @@ import { ChallengeService } from 'src/services/Service_challenge/challenge-servi
     PublicationComponent,
     HeaderComponentComponent,
     ChallengeComponent,
-    BannerAdsComponent,
     BottomNavigationComponent, NgSwitch,
-    MediaUrlPipe
-  ]
+    MediaUrlPipe, AdBannerComponent]
 })
 
 export class HomePage implements OnInit, OnDestroy, AfterViewInit {
@@ -67,14 +65,7 @@ export class HomePage implements OnInit, OnDestroy, AfterViewInit {
   navigationExtra!: any;
   goBackTarget!: Segment | undefined;
   
-  // Propriétés pour les bannières publicitaires
-  showBannerAd = false;
-  hasContent = false;
-  private bannerDisplayProbability = 0.3; // 30% de chance d'afficher la bannière
-  private adsLoadProbability = 0.5; // 50% de chance de charger les bannières vs les posts
-  bannerAds: Content[] = [];
-  isLoadingBannerAds = true;
-  hasBannerAdsError = false;
+ 
   
   // Propriété pour l'intervalle de vérification des bannières
   private bannerInterval: any;
@@ -156,6 +147,10 @@ export class HomePage implements OnInit, OnDestroy, AfterViewInit {
     this.cdr.markForCheck();
   }
 
+  onProfileLoaded(profile:UserProfile){
+    this.currentUserProfile  = profile;
+    this.selectedSegment = this.currentUserProfile.myFollows.length > 5 ? 'followed' : 'discovery';
+  }
   // Méthode pour réinitialiser les posts de followed
   private resetFollowedPosts(): void {
     this.args = [];
@@ -171,7 +166,6 @@ export class HomePage implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private router: Router, 
     private authService: Auth,
-    private profileService: ProfileService,
     private messageService: MessageService,
     private challengeService: ChallengeService,
     private cdr: ChangeDetectorRef,
@@ -181,48 +175,19 @@ export class HomePage implements OnInit, OnDestroy, AfterViewInit {
     private platform: Platform,
     private creationService: CreationService
   ) {
-    this.currentUserProfile.stats = {} as {
-      posts: 0;
-      fans: 0;
-      votes: 0;
-      stars: 0;
-    };
-    this.currentUserProfile.myFollows = [];
+    
     addIcons({close,cloudOffline,refresh,sparklesOutline,logoBitcoin,addCircle,trophy,star,person,notificationsOutline,peopleOutline,search});
   }
 
   ngOnInit() {
-  this.selectedSegment = 'discovery';
-  this.setupConnectionListeners();
- 
-  
-  // // Attendre que la plateforme soit prête avant de lancer les vérifications de bannières graphiques
-  this.platform.ready().then(() => {
 
-    // On laisse 2 secondes au DOM initial pour respirer et afficher le layout de base
-    setTimeout(() => {
-       // Charger les publicités avec probabilité (soit bannières, soit posts)
-  const shouldLoadBannerAds = Math.random() < this.adsLoadProbability;
-  if (shouldLoadBannerAds) {
-    this.loadBannerAds();
-  } else {
-    this.loadPostAds();
-  }
-      this.checkBannerDisplay();
-      
-      this.bannerInterval = interval(300000).pipe(
-        takeUntil(this.destroy$)
-      ).subscribe(() => {
-        this.checkBannerDisplay();
-      });
-    }, 2000);
-  });
+  this.selectedSegment = 'discovery';
+ 
 }
 
 ngAfterViewInit() {
     // On initialise le geste une fois que la vue et ses éléments natifs sont prêts
     setTimeout(() => {
-      this.setupAuthSubscription();
       this.unreadMessagesCount();
       this.setupSwipeGesture();
     }, 500);
@@ -289,25 +254,7 @@ ngAfterViewInit() {
   );
 }
 
-  private setupAuthSubscription(): void {
-    this.authService.currentUser$.pipe(
-      takeUntil(this.destroy$),
-      filter(user => !!user),
-      switchMap(user => 
-        this.profileService.getProfileById(user.id.toString())
-      )
-    ).subscribe(profile => {
-      this.currentUserProfile = profile as UserProfile;
-      if(!isNullOrUndefined(this.currentUserProfile)){
-        
-        this.selectedSegment = this.currentUserProfile.myFollows.length > 5 ? 'followed' : 'discovery';
-        // unreadMessagesCount() déjà appelé dans ngOnInit - pas besoin de dupliquer
-        this.cdr.markForCheck();
-      }else{
-        this.isOnline = false;
-      }
-    });
-  }
+
 
   // Gérer le swipe entre les segments
   private setupSwipeGesture(): void {
@@ -346,110 +293,7 @@ ngAfterViewInit() {
     this.selectedSegment = tab;
     this.cdr.markForCheck();
     
-    // Pas de calculs - juste un changement de classe CSS
-    // Les transitions CSS font tout le travail
     
-    // Vérifier si on doit afficher une bannière aléatoirement
-    this.checkBannerDisplay();
-  }
-
-  // Méthode pour vérifier si on doit afficher la bannière
-  private checkBannerDisplay(): void {
-    // Seulement pour discovery et followed
-    if (this.selectedSegment !== 'discovery' && this.selectedSegment !== 'followed') {
-      this.showBannerAd = false;
-      return;
-    }
-    
-    // Vérifier s'il y a du contenu (posts, follows, etc.)
-    this.hasContent = this.checkForContent();
-    
-    // Vérifier s'il y a des publicités disponibles
-    const hasAvailableAds = this.bannerAds && this.bannerAds.length > 0 && !this.isLoadingBannerAds && !this.hasBannerAdsError;
-    
-    if (this.hasContent && hasAvailableAds) {
-      // Affichage aléatoire basé sur la probabilité
-      const random = Math.random();
-      this.showBannerAd = random < this.bannerDisplayProbability;
-    } else {
-      this.showBannerAd = false;
-    }
-    
-    this.cdr.markForCheck();
-  }
-
-  // Méthode pour vérifier s'il y a du contenu à afficher
-  private checkForContent(): boolean {
-    if (!this.currentUserProfile) return false;
-    
-    switch (this.selectedSegment) {
-      case 'discovery':
-        // Toujours du contenu pour discovery (posts publics)
-        return true;
-      case 'followed':
-        // Vérifier s'il y a des follows ou des posts
-        return this.currentUserProfile.myFollows && this.currentUserProfile.myFollows.length > 0;
-      default:
-        return false;
-    }
-  }
-
-  // Méthode pour charger les bannières publicitaires
-  loadBannerAds(): void {
-    this.isLoadingBannerAds = true;
-    this.hasBannerAdsError = false;
-
-    this.creationService.getBannerAdsContents(1, 10).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (ads) => {
-        this.bannerAds = ads;
-        this.isLoadingBannerAds = false;
-        this.checkBannerDisplay(); // Vérifier si on doit afficher la bannière après chargement
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des bannières:', error);
-        this.hasBannerAdsError = true;
-        this.isLoadingBannerAds = false;
-        this.bannerAds = [];
-        this.checkBannerDisplay(); // Mettre à jour l'affichage
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
-  loadPostAds(): void {
-    this.isLoadingBannerAds = true;
-    this.hasBannerAdsError = false;
-
-    this.creationService.getPostAdsContents(1, 10).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (ads) => {
-        this.bannerAds = ads;
-        this.isLoadingBannerAds = false;
-        this.checkBannerDisplay(); // Vérifier si on doit afficher la bannière après chargement
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Erreur lors du chargement des bannières:', error);
-        this.hasBannerAdsError = true;
-        this.isLoadingBannerAds = false;
-        this.bannerAds = [];
-        this.checkBannerDisplay(); // Mettre à jour l'affichage
-        this.cdr.markForCheck();
-      }
-    });
-  }
-  // Méthode pour fermer la bannière manuellement
-  closeBannerAd(): void {
-    this.showBannerAd = false;
-    this.cdr.markForCheck();
-  }
-
-  openNotifications() {
-    this.router.navigate(['/notification']);
   }
 
   goToProfile() {
@@ -477,99 +321,11 @@ ngAfterViewInit() {
     // Vérifier s'il y a des follows en cache (pour le tab followed)
     const hasFollows = this.currentUserProfile?.myFollows && this.currentUserProfile.myFollows.length > 0;
     
-    // Vérifier s'il y a des bannières publicitaires en cache
-    const hasCachedAds = this.bannerAds && this.bannerAds.length > 0;
     
-    // Déterminer si on a suffisamment de données pour fonctionner hors ligne
-    this.hasCachedData = hasUserProfile && (hasFollows || hasCachedAds);
     
-    console.log('Cache check - Profile:', hasUserProfile, 'Follows:', hasFollows, 'Ads:', hasCachedAds, 'Result:', this.hasCachedData);
-  }
+     }
 
-  private setupConnectionListeners() {
-    // Initialiser l'état de connexion
-    this.isOnline = navigator.onLine;
-
-    // Écouter les événements de connexion du navigateur
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-      this.cdr.markForCheck();
-      console.log('Connexion rétablie - Rechargement automatique des données...');
-      this.refreshAllDataOnReconnect();
-    });
-    
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-      this.checkCachedDataAvailability();
-      this.cdr.markForCheck();
-      console.log('Hors ligne - Vérification des données cached...');
-    });
-
-    // Écouter les événements de connexion du service métier
-    this.profileService.connectionError.subscribe((isConnected: boolean) => {
-       this.isOnline = isConnected;
-       this.cdr.markForCheck();
-      
-      // Si la connexion est rétablie via le service, recharger les données
-      if (isConnected) {
-        console.log('Service connexion rétablie - Rechargement automatique des données...');
-        this.refreshAllDataOnReconnect();
-      }
-    });
-    
-  }
-
-  /**
-   * Recharge automatiquement toutes les données quand la connexion est rétablie
-   */
-  private async refreshAllDataOnReconnect() {
-    try {
-      // Afficher un toast pour informer l'utilisateur
-      const toast = await this.toastController.create({
-        message: 'Connexion rétablie - Rechargement des données...',
-        duration: 2000,
-        color: 'success',
-        position: 'top'
-      });
-      await toast.present();
-
-      // Recharger le profil utilisateur
-      if (this.currentUserProfile?.id) {
-        this.profileService.getProfileById(this.currentUserProfile.id).subscribe({
-          next: (profile) => {
-            this.currentUserProfile = profile as UserProfile;
-            this.cdr.markForCheck();
-          },
-          error: (error) => {
-            console.error('Erreur lors du rechargement du profil:', error);
-          }
-        });
-      }
-
-      // Recharger les messages non lu
-this.unreadMessagesCount();
-
-// Recharger UN SEUL type de publicité selon la probabilité pour éviter de surcharger le GPU
-const shouldLoadBannerAds = Math.random() < this.adsLoadProbability;
-if (shouldLoadBannerAds) {
-  this.loadBannerAds();
-} else {
-  this.loadPostAds();
-}
-
-// Notifier les composants enfants de se recharger
-this.cdr.markForCheck();
-
-      // Notifier les composants enfants de se recharger
-      this.cdr.markForCheck();
-
-      console.log('Toutes les données ont été rechargées avec succès');
-    } catch (error) {
-      console.error('Erreur lors du rechargement automatique:', error);
-    }
-  }
-
-async retryConnection(event?: Event) {
+     async retryConnection(event?: Event) {
   if (event) {
     event.preventDefault();
   }
@@ -578,8 +334,6 @@ async retryConnection(event?: Event) {
   if (navigator.onLine) {
     this.isOnline = true;
     
-    // Rafraîchir la page ou recharger les données
-    window.location.reload();
   } else {
     // Montrer un message si toujours hors ligne
     const toast = await this.toastController.create({
@@ -592,6 +346,7 @@ async retryConnection(event?: Event) {
   
   this.cdr.markForCheck();
 }
+ 
 
   ngOnDestroy(): void {
     this.destroy$.next();

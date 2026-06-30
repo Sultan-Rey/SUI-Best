@@ -1,10 +1,27 @@
 <div class="side-actions">
-          <button class="action-button" *ngFor="let action of cachedActions" (click)="action.action()">
-            <div class="action-icon" [class.vote-action]="action.icon === 'vote'" [class.liked]="action.icon === 'heart'">
-              <ion-icon [name]="action.icon" *ngIf="!action.votestatus && !action.gifIcon"></ion-icon>
-              <img [src]="action.votestatus?.voteIcon || getButtonImage(Post, action)" *ngIf="action.votestatus || action.gifIcon">
-            </div>
-            <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
-            <ion-badge [color]="action.votestatus?.voteColor || 'primary'" class="vote-badge" *ngIf="action.votestatus">{{ action.votestatus.voteLabel }}</ion-badge>
-          </button>
+  <button class="action-button" *ngFor="let action of cachedActions" (click)="action.action()"
+    [class.vote-button]="action.icon === 'vote'">
+
+    <!-- Bouton VOTE : carte accentuée avec compteur intégré -->
+    <ng-container *ngIf="action.votestatus; else defaultIcon">
+      <div class="vote-card" [class.voted]="action.votestatus.hasVoted">
+        <div class="pulse-ring"></div>
+        <div class="vote-card__icon">
+          <img [src]="action.votestatus.voteIcon || getButtonImage(Post, action)">
+        </div>
+        <span class="vote-card__count">{{ action.count ?? 0 }}</span>
+        <span class="vote-card__label">{{ action.votestatus.voteLabel }}</span>
+      </div>
+    </ng-container>
+
+    <!-- Tous les autres boutons (gif ou icône normale) -->
+    <ng-template #defaultIcon>
+      <div class="action-icon" [class.liked]="action.icon === 'heart'">
+        <img [src]="getButtonImage(Post, action)" *ngIf="action.gifIcon">
+        <ion-icon [name]="action.icon" *ngIf="!action.gifIcon"></ion-icon>
+      </div>
+      <span class="action-count" *ngIf="action.count !== undefined">{{ action.count }}</span>
+    </ng-template>
+
+  </button>
 </div>

@@ -3,7 +3,9 @@ import { Observable, of, throwError, forkJoin, BehaviorSubject } from 'rxjs';
 import { catchError, map, tap, switchMap, shareReplay, filter } from 'rxjs/operators';
 import { ApiJSON, FilterResult } from '../API/api-json';
 import { Challenge } from '../../models/Challenge';
-import { ParticipantRequest } from 'src/models/ParticipantRequest';
+import { ParticipantRequest } from '../../models/ParticipantRequest';
+import { CreationService } from '../Service_content/creation-service';
+import { ProfileService } from '../Service_profile/profile-service';
 
 @Injectable({
   providedIn: 'root'
@@ -26,9 +28,10 @@ export class ChallengeService {
   pendingRequestsCount$ = this.pendingRequestsCountSubject.asObservable();
   createdChallenge$ = this.createdChallengeSubject.asObservable();
 
-  constructor(private api: ApiJSON) {}
+  constructor(private api: ApiJSON, private contentService: CreationService,
+  private userService: ProfileService) {}
 
-  // ==============================================================
+  // ==============================================================m
   //  CRÉATION DE CHALLENGE
   // ==============================================================
 
@@ -237,24 +240,59 @@ export class ChallengeService {
    * Récupère toutes les demandes en attente pour un challenge spécifique
    */
   getPendingRequestsByChallengeId(challengeId: string): Observable<ParticipantRequest[]> {
-    return this.api.filter<ParticipantRequest>('participant_requests', {
-      filters: {
-        challenge_id: challengeId,
-        status: 'pending'
-      },
-      options: { limit: 100, sort: { created_at: 'asc' } }
-    }).pipe(
-      map((result: FilterResult<ParticipantRequest>) => result.data || []),
-      tap(requests => {
-        this.pendingRequestsSubject.next(requests);
-      }),
-      catchError(err => {
-        console.error('[ChallengeService] getPendingRequestsByChallengeId error:', err);
-        this.pendingRequestsSubject.next([]);
-        return of([]);
-      })
-    );
-  }
+  return this.api.filter<ParticipantRequest>('participant_requests', {
+    filters: {
+      challenge_id: challengeId,
+      status: 'pending'
+    },
+    options: { limit: 100, sort: { created_at: 'asc' } }
+  }).pipe(
+    map((result: FilterResult<ParticipantRequest>) => result.data || []),
+    switchMap((requests: ParticipantRequest[]) => {
+      if (requests.length === 0) {
+        return of([]); // S'il n'y a aucune requête, on s'arrête là
+      }
+
+      // Pour chaque requête, on crée un forkJoin pour récupérer de manière asynchrone le profil et le contenu
+      const hydrationObservables = requests.map(req => {
+        return forkJoin({
+          content: this.contentService.getContentById(req.content_id).pipe(
+            catchError(err => {
+              console.error(`[ChallengeService] Erreur chargement contenu ${req.content_id}:`, err);
+              return of(null); // Sécurité pour ne pas bloquer toute la liste si un contenu est introuvable
+            })
+          ),
+          profile: this.userService.getProfileById(req.user_id).pipe(
+            catchError(err => {
+              console.error(`[ChallengeService] Erreur chargement profil ${req.user_id}:`, err);
+              return of(null);
+            })
+          )
+        }).pipe(
+          map(({ content, profile }) => {
+            // On renvoie l'objet original enrichi de ses relations optionnelles
+            return {
+              ...req,
+              content: content || undefined,
+              userProfile: profile || undefined
+            } as ParticipantRequest;
+          })
+        );
+      });
+
+      // On attend que TOUTES les demandes du challenge soient hydratées
+      return forkJoin(hydrationObservables);
+    }),
+    tap(requests => {
+      this.pendingRequestsSubject.next(requests);
+    }),
+    catchError(err => {
+      console.error('[ChallengeService] getPendingRequestsByChallengeId error:', err);
+      this.pendingRequestsSubject.next([]);
+      return of([]);
+    })
+  );
+}
 
   /**
    * Rafraîchit les requêtes en attente pour un challenge
@@ -270,31 +308,31 @@ export class ChallengeService {
    */
  getPendingRequestsCountFast(creatorId: string): Observable<number> {
   
-  console.debug('[ChallengeService] getPendingRequestsCountFast START', {
-    creatorId
-  });
+  // console.debug('[ChallengeService] getPendingRequestsCountFast START', {
+  //   creatorId
+  // });
 
   return this.getChallengesBySingleCreator(creatorId).pipe(
     tap((challenges: Challenge[]) => {
-      console.debug('[ChallengeService] challenges fetched', {
-        count: challenges?.length ?? 0,
-        challenges
-      });
+      // console.debug('[ChallengeService] challenges fetched', {
+      //   count: challenges?.length ?? 0,
+      //   challenges
+      // });
     }),
 
     switchMap((challenges: Challenge[]) => {
       if (!challenges || challenges.length === 0) {
-        console.debug('[ChallengeService] no challenges found -> returning 0');
+        //console.debug('[ChallengeService] no challenges found -> returning 0');
         this.pendingRequestsCountSubject.next(0);
         return of(0);
       }
 
       const challengeIds = challenges.map(c => c.id);
 
-      console.debug('[ChallengeService] extracted challengeIds', {
-        challengeIds,
-        count: challengeIds.length
-      });
+      // console.debug('[ChallengeService] extracted challengeIds', {
+      //   challengeIds,
+      //   count: challengeIds.length
+      // });
 
       return this.api
         .filter<ParticipantRequest>('participant_requests', {
@@ -308,21 +346,21 @@ export class ChallengeService {
         })
         .pipe(
           tap((result: FilterResult<ParticipantRequest>) => {
-            console.debug('[ChallengeService] API filter response (raw)', result);
+            //console.debug('[ChallengeService] API filter response (raw)', result);
           }),
 
           map((result: FilterResult<ParticipantRequest>) => {
             const total = result?.data.length || 0;
-            console.debug('[ChallengeService] computed pending requests count', {
-              total
-            });
+            //console.debug('[ChallengeService] computed pending requests count', {
+              //total
+            //});
             return total;
           }),
 
           tap(count => {
-            console.debug('[ChallengeService] updating subject with count', {
-              count
-            });
+            //console.debug('[ChallengeService] updating subject with count', {
+              //count
+            //});
             this.pendingRequestsCountSubject.next(count);
           })
         );
@@ -357,21 +395,42 @@ export class ChallengeService {
   /**
    * Accepte une demande de participation
    */
-  acceptParticipantRequest(requestId: string): Observable<ParticipantRequest> {
-    return this.api.update<ParticipantRequest>('participant_requests', requestId, { status: 'approved' }).pipe(
-      tap(updated => {
-        const currentList = this.pendingRequestsSubject.value;
-        this.pendingRequestsSubject.next(currentList.filter(r => r.id !== requestId));
-        const currentCount = this.pendingRequestsCountSubject.value;
-        this.pendingRequestsCountSubject.next(Math.max(0, currentCount - 1));
-      }),
-      shareReplay(1),
-      catchError(err => {
-        console.error('[ChallengeService] acceptParticipantRequest error:', err);
-        return throwError(() => err);
-      })
-    );
+  acceptParticipantRequest(request: ParticipantRequest): Observable<ParticipantRequest> {
+  if (!request.id || !request.content_id) {
+    return throwError(() => new Error('Requête ou Content ID manquant'));
   }
+
+  // 1. On passe d'abord le statut de la requête à 'approved'
+  return this.api.update<ParticipantRequest>('participant_requests', request.id, { status: 'approved' }).pipe(
+    switchMap((updatedRequest) => {
+      // 2. Une fois approuvée, on met à jour le content associé en lui injectant le challenge_id
+      // Note : Adaptez 'this.contentService.update' selon la vraie méthode de votre ContentService
+      return this.contentService.updateContent(request.content_id, { challengeId: request.challenge_id }).pipe(
+        // On utilise map pour s'assurer de bien retourner la 'updatedRequest' au final
+        map(() => updatedRequest),
+        catchError(err => {
+          console.error('[ChallengeService] Erreur lors de la mise à jour du Content, mais la requête a été approuvée:', err);
+          // Optionnel : Vous pouvez décider de bloquer le flux ou de laisser passer la requête approuvée malgré tout
+          return of(updatedRequest);
+        })
+      );
+    }),
+    tap((updatedRequest) => {
+      this.api.clearCache();
+      // 3. Mise à jour des Subjects locaux pour l'UI (uniquement si tout s'est bien passé)
+      const currentList = this.pendingRequestsSubject.value;
+      this.pendingRequestsSubject.next(currentList.filter(r => r.id !== request.id));
+      
+      const currentCount = this.pendingRequestsCountSubject.value;
+      this.pendingRequestsCountSubject.next(Math.max(0, currentCount - 1));
+    }),
+    shareReplay(1),
+    catchError(err => {
+      console.error('[ChallengeService] acceptParticipantRequest error:', err);
+      return throwError(() => err);
+    })
+  );
+}
 
   /**
    * Refuse une demande de participation

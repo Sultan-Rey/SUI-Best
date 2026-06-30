@@ -1,27 +1,30 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { take } from 'rxjs/operators';
 import { IonIcon, IonButton, IonThumbnail, IonBadge, IonAvatar } from "@ionic/angular/standalone";
 import { ToastController, ModalController, LoadingController, ActionSheetController, AlertController } from '@ionic/angular';
-import { Content } from 'src/models/Content';
-import { Challenge } from 'src/models/Challenge';
-import { VoteService } from 'src/services/Service_vote/vote-service';
-import { CouponModalComponent } from 'src/app/components/modal-coupon/coupon-modal.component';
-import { GiftModalComponent } from 'src/app/components/modal-gift/gift-modal.component';
-import { ModalCommentComponent } from 'src/app/components/modal-comment/modal-comment.component';
-import { UserProfile } from 'src/models/User';
+import { Content } from '../../../../../../models/Content';
+import { Challenge, VoteRule } from '../../../../../../models/Challenge';
+import { VoteService } from '../../../../../../services/Service_vote/vote-service';
+import { CouponModalComponent } from '../../../../../../app/components/modal-coupon/coupon-modal.component';
+import { GiftModalComponent } from '../../../../../../app/components/modal-gift/gift-modal.component';
+import { ModalCommentComponent } from '../../../../../../app/components/modal-comment/modal-comment.component';
+import { UserProfile } from '../../../../../../models/User';
 import { Router } from '@angular/router';
 import { NgIf, NgFor } from '@angular/common';
-import { CreationService } from 'src/services/Service_content/creation-service';
-import { CouponModalMode } from 'src/interfaces/coupon.interfaces';
+import { CreationService } from '../../../../../../services/Service_content/creation-service';
+import { CouponModalMode } from '../../../../../../interfaces/coupon.interfaces';
 import { ellipsisHorizontal, chatbubble, share, trashOutline, linkOutline, flagOutline, downloadOutline } from 'ionicons/icons';
 import { addIcons } from 'ionicons';
-import { SystemMessenger } from 'src/services/Service_message/system-messenger';
+import { SystemMessenger } from '../../../../../../services/Service_message/system-messenger';
+import { PremiumService } from '../../../../../../services/Premium/premium-service';
+import { WalletService } from 'src/services/Service_wallet/wallet-service';
 
 @Component({
   selector: 'app-side-actions',
   templateUrl: './side-actions.component.html',
   styleUrls: ['./side-actions.component.scss'],
   providers: [ModalController],
-  imports: [IonIcon, IonBadge, NgIf, NgFor]
+  imports: [IonIcon, NgIf, NgFor]
 })
 export class SideActionsComponent  implements OnInit, OnChanges {
   @Input() Post!: Content;
@@ -31,12 +34,15 @@ export class SideActionsComponent  implements OnInit, OnChanges {
   @Input() HasActiveChallenge!: boolean;
   @Input() CommentCount!: number;
   buttonAction: { [key: string]: string } = {};
-  constructor(private toastController: ToastController, private creationService: CreationService, private sysMsg: SystemMessenger,
-    private modalController: ModalController, private actionSheetController: ActionSheetController, private alertController: AlertController,
-    private voteService: VoteService, private router: Router, private loadingController: LoadingController) { addIcons({ellipsisHorizontal, chatbubble, share, trashOutline, linkOutline, flagOutline, downloadOutline}); }
+  constructor(private toastController: ToastController, private creationService: CreationService, 
+            private sysMsg: SystemMessenger, private modalController: ModalController,  private walletService: WalletService,
+            private actionSheetController: ActionSheetController, private alertController: AlertController,
+            private voteService: VoteService, private router: Router, private loadingController: LoadingController, 
+            private premiumService: PremiumService) { addIcons({ellipsisHorizontal, chatbubble, share, trashOutline, linkOutline, flagOutline, downloadOutline}); }
 
   // ✅ Stocker le résultat calculé
 cachedActions: any[] = [];
+private isVoteModalOpen = false;
 
 // ✅ Icône du vote séparée
 get voteIcon(): string {
@@ -80,15 +86,15 @@ private async buildActions() {
 
         if (canVote) {
           // Logique de vote corrigée
-          if (canVote.canVote && this.Post.isVotedByUser) {
+          if (canVote.canVote && canVote.existingVote) {
             voteStatus.voteLabel = "voter encore";
             voteStatus.voteIcon = "../assets/icon/democracy.png";
             voteStatus.voteColor = "warning";
-          } else if (!canVote.canVote && this.Post.isVotedByUser) {
+          } else if (!canVote.canVote && canVote.existingVote) {
             voteStatus.voteLabel = "Déjà voté";
             voteStatus.voteIcon = "../assets/icon/checked.gif";
             voteStatus.voteColor = "success";
-          } else if (canVote.canVote && !this.Post.isVotedByUser) {
+          } else if (canVote.canVote && !canVote.existingVote) {
             voteStatus.voteLabel = "Votez";
             voteStatus.voteIcon = "../assets/icon/democracy.png";
             voteStatus.voteColor = "danger";
@@ -141,6 +147,8 @@ private async buildActions() {
       
     
       async voteForArtist(post: any) {
+        if (this.isVoteModalOpen) return;
+
         const loading = await this.loadingController.create({
           message: 'Vérification en cours...',
           spinner: 'crescent'
@@ -148,15 +156,27 @@ private async buildActions() {
         
         await loading.present();
         
-        this.voteService.canUserVoteForChallenge(this.CurrentUserProfile?.id, post.id, post.challengeId).subscribe({
+        this.voteService.canUserVoteForChallenge(this.CurrentUserProfile?.id, post.id, post.challengeId)
+          .pipe(take(1))
+          .subscribe({
           next: async (result) => {
             await loading.dismiss();
-            
-            if (result.canVote) {
-              this.openVoteModal(post);
-            } else {
-              this.showToast('Vous avez déjà voté pour ce contenu dans ce défi');
-            }
+           if (result.canVote && result.voteRule === VoteRule.UNLIMITED_VOTES) {
+  // ✅ Unlimited : on peut voter autant qu'on veut
+  this.openVoteModal(post);
+  
+} else if (result.canVote && result.voteRule === VoteRule.ONE_VOTE_PER_USER && !result.hasVotedInChallenge) {
+  // ✅ One vote : pas encore voté dans ce challenge, on peut voter
+  this.openVoteModal(post);
+  
+} else if (result.canVote && result.voteRule === VoteRule.ONE_VOTE_PER_USER && result.hasVotedInChallenge) {
+  // ❌ One vote : déjà voté dans ce challenge (même pour un autre contenu)
+  this.showToast('Vous avez déjà voté pour un contenu dans ce défi');
+  
+} else {
+  // ❌ Déjà voté pour ce contenu spécifique
+  this.showToast('Vous avez déjà voté pour ce contenu');
+}
           },
           error: async (error) => {
             await loading.dismiss();
@@ -168,6 +188,12 @@ private async buildActions() {
       
     
       private async openVoteModal(post: Content) {
+        const hasAccess = await this.premiumService.checkAccessOrLock(
+        this.CurrentUserProfile);
+        if (!hasAccess) return;
+
+        this.isVoteModalOpen = true;
+        
         const modal = await this.modalController.create({
           component: CouponModalComponent,
           cssClass: 'vote-modal',
@@ -188,6 +214,8 @@ private async buildActions() {
     
         await modal.present();
         const { data } = await modal.onWillDismiss();
+
+        this.isVoteModalOpen = false;
         
         if (data && data.success) {
            await this.voteService.getTotalVotesForContent(post.id as string).toPromise().then((votecount)=>{
@@ -202,25 +230,54 @@ private async buildActions() {
       
     
       async giftPost(post: Content) {
-        if(post.userId === this.CurrentUserProfile.id){
-          return;
-        }
-        const modal = await this.modalController.create({
-          component: GiftModalComponent,
-          componentProps: { post },
-          cssClass: 'auto-height',
-          initialBreakpoint: 0.5,
-          breakpoints: [0, 0.5, 1],
-          handle: true
-        });
+       
+    if(post.userId === this.CurrentUserProfile.id){
+      this.showToast("Contactez le support pour recevoir vos cadeaux");
+      return;
+    }
+    //const userBalance = await this.walletService.wallet$.toPromise()
+    const modal = await this.modalController.create({
+      component: GiftModalComponent,
+      componentProps: { 
+        post,
+        currentUser : this.CurrentUserProfile
+      },
+      cssClass: 'auto-height',
+      initialBreakpoint: 0.5,
+      breakpoints: [0, 0.5, 1],
+      handle: true
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onWillDismiss();
     
-        await modal.present();
-    
-        const { data } = await modal.onWillDismiss();
-        if (data?.gift) {
-           this.buildActions();
+    // ✅ Vérifier si un cadeau a été envoyé avec succès
+    if (data?.success && data?.gift) {
+      // ✅ Incrémenter le compteur de cadeaux localement
+      this.Post.giftCount = (this.Post.giftCount || 0) + 1;
+      
+      // ✅ Mettre à jour le post via le service
+      this.creationService['api'].patch('content', this.Post.id as string, {
+        giftCount: this.Post.giftCount
+      }).subscribe({
+        next: () => {
+          //console.log('Gift count updated successfully');
+          this.showToast(`Cadeau "${data.gift.name}" envoyé avec succès ! 🎁`, 'success');
+        },
+        error: (err) => {
+          //console.error('Error updating gift count:', err);
+          // En cas d'erreur, on pourrait recharger le post
+          
         }
-      }
+      });
+
+      
+
+      // ✅ Reconstruire les actions pour mettre à jour l'interface
+      this.buildActions();
+    }
+  }
     
       async openComments(post: Content) {
         if (!this.CurrentUserProfile) {

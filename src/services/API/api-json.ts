@@ -1,5 +1,5 @@
 import { EventEmitter, Injectable } from '@angular/core';
-import { environment } from 'src/environments/environment';
+import { environment } from 'src/environments/environment.prod';
 import {
   HttpClient, HttpEvent, HttpHeaders, HttpParams, HttpErrorResponse
 } from '@angular/common/http';
@@ -74,7 +74,7 @@ export class ApiJSON {
   
   // TTL spécifiques par type de ressource
   private readonly RESOURCE_TTL = {
-    profiles: 3 * 60 * 1000,        // 3 minutes pour les profils
+    profiles: 1 * 60 * 1000,        // 3 minutes pour les profils
     users: 30 * 1000,           // 30 secondes pour les utilisateurs
     contents: 30 * 1000,       // 30 secondes pour les publications
     comments: 2 * 60 * 1000,    // 2 minutes pour les commentaires
@@ -96,17 +96,20 @@ export class ApiJSON {
     window.addEventListener('online', () => {
       this.isOnline = true;
       this.connectionError.emit(true);
-      console.log('🌐 Connexion rétablie');
+      //console.log('🌐 Connexion rétablie');
     });
     
     window.addEventListener('offline', () => {
       this.isOnline = false;
       this.connectionError.emit(false);
-      console.log('📴 Hors ligne - utilisation du cache');
+      //console.log('📴 Hors ligne - utilisation du cache');
     });
     
     // Nettoyage périodique du cache mémoire
     setInterval(() => this.cleanExpiredMemoryCache(), 60_000);
+    
+    // Mise a jour de l'access token
+    setInterval(()=> this.handleTokenRefresh(), 600_000);
     
     // Charger le cache persistant en mémoire au démarrage
     this.loadPersistentCacheToMemory();
@@ -125,17 +128,158 @@ export class ApiJSON {
    * toujours un Bearer token valide reconnu par le middleware PHP.
    */
   getToken(): string {
-    const jwt = localStorage.getItem('access_token');
+    const jwt = localStorage.getItem('best_access_token');
     if (jwt) return jwt;
     return environment.publicToken ?? '';
   }
 
-  protected getAuthHeaders(): HttpHeaders {
+  getRefreshToken():string{
+    const jwt = localStorage.getItem('best_refresh_token');
+    if (jwt) return jwt;
+    return '';
+  }
+
+ // ── Auth ──────────────────────────────────────────────────────────────────
+
+/**
+ * Vérifie si le token est sur le point d'expirer ou a expiré
+ * et le rafraîchit si nécessaire
+ */
+refreshToken(): Observable<string> {
+  const refreshToken = this.getRefreshToken();
+  
+  if (!refreshToken) {
+    console.warn('⚠️ Aucun refresh token disponible');
+    return throwError(() => new Error('No refresh token available'));
+  }
+  
+  return this.http.post<{ access_token: string, refresh_token: string }>(
+    `${this.BASE_URL}/auth/refresh`,
+    { refresh_token: refreshToken },
+    { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
+  ).pipe(
+    tap(response => {
+      if (response.access_token) {
+        localStorage.setItem('best_access_token', response.access_token);
+        console.log('🔄 Token rafraîchi avec succès');
+      }
+      if (response.refresh_token) {
+        localStorage.setItem('best_refresh_token', response.refresh_token);
+        console.log('🔄 RefreshToken rafraîchi avec succès');
+      }
+    }),
+    map(response => response.access_token),
+    catchError(err => {
+      console.error('❌ Échec du rafraîchissement du token:', err);
+      // En cas d'échec, on déconnecte l'utilisateur
+      //this.logout();
+      this.clearCache();
+      return throwError(() => new Error('Token refresh failed'));
+    })
+  );
+}
+
+/**
+ * Déconnecte l'utilisateur en cas d'échec de rafraîchissement
+ */
+// private logout(): void {
+//   localStorage.removeItem('best_access_token');
+//   localStorage.removeItem('best_refresh_token');
+//   // Vous pouvez ajouter une redirection vers la page de login
+//   // window.location.href = '/login';
+// }
+
+/**
+ * Vérifie si le token est sur le point d'expirer
+ * (moins de 5 minutes restantes)
+ */
+private isTokenExpiringSoon(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp * 1000; // Convertir en millisecondes
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    return (exp - now) < fiveMinutes;
+  } catch (e) {
+    return true; // En cas d'erreur, on considère qu'il expire
+  }
+}
+
+/**
+ * Vérifie si le token est expiré
+ */
+private isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp * 1000; // Convertir en millisecondes
+    return Date.now() >= exp;
+  } catch (e) {
+    return true;
+  }
+}
+
+/**
+ * Méthode stratégique pour rafraîchir le token automatiquement
+ * à chaque requête si nécessaire
+ */
+private handleTokenRefresh(): Observable<string> {
+  const token = this.getToken();
+  
+  if (!token) {
+    return throwError(() => new Error('No token available'));
+  }
+
+  // Si le token est expiré, on refresh immédiatement
+  if (this.isTokenExpired(token)) {
+    console.warn('⏰ Token expiré, rafraîchissement en cours...');
+    return this.refreshToken();
+  }
+  
+  // Si le token expire bientôt (dans < 5 min), on refresh en arrière-plan
+  if (this.isTokenExpiringSoon(token)) {
+    console.log('🔄 Token bientôt expiré, rafraîchissement préventif...');
+    return this.refreshToken();
+  }
+  
+  // Token valide, on le retourne
+  return of(token);
+}
+
+/**
+ * Version améliorée de getAuthHeaders avec gestion automatique du refresh
+ */
+protected getAuthHeaders(): HttpHeaders {
+  // On essaie d'abord d'obtenir un token valide
+  const token = this.getToken();
+  
+  // Si pas de token, on retourne des headers sans auth
+  if (!token) {
     return new HttpHeaders({
-      'Authorization': `Bearer ${this.getToken()}`,
       'Content-Type': 'application/json'
     });
   }
+  
+  // Si le token est expiré ou va expirer, on déclenche un refresh
+  // (mais on utilise le token actuel pour ne pas bloquer la requête)
+  if (this.isTokenExpired(token) || this.isTokenExpiringSoon(token)) {
+    console.log('🔄 Token nécessite un refresh, déclenchement asynchrone...');
+    this.refreshToken().subscribe({
+      next: (newToken) => {
+        console.log('✅ Token rafraîchi automatiquement');
+      },
+      error: (err) => {
+        console.error('❌ Échec du refresh automatique:', err);
+      }
+    });
+  }
+  
+  return new HttpHeaders({
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  });
+}
+
+
 
   // ── Cache amélioré ─────────────────────────────────────────────────────────────────
 

@@ -22,7 +22,7 @@
     "skipLibCheck": true,
     "useDefineForClassFields": false,
     "paths": {
-      "src/*": ["src/*"]
+      "src/*": ["./src/*"]
     }
   },
   "angularCompilerOptions": {

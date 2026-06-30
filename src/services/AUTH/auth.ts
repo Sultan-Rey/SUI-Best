@@ -32,21 +32,27 @@ export class Auth {
 
   private readonly STORAGE_KEY = 'best_auth_user';
   private readonly TOKEN_STORAGE_KEY = 'best_access_token';
-  private readonly SETTING_STORAGE_KEY = 'best_user_settings';
-  private readonly WALLET_STORAGE_KEY = 'best_user_wallet_cache';
+  private readonly TOKEN_REFRESH_STORAGE_KEY = 'best_refresh_token';
   private readonly ADMIN_UID_STORAGE_KEY = 'best_admin_uid';
   private readonly MAX_ATTEMPTS = 5;
   private readonly LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
   private loginAttempts = new Map<string, { attempts: number; lastAttempt: number }>();
   private currentUserSubject =
     new BehaviorSubject<AuthUser | null>(this.loadUserFromStorage());
-  
+  private currentProfileSubject = 
+    new BehaviorSubject<UserProfile | null>(null);
   /** Observable public */
   currentUser$: Observable<AuthUser | null> =
     this.currentUserSubject.asObservable();
-
+  currentProfile$: Observable<UserProfile | null> =
+    this.currentProfileSubject.asObservable();
     
-  constructor(private api: ApiJSON, private router: Router, private profileService:ProfileService) {} // ✅ Migration vers notre ApiJSON unifié
+  constructor(private api: ApiJSON, private router: Router, private profileService:ProfileService) {
+    if(!this.getCurrentUser() || this.getCurrentUser() == null) return;
+    this.loadUserProfileFromBackend().then((profile)=>{
+      this.currentProfileSubject.next(profile);
+    })
+  } // ✅ Migration vers notre ApiJSON unifié
 
   private generateUniqueId(): string {
   if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
@@ -330,8 +336,8 @@ private handleSuccessfulLogin(authUser: AuthUser, loginResponse: any): void {
     
     // Sauvegarder dans localStorage
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(safeUserData));
-    localStorage.setItem('access_token', loginResponse.access_token);
-    localStorage.setItem('refresh_token', loginResponse.refresh_token);
+    localStorage.setItem(this.TOKEN_STORAGE_KEY, loginResponse.access_token);
+    localStorage.setItem(this.TOKEN_REFRESH_STORAGE_KEY, loginResponse.refresh_token);
     this.permanentFollows(authUser);
     this.currentUserSubject.next(authUser);
 }
@@ -794,6 +800,15 @@ getAdminUID(): Observable<string> {
   private loadUserFromStorage(): AuthUser | null {
     const raw = localStorage.getItem(this.STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
+  }
+
+  private async loadUserProfileFromBackend(): Promise<UserProfile | null> {
+
+    const raw = await this.profileService.getProfileById(this.getCurrentUser()?.id || '').toPromise();
+    if(raw){
+      return raw;
+    }
+    return null;
   }
 
 

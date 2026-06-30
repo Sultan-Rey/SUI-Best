@@ -49,11 +49,10 @@
 /* ==================== */
 app-header-component {
   display: block; // Assure que le composant se comporte comme un bloc pour appliquer les marges
-  padding-top: calc(10px + env(safe-area-inset-top)); 
+  //padding-top: calc(10px + env(safe-area-inset-top)); 
 }
 .home-content {
   background: var(orbital-primary);
-  --padding-top: 10px;
   --padding-bottom: 0;
   --padding-start: 0;
   --padding-end: 0;
@@ -121,90 +120,6 @@ app-header-component {
   }
 }
 
-/* ==================== */
-/*   BANNIÈRE FLOTTANTE   */
-/* ==================== */
-.floating-banner-ad {
-  position: fixed;
-  top: 30%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  width: 90%;
-  padding-top: 4px;
-  max-width: 400px;
-  max-height: 200px;
-  background: rgba(0, 0, 0, 0.9);
-  border-radius: 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
-  animation: bannerSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  
-  // Responsive
-  @media (max-width: 480px) {
-        max-width: 300px;
-        top: 25%;
-  }
-  
-  @media (min-width: 768px) {
-    width: 100%;
-    max-width: 400px;
-  }
-}
-
-.close-banner-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 10000;
-  
-  ion-icon {
-    font-size: 18px;
-  }
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-  }
-  
-  &:active {
-    transform: scale(0.95);
-  }
-
-   @media (max-width: 480px) {
-        top: -8px;
-        right: -8px;
-  }
-}
-
-@keyframes bannerSlideIn {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
 
 /* ==================== */
 /*      RESPONSIVE      */
@@ -537,4 +452,34 @@ ion-footer {
   background: rgba(255, 153, 0, 0.1);
   border-radius: 16px;
   border: 1px solid rgba(255, 153, 0, 0.2);
+}
+
+
+//ADS
+.ad-overlay {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  max-width: 350px;
+  max-height: 250px;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.3s ease-in-out;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }

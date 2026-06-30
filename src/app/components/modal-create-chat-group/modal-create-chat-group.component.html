@@ -47,7 +47,7 @@
     <ion-searchbar
       [(ngModel)]="searchQuery"
       placeholder="Rechercher…"
-      animated="true">
+      animated="true" [ngModelOptions]="{ standalone: true }">
     </ion-searchbar>
 
     <div class="participants-list">
@@ -67,7 +67,7 @@
         [class.is-selected]="isParticipantSelected(participant.id)"
         (click)="toggleParticipantSelection(participant)">
         <div class="participant-info">
-          <img [src]="participant.avatar || 'assets/avatar-default.png'" [alt]="participant.username">
+          <img [src]="participant.avatar" (error)="onAvatarError($event)" [alt]="participant.username">
           <div class="participant-details">
             <h3>{{ participant.username }}</h3>
             <p>{{ participant.userInfo.first_name || '' }} {{ participant.userInfo.last_name || '' }}</p>
@@ -87,9 +87,10 @@
       <div class="selected-avatars">
         <img
           *ngFor="let p of selectedParticipants.slice(0, 5)"
-          [src]="p.avatar || 'assets/avatar-default.png'"
+          [src]="p.avatar"
           [alt]="p.username"
-          [title]="p.username">
+          [title]="p.username"
+          (error)="onAvatarError($event)" />
         <div *ngIf="selectedParticipants.length > 5" class="more-indicator">
           +{{ selectedParticipants.length - 5 }}
         </div>
@@ -109,7 +110,7 @@
         <label class="avatar-label">Photo</label>
         <div class="avatar-container">
           <div class="avatar-preview" (click)="triggerAvatarInput()">
-            <img *ngIf="groupAvatarPreview" [src]="groupAvatarPreview" alt="Avatar">
+            <img *ngIf="groupAvatarPreview" [src]="groupAvatarPreview" (error)="onAvatarError($event)" alt="Avatar">
             <div *ngIf="!groupAvatarPreview" class="avatar-placeholder">
               <ion-icon name="camera"></ion-icon>
               <span>Ajouter</span>
@@ -163,7 +164,7 @@
             <h5>Groupe privé</h5>
             <p>Seuls les membres invités peuvent rejoindre ce groupe</p>
           </div>
-          <ion-toggle [(ngModel)]="isPrivate"></ion-toggle>
+          <ion-toggle [(ngModel)]="isPrivate" [ngModelOptions]="{ standalone: true }"></ion-toggle>
         </div>
         
         <div class="option-item">
@@ -171,7 +172,7 @@
             <h5>Messages admins uniquement</h5>
             <p>Seuls les administrateurs peuvent envoyer des messages</p>
           </div>
-          <ion-toggle [(ngModel)]="isAdminOnly"></ion-toggle>
+          <ion-toggle [(ngModel)]="isAdminOnly" [ngModelOptions]="{ standalone: true }"></ion-toggle>
         </div>
       </div>
     </form>
@@ -201,7 +202,7 @@
     <div class="final-summary">
       <div class="group-preview">
         <div class="group-avatar">
-          <img *ngIf="groupAvatarPreview" [src]="groupAvatarPreview" alt="Avatar">
+          <img *ngIf="groupAvatarPreview" [src]="groupAvatarPreview" (error)="onAvatarError($event)" alt="Avatar">
           <div *ngIf="!groupAvatarPreview" class="default-avatar">
             <ion-icon name="people"></ion-icon>
           </div>
@@ -232,13 +233,13 @@
         <h4>Participants</h4>
         <div class="participants-grid">
           <div class="participant-card current-user">
-            <img [src]="CurrentUser?.avatar || 'assets/avatar-default.png'" [alt]="CurrentUser?.username">
+            <img [src]="CurrentUser?.avatar" (error)="onAvatarError($event)" [alt]="CurrentUser?.username">
             <span>Vous</span>
           </div>
           <div
             *ngFor="let participant of selectedParticipants"
             class="participant-card">
-            <img [src]="participant.avatar || 'assets/avatar-default.png'" [alt]="participant.username">
+            <img [src]="participant.avatar" (error)="onAvatarError($event)" [alt]="participant.username">
             <span>{{ participant.username }}</span>
           </div>
         </div>

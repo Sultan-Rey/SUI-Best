@@ -1,46 +1,110 @@
 <div class="gift-container">
   <header class="modal-header">
-    <h2>Offrir un cadeau</h2>
-    <div class="user-balance">
+    <h2>🎁 Offrir un cadeau</h2>
+    <div class="user-balance" (click)="refreshBalance()">
       <img src="assets/icon/coin-gold.png" alt="coins">
-      <span>2,450</span>
+      <span>{{ balance() | number }}</span>
+      <ion-icon name="refresh-outline" class="refresh-icon" [class.spinning]="isLoading()"></ion-icon>
     </div>
   </header>
 
-  <nav class="category-tabs">
+  <!-- Categories -->
+  <nav class="category-tabs" *ngIf="hasGifts()">
     <button 
       *ngFor="let cat of ['Tous','Classiques', 'Luxe', 'Épiques']"
-      [class.active]="currentCategory === cat"
+      [class.active]="currentCategory() === cat"
       (click)="setCategory(cat)"
       class="tab-btn">
+      <ion-icon [name]="getCategoryIcon(cat)"></ion-icon>
       {{ cat }}
     </button>
   </nav>
 
-  <div class="gift-grid custom-scrollbar">
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="state-container loading-state">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Chargement des cadeaux...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage() && !isLoading()" class="state-container error-state">
+    <ion-icon name="alert-circle-outline"></ion-icon>
+    <h3>Oups !</h3>
+    <p>{{ errorMessage() }}</p>
+    <button class="btn-retry" (click)="retryLoad()">
+      <ion-icon name="refresh-outline"></ion-icon>
+      Réessayer
+    </button>
+  </div>
+
+  <!-- Global Empty State -->
+  <div *ngIf="!isLoading() && !errorMessage() && !hasGifts()" class="state-container empty-state">
+    <img src="assets/icon/empty-gift.svg" alt="Aucun cadeau" class="empty-image">
+    <h3>Aucun cadeau disponible</h3>
+    <p>Revenez plus tard pour découvrir de nouveaux cadeaux ! 🎁</p>
+  </div>
+
+  <!-- Gift Grid -->
+  <div *ngIf="!isLoading() && !errorMessage() && hasGifts()" class="gift-grid custom-scrollbar">
+    <!-- Empty filtered state -->
+    <div *ngIf="!hasFilteredGifts()" class="state-container empty-filtered-state">
+      <ion-icon name="search-outline"></ion-icon>
+      <p>Aucun cadeau dans la catégorie "{{ currentCategory() }}"</p>
+      <button class="btn-link" (click)="setCategory('Tous')">Voir tous les cadeaux</button>
+    </div>
+
     <div class="gift-card" 
-         *ngFor="let gift of filteredGifts" 
-         [class.selected]="selectedGift?.id === gift.id"
+         *ngFor="let gift of filteredGifts(); trackBy: trackByGiftId" 
+         [class.selected]="selectedGift()?.id === gift.id"
+         [class.disabled]="balance() < gift.price"
          (click)="selectGift(gift)">
       
       <div class="gift-icon-wrapper">
-        <ng-lottie [options]="{ path: gift.lottie, autoplay: true }"></ng-lottie>
+        <ng-lottie 
+          *ngIf="gift.animation" 
+          [options]="{ path: gift.animation, autoplay: true, loop: true }">
+        </ng-lottie>
+      
         
-        <div class="global-badge" *ngIf="gift.is_global">
-          <ion-icon name="globe-outline"></ion-icon>
+        <div class="insufficient-badge" *ngIf="balance() < gift.price">
+          <ion-icon name="lock-closed-outline"></ion-icon>
         </div>
       </div>
 
-      <div class="gift-price">
-        <img src="assets/icon/coin-gold.png" alt="coin">
-        <span>{{ gift.price }}</span>
+      <div class="gift-info">
+        <span class="gift-name">{{ gift.name || 'Cadeau' }}</span>
+        <div class="gift-price">
+          <img src="assets/icon/coin-gold.png" alt="coin">
+          <span>{{ gift.price | number }}</span>
+        </div>
+      </div>
+
+      <div class="gift-check" *ngIf="selectedGift()?.id === gift.id">
+        <ion-icon name="checkmark-circle"></ion-icon>
       </div>
     </div>
   </div>
 
   <footer class="modal-footer">
-    <button class="btn-send" [disabled]="!selectedGift" (click)="sendGift()">
-      Envoyer {{ selectedGift ? selectedGift.price : '' }}
+    <div class="footer-info" *ngIf="selectedGift()">
+      <span class="selected-name">{{ selectedGift()?.name }}</span>
+      <span class="selected-price">
+        <img src="assets/icon/coin-gold.png" alt="coin">
+        {{ selectedGift()?.price | number }}
+      </span>
+    </div>
+    
+    <button class="btn-send" 
+            [disabled]="!canSend()"
+            (click)="sendGift()">
+      <ion-spinner *ngIf="isSending()" name="crescent"></ion-spinner>
+      <span *ngIf="!isSending()">
+        <ion-icon name="gift-outline"></ion-icon>
+        Envoyer
+        <span *ngIf="selectedGift()" class="price-tag">
+          ({{ selectedGift()?.price | number }})
+        </span>
+      </span>
     </button>
   </footer>
 </div>

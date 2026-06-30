@@ -1,5 +1,12 @@
 <!-- default.page.html -->
-<ion-content class="ion-padding">
+ <ion-content *ngIf="!isReady" class="loading-content">
+  <div class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Chargement...</p>
+  </div>
+</ion-content>
+
+<ion-content class="ion-padding" *ngIf="isReady">
   <div class="premium-container">
     
     <!-- Message de succès création compte -->
@@ -46,6 +53,54 @@
         </button>
       </div>
     </div>
+
+    <div *ngIf="isAccountError" class="premium-card error-card">
+  <div class="icon-wrapper error">
+    <ion-icon [src]="closeCircle" class="icon-large"></ion-icon>
+  </div>
+  
+  <h1 class="title">Oups, <span class="highlight-error">{{ errorReason || 'une erreur' }}</span></h1>
+  
+  <p class="subtitle">
+    La création de votre compte a échoué
+  </p>
+
+  <div class="info-row error-row">
+    <ion-icon [src]="mailUnread" class="info-icon"></ion-icon>
+    <div>
+      <div class="info-label">Adresse email</div>
+      <div class="info-value">{{ userEmail || 'Non renseigné' }}</div>
+    </div>
+  </div>
+
+  <div class="info-row error-row">
+    <ion-icon [src]="alertCircle" class="info-icon"></ion-icon>
+    <div>
+      <div class="info-label">Statut</div>
+      <div class="info-value">Échec de création</div>
+    </div>
+  </div>
+
+  <div class="message-box error-box">
+    <p *ngIf="errorMessage">{{ errorMessage }}</p>
+    <p *ngIf="!errorMessage">Un problème est survenu lors de la création de votre compte. 
+    Veuillez réessayer ou contacter le support.</p>
+  </div>
+
+  <div class="action-group">
+    <ion-button expand="block" class="primary-button" (click)="retryCreation()">
+      Réessayer
+    </ion-button>
+
+    <ion-button expand="block" fill="outline" class="secondary-button" (click)="goToHome()">
+      Retour à l'accueil
+    </ion-button>
+
+    <button class="text-link" (click)="contactSupport()">
+      Contacter le support
+    </button>
+  </div>
+</div>
 
     <!-- Message réinitialisation mot de passe -->
     <div *ngIf="isPasswordReset" class="premium-card">
@@ -127,5 +182,31 @@
       </ion-button>
     </div>
 
+    <div *ngIf="isPaymentFailed" class="premium-card">
+      <div class="icon-wrapper error">
+        <ion-icon [src]="closeCircle" class="icon-large"></ion-icon>
+      </div>
+      
+      <h1 class="title">Paiement <span class="highlight-error">échoué</span></h1>
+      
+      <p class="subtitle">
+        Nous n'avons pas pu finaliser votre transaction.
+      </p>
+
+      <div class="message-box error-box">
+        <p>{{ paymentError || 'Une erreur est survenue lors du traitement de votre règlement. Aucun montant n\'a été débité.' }}</p>
+      </div>
+
+      <div class="action-group">
+        <ion-button expand="block" class="primary-button" (click)="retryPayment()">
+          Réessayer le paiement
+        </ion-button>
+
+        <button class="text-link" (click)="goToHome()">
+          Retourner à l'accueil
+        </button>
+      </div>
+    </div>
+    
   </div>
 </ion-content>
