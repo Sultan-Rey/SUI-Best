@@ -299,6 +299,8 @@ ngAfterViewInit() {
   goToProfile() {
     if (this.currentUserProfile?.id) {
       this.router.navigate(['/profile', this.currentUserProfile.id]);
+    }else{
+      this.router.navigate(['/login']);
     }
   }
 

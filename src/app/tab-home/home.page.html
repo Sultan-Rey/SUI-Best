@@ -81,7 +81,7 @@
 </ion-content>
 
 <!-- Floating Avatar Button -->
-<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="currentUserProfile.id && isMobile">
+<div class="floating-avatar-btn"  (click)="goToProfile()" *ngIf="isMobileWeb || isMobile">
   <!-- Affiche même offline pour accès au profil cached -->
   <img 
   [src]="currentUserProfile.avatar | mediaUrl | async" 
