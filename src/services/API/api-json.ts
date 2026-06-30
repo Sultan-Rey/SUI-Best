@@ -172,7 +172,7 @@ refreshToken(): Observable<string> {
     catchError(err => {
       console.error('❌ Échec du rafraîchissement du token:', err);
       // En cas d'échec, on déconnecte l'utilisateur
-      //this.logout();
+      this.logout();
       this.clearCache();
       return throwError(() => new Error('Token refresh failed'));
     })
@@ -182,12 +182,12 @@ refreshToken(): Observable<string> {
 /**
  * Déconnecte l'utilisateur en cas d'échec de rafraîchissement
  */
-// private logout(): void {
-//   localStorage.removeItem('best_access_token');
-//   localStorage.removeItem('best_refresh_token');
-//   // Vous pouvez ajouter une redirection vers la page de login
-//   // window.location.href = '/login';
-// }
+private logout(): void {
+  localStorage.removeItem('best_access_token');
+  localStorage.removeItem('best_refresh_token');
+  // Vous pouvez ajouter une redirection vers la page de login
+  window.location.href = '/login';
+}
 
 /**
  * Vérifie si le token est sur le point d'expirer
